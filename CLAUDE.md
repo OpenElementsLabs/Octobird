@@ -2,7 +2,18 @@
 
 ## Project Overview
 
-Octobird is a GitHub App bot that automates contributor workflows, issue assignment, and team notifications for the Hiero project. Built as a lightweight, self-hosted Java application using Helidon.
+Octobird is a generic GitHub App that provides automation and support for contributors (especially newcomers) to contribute to open-source projects. Built as a lightweight, self-hosted Java application using Helidon.
+
+## Project Goal
+
+The `actions/` folder contains existing GitHub Actions workflows, scripts, and automations imported from another repository (Hiero). These represent the target functionality that Octobird aims to replace. The goal is to migrate this workflow-based automation into a proper, generic GitHub App that:
+
+- Can be installed on any repository
+- Handles contributor workflows (assignment, onboarding, reminders)
+- Replaces scattered GitHub Actions with centralized event-driven handlers
+- Is configurable per repository via `.github/hiero-bot.yml`
+
+The `actions/` folder serves as a **reference for features to implement** as native event handlers in the Java application. See [ROADMAP.md](ROADMAP.md) for the detailed migration plan with all features grouped into 5 phases.
 
 ## Tech Stack
 
@@ -49,7 +60,7 @@ src/main/java/org/hiero/bot/
 src/main/resources/
 └── application.yaml                  # Server port + bot config (app-id, keys)
 
-actions/workflows/                    # GitHub Actions (CI/CD, bot automations)
+actions/                              # Reference workflows from Hiero (to be migrated into handlers)
 ```
 
 ## Architecture
