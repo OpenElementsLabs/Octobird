@@ -11,6 +11,7 @@ import org.kohsuke.github.GitHub;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 
 public class AssignmentLimitHandler implements EventHandler {
 
@@ -22,8 +23,8 @@ public class AssignmentLimitHandler implements EventHandler {
     private final PermissionChecker permissionChecker;
 
     public AssignmentLimitHandler(SpamListLoader spamListLoader, PermissionChecker permissionChecker) {
-        this.spamListLoader = spamListLoader;
-        this.permissionChecker = permissionChecker;
+        this.spamListLoader = Objects.requireNonNull(spamListLoader, "spamListLoader must not be null");
+        this.permissionChecker = Objects.requireNonNull(permissionChecker, "permissionChecker must not be null");
     }
 
     @Override

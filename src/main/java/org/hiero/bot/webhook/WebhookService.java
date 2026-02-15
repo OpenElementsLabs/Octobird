@@ -10,6 +10,7 @@ import org.hiero.bot.auth.GitHubAppAuth;
 import org.hiero.bot.config.BotConfig;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 public class WebhookService implements HttpService {
 
@@ -23,10 +24,10 @@ public class WebhookService implements HttpService {
 
     public WebhookService(WebhookVerifier verifier, EventRouter router,
                           GitHubAppAuth auth, BotConfig botConfig) {
-        this.verifier = verifier;
-        this.router = router;
-        this.auth = auth;
-        this.botConfig = botConfig;
+        this.verifier = Objects.requireNonNull(verifier, "verifier must not be null");
+        this.router = Objects.requireNonNull(router, "router must not be null");
+        this.auth = Objects.requireNonNull(auth, "auth must not be null");
+        this.botConfig = Objects.requireNonNull(botConfig, "botConfig must not be null");
     }
 
     @Override

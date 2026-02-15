@@ -8,6 +8,7 @@ import java.security.PrivateKey;
 import java.security.Signature;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Objects;
 
 class JwtAuthProvider implements AuthorizationProvider {
 
@@ -16,7 +17,7 @@ class JwtAuthProvider implements AuthorizationProvider {
 
     JwtAuthProvider(long appId, PrivateKey privateKey) {
         this.appId = appId;
-        this.privateKey = privateKey;
+        this.privateKey = Objects.requireNonNull(privateKey, "privateKey must not be null");
     }
 
     @Override

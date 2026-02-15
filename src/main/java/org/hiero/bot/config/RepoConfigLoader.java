@@ -9,6 +9,7 @@ import org.kohsuke.github.GitHub;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RepoConfigLoader {
@@ -20,6 +21,8 @@ public class RepoConfigLoader {
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> loadConfig(GitHub gitHub, String repoFullName) {
+        Objects.requireNonNull(gitHub, "gitHub must not be null");
+        Objects.requireNonNull(repoFullName, "repoFullName must not be null");
         return cache.computeIfAbsent(repoFullName, name -> {
             try {
                 GHRepository repo = gitHub.getRepository(name);

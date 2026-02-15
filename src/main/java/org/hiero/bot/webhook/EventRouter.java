@@ -8,9 +8,12 @@ import org.hiero.bot.model.event.WebhookEvent;
 import org.hiero.bot.model.parse.WebhookParser;
 import org.kohsuke.github.GitHub;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class EventRouter {
 
@@ -19,7 +22,9 @@ public class EventRouter {
     private final WebhookParser parser;
 
     public EventRouter(List<EventHandler> handlers, WebhookParser parser) {
-        this.handlers = handlers;
+        Objects.requireNonNull(handlers, "handlers must not be null");
+        Objects.requireNonNull(parser, "parser must not be null");
+        this.handlers = List.copyOf(handlers);
         this.configLoader = new RepoConfigLoader();
         this.parser = parser;
     }
@@ -47,7 +52,7 @@ public class EventRouter {
 
         GitHub gitHub = auth.getInstallationClient(installationId);
 
-        String repoFullName = webhookEvent.repository() != null
+        @Nullable String repoFullName = webhookEvent.repository() != null
                 ? webhookEvent.repository().fullName()
                 : null;
 

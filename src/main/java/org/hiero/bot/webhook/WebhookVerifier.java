@@ -7,6 +7,7 @@ import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.Objects;
 
 public class WebhookVerifier {
 
@@ -16,6 +17,7 @@ public class WebhookVerifier {
     private final byte[] secretKey;
 
     public WebhookVerifier(String secret) {
+        Objects.requireNonNull(secret, "secret must not be null");
         this.secretKey = secret.getBytes(StandardCharsets.UTF_8);
     }
 

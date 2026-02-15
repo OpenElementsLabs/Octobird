@@ -6,6 +6,7 @@ import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -20,7 +21,7 @@ public class GitHubAppAuth {
     private final Map<Long, CachedToken> tokenCache = new ConcurrentHashMap<>();
 
     public GitHubAppAuth(BotConfig config) {
-        this.config = config;
+        this.config = Objects.requireNonNull(config, "config must not be null");
     }
 
     public GitHub getInstallationClient(long installationId) throws IOException {
@@ -70,6 +71,11 @@ public class GitHubAppAuth {
     }
 
     private record CachedToken(String token, Instant expiresAt) {
+        CachedToken {
+            Objects.requireNonNull(token, "token must not be null");
+            Objects.requireNonNull(expiresAt, "expiresAt must not be null");
+        }
+
         boolean isValid() {
             return Instant.now().plusSeconds(60).isBefore(expiresAt);
         }

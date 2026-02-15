@@ -8,6 +8,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -19,6 +20,9 @@ public class SpamListLoader {
     private final ConcurrentHashMap<String, Set<String>> cache = new ConcurrentHashMap<>();
 
     public boolean isSpamUser(GitHub gitHub, String repoFullName, String username) {
+        Objects.requireNonNull(gitHub, "gitHub must not be null");
+        Objects.requireNonNull(repoFullName, "repoFullName must not be null");
+        Objects.requireNonNull(username, "username must not be null");
         Set<String> spamUsers = cache.computeIfAbsent(repoFullName, name -> loadSpamList(gitHub, name));
         return spamUsers.contains(username);
     }
@@ -29,10 +33,10 @@ public class SpamListLoader {
             GHContent content = repo.getFileContent(SPAM_LIST_PATH);
             try (BufferedReader reader = new BufferedReader(
                     new InputStreamReader(content.read(), StandardCharsets.UTF_8))) {
-                return reader.lines()
+                return Set.copyOf(reader.lines()
                         .map(String::trim)
                         .filter(line -> !line.isEmpty() && !line.startsWith("#"))
-                        .collect(Collectors.toSet());
+                        .collect(Collectors.toSet()));
             }
         } catch (IOException e) {
             System.out.println("No spam list found for " + repoFullName + ", treating as empty");
