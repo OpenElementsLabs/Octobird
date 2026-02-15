@@ -1,6 +1,7 @@
 package org.hiero.bot.handler;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import org.hiero.bot.model.event.IssueCommentEvent;
+import org.hiero.bot.model.event.WebhookEvent;
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
@@ -19,16 +20,17 @@ public class AssignCommandHandler implements EventHandler {
     }
 
     @Override
-    public void handle(String event, String action, JsonNode payload, GitHub gitHub,
-                       Map<String, Object> repoConfig) throws IOException {
-        String body = payload.path("comment").path("body").asText("");
-        if (!ASSIGN_PATTERN.matcher(body).find()) {
+    public void handle(WebhookEvent event, GitHub gitHub, Map<String, Object> repoConfig) throws IOException {
+        IssueCommentEvent commentEvent = (IssueCommentEvent) event;
+
+        String body = commentEvent.comment().body();
+        if (body == null || !ASSIGN_PATTERN.matcher(body).find()) {
             return;
         }
 
-        String commenter = payload.path("comment").path("user").path("login").asText();
-        String repoFullName = payload.path("repository").path("full_name").asText();
-        int issueNumber = payload.path("issue").path("number").asInt();
+        String commenter = commentEvent.comment().user().login();
+        String repoFullName = commentEvent.repository().fullName();
+        int issueNumber = commentEvent.issue().number();
 
         GHRepository repo = gitHub.getRepository(repoFullName);
         GHIssue issue = repo.getIssue(issueNumber);

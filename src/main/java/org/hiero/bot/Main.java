@@ -5,9 +5,16 @@ import io.helidon.webserver.WebServer;
 import io.helidon.webserver.http.HttpRouting;
 import org.hiero.bot.auth.GitHubAppAuth;
 import org.hiero.bot.config.BotConfig;
+import org.hiero.bot.config.PermissionChecker;
+import org.hiero.bot.config.SpamListLoader;
 import org.hiero.bot.handler.AssignCommandHandler;
+import org.hiero.bot.handler.AssignmentLimitHandler;
 import org.hiero.bot.handler.EventHandler;
+import org.hiero.bot.handler.UnassignCommandHandler;
+import org.hiero.bot.handler.WorkingCommandHandler;
 import org.hiero.bot.scheduled.ScheduledTaskManager;
+import org.hiero.bot.model.parse.JacksonWebhookParser;
+import org.hiero.bot.model.parse.WebhookParser;
 import org.hiero.bot.webhook.EventRouter;
 import org.hiero.bot.webhook.WebhookService;
 import org.hiero.bot.webhook.WebhookVerifier;
@@ -25,10 +32,17 @@ public final class Main {
         GitHubAppAuth auth = new GitHubAppAuth(botConfig);
         WebhookVerifier verifier = new WebhookVerifier(botConfig.webhookSecret());
 
+        SpamListLoader spamListLoader = new SpamListLoader();
+        PermissionChecker permissionChecker = new PermissionChecker();
+
         List<EventHandler> handlers = List.of(
-                new AssignCommandHandler()
+                new AssignCommandHandler(),
+                new UnassignCommandHandler(),
+                new WorkingCommandHandler(),
+                new AssignmentLimitHandler(spamListLoader, permissionChecker)
         );
-        EventRouter router = new EventRouter(handlers);
+        WebhookParser webhookParser = new JacksonWebhookParser();
+        EventRouter router = new EventRouter(handlers, webhookParser);
         WebhookService webhookService = new WebhookService(verifier, router, auth, botConfig);
 
         ScheduledTaskManager scheduledTaskManager = new ScheduledTaskManager();

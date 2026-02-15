@@ -1,11 +1,11 @@
 package org.hiero.bot.webhook;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hiero.bot.auth.GitHubAppAuth;
 import org.hiero.bot.config.BotConfig;
 import org.hiero.bot.config.RepoConfigLoader;
 import org.hiero.bot.handler.EventHandler;
+import org.hiero.bot.model.event.WebhookEvent;
+import org.hiero.bot.model.parse.WebhookParser;
 import org.kohsuke.github.GitHub;
 
 import java.io.IOException;
@@ -14,23 +14,30 @@ import java.util.Map;
 
 public class EventRouter {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     private final List<EventHandler> handlers;
     private final RepoConfigLoader configLoader;
+    private final WebhookParser parser;
 
-    public EventRouter(List<EventHandler> handlers) {
+    public EventRouter(List<EventHandler> handlers, WebhookParser parser) {
         this.handlers = handlers;
         this.configLoader = new RepoConfigLoader();
+        this.parser = parser;
     }
 
     public void route(String event, String payload, GitHubAppAuth auth, BotConfig botConfig)
             throws IOException {
-        JsonNode node = MAPPER.readTree(payload);
-        String action = node.has("action") ? node.get("action").asText() : "";
+        WebhookEvent webhookEvent;
+        try {
+            webhookEvent = parser.parse(event, payload);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Unsupported event type: " + event + ", skipping");
+            return;
+        }
 
-        long installationId = node.has("installation")
-                ? node.get("installation").get("id").asLong()
+        String action = webhookEvent.action();
+
+        long installationId = webhookEvent.installation() != null
+                ? webhookEvent.installation().id()
                 : 0;
 
         if (installationId == 0) {
@@ -40,8 +47,8 @@ public class EventRouter {
 
         GitHub gitHub = auth.getInstallationClient(installationId);
 
-        String repoFullName = node.has("repository")
-                ? node.get("repository").get("full_name").asText()
+        String repoFullName = webhookEvent.repository() != null
+                ? webhookEvent.repository().fullName()
                 : null;
 
         Map<String, Object> repoConfig = repoFullName != null
@@ -50,7 +57,7 @@ public class EventRouter {
 
         for (EventHandler handler : handlers) {
             if (handler.matches(event, action)) {
-                handler.handle(event, action, node, gitHub, repoConfig);
+                handler.handle(webhookEvent, gitHub, repoConfig);
             }
         }
     }

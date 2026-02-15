@@ -1,0 +1,147 @@
+package org.hiero.bot.handler;
+
+import org.hiero.bot.model.Comment;
+import org.hiero.bot.model.Installation;
+import org.hiero.bot.model.Issue;
+import org.hiero.bot.model.Repository;
+import org.hiero.bot.model.User;
+import org.hiero.bot.model.event.IssueCommentEvent;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.kohsuke.github.GHIssue;
+import org.kohsuke.github.GHIssueComment;
+import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GHUser;
+import org.kohsuke.github.GitHub;
+import org.kohsuke.github.ReactionContent;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class WorkingCommandHandlerTest {
+
+    private WorkingCommandHandler handler;
+
+    @Mock private GitHub gitHub;
+    @Mock private GHRepository repo;
+    @Mock private GHIssue issue;
+
+    @BeforeEach
+    void setUp() {
+        handler = new WorkingCommandHandler();
+    }
+
+    @Test
+    void matchesIssueCommentCreated() {
+        assertTrue(handler.matches("issue_comment", "created"));
+    }
+
+    @Test
+    void doesNotMatchOtherEvents() {
+        assertFalse(handler.matches("issues", "assigned"));
+        assertFalse(handler.matches("issue_comment", "edited"));
+    }
+
+    @Test
+    void ignoresCommentWithoutWorkingCommand() throws IOException {
+        IssueCommentEvent event = buildIssueEvent("just a regular comment", "alice");
+        handler.handle(event, gitHub, Map.of());
+        verifyNoInteractions(gitHub);
+    }
+
+    @Test
+    void ignoresBotComments() throws IOException {
+        IssueCommentEvent event = buildBotEvent("/working", "bot-user");
+        handler.handle(event, gitHub, Map.of());
+        verifyNoInteractions(gitHub);
+    }
+
+    @Test
+    void ignoresNonAssigneeOnIssue() throws IOException {
+        IssueCommentEvent event = buildIssueEvent("/working", "alice");
+
+        when(gitHub.getRepository("owner/repo")).thenReturn(repo);
+        when(repo.getIssue(42)).thenReturn(issue);
+        when(issue.getAssignees()).thenReturn(List.of());
+
+        handler.handle(event, gitHub, Map.of());
+
+        verify(issue, never()).getComments();
+    }
+
+    @Test
+    void reactsWhenAssigneeUsesWorking() throws IOException {
+        IssueCommentEvent event = buildIssueEvent("/working", "alice");
+
+        GHUser assignee = mock(GHUser.class);
+        when(assignee.getLogin()).thenReturn("alice");
+
+        when(gitHub.getRepository("owner/repo")).thenReturn(repo);
+        when(repo.getIssue(42)).thenReturn(issue);
+        when(issue.getAssignees()).thenReturn(List.of(assignee));
+
+        GHIssueComment ghComment = mock(GHIssueComment.class);
+        when(ghComment.getBody()).thenReturn("/working");
+        when(issue.getComments()).thenReturn(List.of(ghComment));
+
+        handler.handle(event, gitHub, Map.of());
+
+        verify(ghComment).createReaction(ReactionContent.EYES);
+    }
+
+    @Test
+    void reactsWhenPrAuthorUsesWorking() throws IOException {
+        IssueCommentEvent event = buildPrEvent("/working", "alice");
+
+        when(gitHub.getRepository("owner/repo")).thenReturn(repo);
+        when(repo.getIssue(42)).thenReturn(issue);
+
+        GHIssueComment ghComment = mock(GHIssueComment.class);
+        when(ghComment.getBody()).thenReturn("/working");
+        when(issue.getComments()).thenReturn(List.of(ghComment));
+
+        handler.handle(event, gitHub, Map.of());
+
+        verify(ghComment).createReaction(ReactionContent.EYES);
+    }
+
+    private IssueCommentEvent buildIssueEvent(String commentBody, String username) {
+        User commentUser = new User(1, username, "User", null, null, false);
+        Comment comment = new Comment(100, commentBody, commentUser, null, null, null, null);
+        Issue modelIssue = new Issue(1, 42, "Test", null, "open", null,
+                new User(2, "someone-else", "User", null, null, false),
+                null, List.of(), List.of(), false, null, false, null, null, null, null);
+        Repository repository = new Repository(1, "repo", "owner/repo", null, false, null, null, null);
+        Installation installation = new Installation(1, 1);
+        return new IssueCommentEvent("created", comment, modelIssue, repository, commentUser, installation);
+    }
+
+    private IssueCommentEvent buildPrEvent(String commentBody, String username) {
+        User commentUser = new User(1, username, "User", null, null, false);
+        Comment comment = new Comment(200, commentBody, commentUser, null, null, null, null);
+        Issue modelIssue = new Issue(1, 42, "Test", null, "open", null,
+                new User(1, username, "User", null, null, false),
+                null, List.of(), List.of(), false, null, true, null, null, null, null);
+        Repository repository = new Repository(1, "repo", "owner/repo", null, false, null, null, null);
+        Installation installation = new Installation(1, 1);
+        return new IssueCommentEvent("created", comment, modelIssue, repository, commentUser, installation);
+    }
+
+    private IssueCommentEvent buildBotEvent(String commentBody, String username) {
+        User commentUser = new User(1, username, "Bot", null, null, false);
+        Comment comment = new Comment(100, commentBody, commentUser, null, null, null, null);
+        Issue modelIssue = new Issue(1, 42, "Test", null, "open", null, null,
+                null, List.of(), List.of(), false, null, false, null, null, null, null);
+        Repository repository = new Repository(1, "repo", "owner/repo", null, false, null, null, null);
+        Installation installation = new Installation(1, 1);
+        return new IssueCommentEvent("created", comment, modelIssue, repository, commentUser, installation);
+    }
+}
