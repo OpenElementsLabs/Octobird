@@ -1,6 +1,8 @@
 package org.hiero.bot.handler;
 
 import org.hiero.bot.model.Comment;
+import org.hiero.bot.model.GitHubAction;
+import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.Installation;
 import org.hiero.bot.model.Issue;
 import org.hiero.bot.model.Repository;
@@ -44,13 +46,13 @@ class UnassignCommandHandlerTest {
 
     @Test
     void matchesIssueCommentCreated() {
-        assertTrue(handler.matches("issue_comment", "created"));
+        assertTrue(handler.matches(GitHubEventType.ISSUE_COMMENT, GitHubAction.CREATED));
     }
 
     @Test
     void doesNotMatchOtherEvents() {
-        assertFalse(handler.matches("issues", "opened"));
-        assertFalse(handler.matches("issue_comment", "deleted"));
+        assertFalse(handler.matches(GitHubEventType.ISSUES, GitHubAction.OPENED));
+        assertFalse(handler.matches(GitHubEventType.ISSUE_COMMENT, GitHubAction.DELETED));
     }
 
     @Test
@@ -185,6 +187,6 @@ class UnassignCommandHandlerTest {
                 null, List.of(), List.of(), false, null, hasPr, null, null, null, null);
         Repository repository = new Repository(1, "repo", "owner/repo", null, false, null, null, null);
         Installation installation = new Installation(1, 1);
-        return new IssueCommentEvent("created", comment, modelIssue, repository, commentUser, installation);
+        return new IssueCommentEvent(GitHubAction.CREATED, comment, modelIssue, repository, commentUser, installation);
     }
 }

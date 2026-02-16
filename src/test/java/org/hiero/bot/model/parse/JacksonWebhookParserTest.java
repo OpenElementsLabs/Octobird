@@ -1,5 +1,7 @@
 package org.hiero.bot.model.parse;
 
+import org.hiero.bot.model.GitHubAction;
+import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssueCommentEvent;
 import org.hiero.bot.model.event.IssuesEvent;
 import org.hiero.bot.model.event.PullRequestEvent;
@@ -82,12 +84,12 @@ class JacksonWebhookParserTest {
                 }
                 """;
 
-        WebhookEvent event = parser.parse("issue_comment", json);
+        WebhookEvent event = parser.parse(GitHubEventType.ISSUE_COMMENT, json);
 
         assertInstanceOf(IssueCommentEvent.class, event);
         IssueCommentEvent ice = (IssueCommentEvent) event;
 
-        assertEquals("created", ice.action());
+        assertEquals(GitHubAction.CREATED, ice.action());
         assertEquals(123, ice.comment().id());
         assertEquals("/assign", ice.comment().body());
         assertEquals("alice", ice.comment().user().login());
@@ -135,7 +137,7 @@ class JacksonWebhookParserTest {
                 }
                 """;
 
-        IssueCommentEvent event = (IssueCommentEvent) parser.parse("issue_comment", json);
+        IssueCommentEvent event = (IssueCommentEvent) parser.parse(GitHubEventType.ISSUE_COMMENT, json);
         assertTrue(event.issue().hasPullRequest());
     }
 
@@ -166,12 +168,12 @@ class JacksonWebhookParserTest {
                 }
                 """;
 
-        WebhookEvent event = parser.parse("issues", json);
+        WebhookEvent event = parser.parse(GitHubEventType.ISSUES, json);
 
         assertInstanceOf(IssuesEvent.class, event);
         IssuesEvent ie = (IssuesEvent) event;
 
-        assertEquals("assigned", ie.action());
+        assertEquals(GitHubAction.ASSIGNED, ie.action());
         assertEquals(5, ie.issue().number());
         assertNotNull(ie.assignee());
         assertEquals("alice", ie.assignee().login());
@@ -204,9 +206,9 @@ class JacksonWebhookParserTest {
                 }
                 """;
 
-        IssuesEvent event = (IssuesEvent) parser.parse("issues", json);
+        IssuesEvent event = (IssuesEvent) parser.parse(GitHubEventType.ISSUES, json);
 
-        assertEquals("labeled", event.action());
+        assertEquals(GitHubAction.LABELED, event.action());
         assertNotNull(event.label());
         assertEquals("enhancement", event.label().name());
         assertNull(event.assignee());
@@ -258,12 +260,12 @@ class JacksonWebhookParserTest {
                 }
                 """;
 
-        WebhookEvent event = parser.parse("pull_request", json);
+        WebhookEvent event = parser.parse(GitHubEventType.PULL_REQUEST, json);
 
         assertInstanceOf(PullRequestEvent.class, event);
         PullRequestEvent pre = (PullRequestEvent) event;
 
-        assertEquals("opened", pre.action());
+        assertEquals(GitHubAction.OPENED, pre.action());
         assertEquals(7, pre.number());
         assertEquals("Add feature", pre.pullRequest().title());
         assertFalse(pre.pullRequest().draft());
@@ -286,13 +288,13 @@ class JacksonWebhookParserTest {
     @Test
     void throwsOnUnsupportedEventType() {
         assertThrows(IllegalArgumentException.class,
-                () -> parser.parse("push", "{}"));
+                () -> GitHubEventType.fromWebhookName("push"));
     }
 
     @Test
     void throwsOnInvalidJson() {
         assertThrows(IllegalArgumentException.class,
-                () -> parser.parse("issue_comment", "not json"));
+                () -> parser.parse(GitHubEventType.ISSUE_COMMENT, "not json"));
     }
 
     @Test
@@ -313,7 +315,7 @@ class JacksonWebhookParserTest {
                 }
                 """;
 
-        IssuesEvent event = (IssuesEvent) parser.parse("issues", json);
+        IssuesEvent event = (IssuesEvent) parser.parse(GitHubEventType.ISSUES, json);
 
         assertNull(event.assignee());
         assertNull(event.label());

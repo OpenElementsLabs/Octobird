@@ -1,5 +1,6 @@
 package org.hiero.bot.model.event;
 
+import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.Installation;
 import org.hiero.bot.model.Repository;
 import org.hiero.bot.model.User;
@@ -21,9 +22,9 @@ import org.jspecify.annotations.Nullable;
 public sealed interface WebhookEvent permits IssueCommentEvent, IssuesEvent, PullRequestEvent {
 
     /**
-     * The action that was performed (e.g. {@code "created"}, {@code "opened"}, {@code "assigned"}).
+     * The action that was performed (e.g. {@code CREATED}, {@code OPENED}, {@code ASSIGNED}).
      */
-    String action();
+    GitHubAction action();
 
     /**
      * The repository where the event occurred, may be {@code null} for organization-level events.

@@ -2,8 +2,9 @@ package org.hiero.bot.handler;
 
 import org.hiero.bot.config.PermissionChecker;
 import org.hiero.bot.config.SpamListLoader;
+import org.hiero.bot.model.GitHubAction;
+import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssuesEvent;
-import org.hiero.bot.model.event.WebhookEvent;
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHLabel;
 import org.kohsuke.github.GHRepository;
@@ -13,7 +14,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 
-public class AssignmentLimitHandler implements EventHandler {
+public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
 
     private static final String GOOD_FIRST_ISSUE_LABEL = "Good First Issue";
     private static final int SPAM_USER_MAX_ASSIGNMENTS = 1;
@@ -28,13 +29,17 @@ public class AssignmentLimitHandler implements EventHandler {
     }
 
     @Override
-    public boolean matches(String event, String action) {
-        return "issues".equals(event) && "assigned".equals(action);
+    public Class<IssuesEvent> eventType() {
+        return IssuesEvent.class;
     }
 
     @Override
-    public void handle(WebhookEvent event, GitHub gitHub, Map<String, Object> repoConfig) throws IOException {
-        IssuesEvent issuesEvent = (IssuesEvent) event;
+    public boolean matches(GitHubEventType event, GitHubAction action) {
+        return event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED;
+    }
+
+    @Override
+    public void handle(IssuesEvent issuesEvent, GitHub gitHub, Map<String, Object> repoConfig) throws IOException {
 
         String assignee = issuesEvent.assignee() != null ? issuesEvent.assignee().login() : "";
         if (assignee.isEmpty()) {

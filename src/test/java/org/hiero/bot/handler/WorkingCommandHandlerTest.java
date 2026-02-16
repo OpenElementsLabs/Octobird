@@ -1,6 +1,8 @@
 package org.hiero.bot.handler;
 
 import org.hiero.bot.model.Comment;
+import org.hiero.bot.model.GitHubAction;
+import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.Installation;
 import org.hiero.bot.model.Issue;
 import org.hiero.bot.model.Repository;
@@ -41,13 +43,13 @@ class WorkingCommandHandlerTest {
 
     @Test
     void matchesIssueCommentCreated() {
-        assertTrue(handler.matches("issue_comment", "created"));
+        assertTrue(handler.matches(GitHubEventType.ISSUE_COMMENT, GitHubAction.CREATED));
     }
 
     @Test
     void doesNotMatchOtherEvents() {
-        assertFalse(handler.matches("issues", "assigned"));
-        assertFalse(handler.matches("issue_comment", "edited"));
+        assertFalse(handler.matches(GitHubEventType.ISSUES, GitHubAction.ASSIGNED));
+        assertFalse(handler.matches(GitHubEventType.ISSUE_COMMENT, GitHubAction.EDITED));
     }
 
     @Test
@@ -121,7 +123,7 @@ class WorkingCommandHandlerTest {
                 null, List.of(), List.of(), false, null, false, null, null, null, null);
         Repository repository = new Repository(1, "repo", "owner/repo", null, false, null, null, null);
         Installation installation = new Installation(1, 1);
-        return new IssueCommentEvent("created", comment, modelIssue, repository, commentUser, installation);
+        return new IssueCommentEvent(GitHubAction.CREATED, comment, modelIssue, repository, commentUser, installation);
     }
 
     private IssueCommentEvent buildPrEvent(String commentBody, String username) {
@@ -132,7 +134,7 @@ class WorkingCommandHandlerTest {
                 null, List.of(), List.of(), false, null, true, null, null, null, null);
         Repository repository = new Repository(1, "repo", "owner/repo", null, false, null, null, null);
         Installation installation = new Installation(1, 1);
-        return new IssueCommentEvent("created", comment, modelIssue, repository, commentUser, installation);
+        return new IssueCommentEvent(GitHubAction.CREATED, comment, modelIssue, repository, commentUser, installation);
     }
 
     private IssueCommentEvent buildBotEvent(String commentBody, String username) {
@@ -142,6 +144,6 @@ class WorkingCommandHandlerTest {
                 null, List.of(), List.of(), false, null, false, null, null, null, null);
         Repository repository = new Repository(1, "repo", "owner/repo", null, false, null, null, null);
         Installation installation = new Installation(1, 1);
-        return new IssueCommentEvent("created", comment, modelIssue, repository, commentUser, installation);
+        return new IssueCommentEvent(GitHubAction.CREATED, comment, modelIssue, repository, commentUser, installation);
     }
 }

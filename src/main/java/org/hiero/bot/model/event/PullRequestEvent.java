@@ -1,5 +1,6 @@
 package org.hiero.bot.model.event;
 
+import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.Installation;
 import org.hiero.bot.model.PullRequest;
 import org.hiero.bot.model.Repository;
@@ -12,7 +13,7 @@ import java.util.Objects;
  * Payload for the {@code pull_request} webhook event, triggered when a pull request is opened,
  * closed, merged, synchronised, review-requested, etc.
  *
- * @param action       the action performed (e.g. {@code "opened"}, {@code "closed"}, {@code "synchronize"})
+ * @param action       the action performed (e.g. {@code OPENED}, {@code CLOSED}, {@code SYNCHRONIZE})
  * @param number       the pull request number
  * @param pullRequest  the pull request that triggered the event
  * @param repository   the repository where the event occurred, may be {@code null}
@@ -20,7 +21,7 @@ import java.util.Objects;
  * @param installation the GitHub App installation, may be {@code null}
  * @see <a href="https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request">GitHub Webhooks &ndash; pull_request event</a>
  */
-public record PullRequestEvent(String action, int number, PullRequest pullRequest, @Nullable Repository repository,
+public record PullRequestEvent(GitHubAction action, int number, PullRequest pullRequest, @Nullable Repository repository,
                                 User sender, @Nullable Installation installation) implements WebhookEvent {
 
     public PullRequestEvent {

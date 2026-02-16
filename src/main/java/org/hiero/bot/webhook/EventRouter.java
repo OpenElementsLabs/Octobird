@@ -4,6 +4,7 @@ import org.hiero.bot.auth.GitHubAppAuth;
 import org.hiero.bot.config.BotConfig;
 import org.hiero.bot.config.RepoConfigLoader;
 import org.hiero.bot.handler.EventHandler;
+import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.WebhookEvent;
 import org.hiero.bot.model.parse.WebhookParser;
 import org.kohsuke.github.GitHub;
@@ -17,11 +18,11 @@ import java.util.Objects;
 
 public class EventRouter {
 
-    private final List<EventHandler> handlers;
+    private final List<EventHandler<?>> handlers;
     private final RepoConfigLoader configLoader;
     private final WebhookParser parser;
 
-    public EventRouter(List<EventHandler> handlers, WebhookParser parser) {
+    public EventRouter(List<EventHandler<?>> handlers, WebhookParser parser) {
         Objects.requireNonNull(handlers, "handlers must not be null");
         Objects.requireNonNull(parser, "parser must not be null");
         this.handlers = List.copyOf(handlers);
@@ -31,15 +32,21 @@ public class EventRouter {
 
     public void route(String event, String payload, GitHubAppAuth auth, BotConfig botConfig)
             throws IOException {
-        WebhookEvent webhookEvent;
+        GitHubEventType eventType;
         try {
-            webhookEvent = parser.parse(event, payload);
+            eventType = GitHubEventType.fromWebhookName(event);
         } catch (IllegalArgumentException e) {
             System.out.println("Unsupported event type: " + event + ", skipping");
             return;
         }
 
-        String action = webhookEvent.action();
+        WebhookEvent webhookEvent;
+        try {
+            webhookEvent = parser.parse(eventType, payload);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Failed to parse event: " + event + ", skipping: " + e.getMessage());
+            return;
+        }
 
         long installationId = webhookEvent.installation() != null
                 ? webhookEvent.installation().id()
@@ -60,10 +67,22 @@ public class EventRouter {
                 ? configLoader.loadConfig(gitHub, repoFullName)
                 : Map.of();
 
-        for (EventHandler handler : handlers) {
-            if (handler.matches(event, action)) {
-                handler.handle(webhookEvent, gitHub, repoConfig);
+        for (EventHandler<?> handler : handlers) {
+            if (handler.matches(eventType, webhookEvent.action())) {
+                invokeHandler(handler, webhookEvent, gitHub, repoConfig);
             }
         }
+    }
+
+    private <T extends WebhookEvent> void invokeHandler(
+            EventHandler<T> handler, WebhookEvent event,
+            GitHub gitHub, Map<String, Object> repoConfig) throws IOException {
+        Class<T> type = handler.eventType();
+        if (!type.isInstance(event)) {
+            System.out.println("Event type mismatch: handler expects " + type.getSimpleName()
+                    + " but got " + event.getClass().getSimpleName() + ", skipping");
+            return;
+        }
+        handler.handle(type.cast(event), gitHub, repoConfig);
     }
 }

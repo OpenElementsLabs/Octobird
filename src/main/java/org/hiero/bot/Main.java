@@ -35,7 +35,7 @@ public final class Main {
         SpamListLoader spamListLoader = new SpamListLoader();
         PermissionChecker permissionChecker = new PermissionChecker();
 
-        List<EventHandler> handlers = List.of(
+        List<EventHandler<?>> handlers = List.of(
                 new AssignCommandHandler(),
                 new UnassignCommandHandler(),
                 new WorkingCommandHandler(),

@@ -2,6 +2,8 @@ package org.hiero.bot.handler;
 
 import org.hiero.bot.config.PermissionChecker;
 import org.hiero.bot.config.SpamListLoader;
+import org.hiero.bot.model.GitHubAction;
+import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.Installation;
 import org.hiero.bot.model.Issue;
 import org.hiero.bot.model.Repository;
@@ -48,13 +50,13 @@ class AssignmentLimitHandlerTest {
 
     @Test
     void matchesIssuesAssigned() {
-        assertTrue(handler.matches("issues", "assigned"));
+        assertTrue(handler.matches(GitHubEventType.ISSUES, GitHubAction.ASSIGNED));
     }
 
     @Test
     void doesNotMatchOtherEvents() {
-        assertFalse(handler.matches("issues", "opened"));
-        assertFalse(handler.matches("issue_comment", "created"));
+        assertFalse(handler.matches(GitHubEventType.ISSUES, GitHubAction.OPENED));
+        assertFalse(handler.matches(GitHubEventType.ISSUE_COMMENT, GitHubAction.CREATED));
     }
 
     @Test
@@ -198,6 +200,6 @@ class AssignmentLimitHandlerTest {
                 null, List.of(), List.of(), false, null, false, null, null, null, null);
         Repository repository = new Repository(1, "repo", "owner/repo", null, false, null, null, null);
         Installation installation = new Installation(1, 1);
-        return new IssuesEvent("assigned", modelIssue, assigneeModel, null, repository, assigneeModel, installation);
+        return new IssuesEvent(GitHubAction.ASSIGNED, modelIssue, assigneeModel, null, repository, assigneeModel, installation);
     }
 }

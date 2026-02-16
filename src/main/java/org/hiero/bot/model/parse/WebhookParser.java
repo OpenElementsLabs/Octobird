@@ -1,5 +1,6 @@
 package org.hiero.bot.model.parse;
 
+import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.WebhookEvent;
 
 /**
@@ -16,10 +17,10 @@ public interface WebhookParser {
     /**
      * Parses a webhook payload into the corresponding {@link WebhookEvent} subtype.
      *
-     * @param eventType the value of the {@code X-GitHub-Event} header (e.g. {@code "issues"}, {@code "issue_comment"})
+     * @param eventType the GitHub event type from the {@code X-GitHub-Event} header
      * @param payload   the raw JSON body of the webhook delivery
      * @return a typed event record
-     * @throws IllegalArgumentException if the event type is unsupported or the payload cannot be parsed
+     * @throws IllegalArgumentException if the payload cannot be parsed
      */
-    WebhookEvent parse(String eventType, String payload);
+    WebhookEvent parse(GitHubEventType eventType, String payload);
 }

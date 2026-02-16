@@ -1,7 +1,8 @@
 package org.hiero.bot.handler;
 
+import org.hiero.bot.model.GitHubAction;
+import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssueCommentEvent;
-import org.hiero.bot.model.event.WebhookEvent;
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHIssueComment;
 import org.kohsuke.github.GHRepository;
@@ -13,18 +14,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-public class WorkingCommandHandler implements EventHandler {
+public class WorkingCommandHandler implements EventHandler<IssueCommentEvent> {
 
     private static final Pattern WORKING_PATTERN = Pattern.compile("(^|\\s)/working(\\s|$)", Pattern.CASE_INSENSITIVE);
 
     @Override
-    public boolean matches(String event, String action) {
-        return "issue_comment".equals(event) && "created".equals(action);
+    public Class<IssueCommentEvent> eventType() {
+        return IssueCommentEvent.class;
     }
 
     @Override
-    public void handle(WebhookEvent event, GitHub gitHub, Map<String, Object> repoConfig) throws IOException {
-        IssueCommentEvent commentEvent = (IssueCommentEvent) event;
+    public boolean matches(GitHubEventType event, GitHubAction action) {
+        return event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED;
+    }
+
+    @Override
+    public void handle(IssueCommentEvent commentEvent, GitHub gitHub, Map<String, Object> repoConfig) throws IOException {
 
         // Skip bots
         if ("Bot".equals(commentEvent.comment().user().type())) {

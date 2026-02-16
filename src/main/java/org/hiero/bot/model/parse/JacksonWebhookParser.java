@@ -3,6 +3,8 @@ package org.hiero.bot.model.parse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hiero.bot.model.Comment;
+import org.hiero.bot.model.GitHubAction;
+import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.Installation;
 import org.hiero.bot.model.Issue;
 import org.hiero.bot.model.Label;
@@ -30,14 +32,14 @@ public class JacksonWebhookParser implements WebhookParser {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Override
-    public WebhookEvent parse(String eventType, String payload) {
+    public WebhookEvent parse(GitHubEventType eventType, String payload) {
         try {
             JsonNode root = MAPPER.readTree(payload);
+            GitHubAction action = GitHubAction.fromWebhookName(text(root, "action"));
             return switch (eventType) {
-                case "issue_comment" -> parseIssueCommentEvent(root);
-                case "issues" -> parseIssuesEvent(root);
-                case "pull_request" -> parsePullRequestEvent(root);
-                default -> throw new IllegalArgumentException("Unsupported event type: " + eventType);
+                case ISSUE_COMMENT -> parseIssueCommentEvent(root, action);
+                case ISSUES -> parseIssuesEvent(root, action);
+                case PULL_REQUEST -> parsePullRequestEvent(root, action);
             };
         } catch (IllegalArgumentException e) {
             throw e;
@@ -46,9 +48,9 @@ public class JacksonWebhookParser implements WebhookParser {
         }
     }
 
-    private IssueCommentEvent parseIssueCommentEvent(JsonNode root) {
+    private IssueCommentEvent parseIssueCommentEvent(JsonNode root, GitHubAction action) {
         return new IssueCommentEvent(
-                text(root, "action"),
+                action,
                 parseComment(root.path("comment")),
                 parseIssue(root.path("issue")),
                 parseRepository(root.path("repository")),
@@ -57,11 +59,11 @@ public class JacksonWebhookParser implements WebhookParser {
         );
     }
 
-    private IssuesEvent parseIssuesEvent(JsonNode root) {
+    private IssuesEvent parseIssuesEvent(JsonNode root, GitHubAction action) {
         JsonNode assigneeNode = root.path("assignee");
         JsonNode labelNode = root.path("label");
         return new IssuesEvent(
-                text(root, "action"),
+                action,
                 parseIssue(root.path("issue")),
                 assigneeNode.isMissingNode() || assigneeNode.isNull() ? null : parseUser(assigneeNode),
                 labelNode.isMissingNode() || labelNode.isNull() ? null : parseLabel(labelNode),
@@ -71,9 +73,9 @@ public class JacksonWebhookParser implements WebhookParser {
         );
     }
 
-    private PullRequestEvent parsePullRequestEvent(JsonNode root) {
+    private PullRequestEvent parsePullRequestEvent(JsonNode root, GitHubAction action) {
         return new PullRequestEvent(
-                text(root, "action"),
+                action,
                 root.path("number").asInt(),
                 parsePullRequest(root.path("pull_request")),
                 parseRepository(root.path("repository")),

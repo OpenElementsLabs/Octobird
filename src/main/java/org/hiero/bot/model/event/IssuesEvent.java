@@ -1,5 +1,6 @@
 package org.hiero.bot.model.event;
 
+import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.Installation;
 import org.hiero.bot.model.Issue;
 import org.hiero.bot.model.Label;
@@ -13,7 +14,7 @@ import java.util.Objects;
  * Payload for the {@code issues} webhook event, triggered when an issue is opened, edited,
  * deleted, assigned, unassigned, labeled, unlabeled, etc.
  *
- * @param action       the action performed (e.g. {@code "opened"}, {@code "assigned"}, {@code "labeled"})
+ * @param action       the action performed (e.g. {@code OPENED}, {@code ASSIGNED}, {@code LABELED})
  * @param issue        the issue that triggered the event
  * @param assignee     the user that was assigned or unassigned, {@code null} for non-assignment actions
  * @param label        the label that was added or removed, {@code null} for non-label actions
@@ -22,7 +23,7 @@ import java.util.Objects;
  * @param installation the GitHub App installation, may be {@code null}
  * @see <a href="https://docs.github.com/en/webhooks/webhook-events-and-payloads#issues">GitHub Webhooks &ndash; issues event</a>
  */
-public record IssuesEvent(String action, Issue issue, @Nullable User assignee, @Nullable Label label,
+public record IssuesEvent(GitHubAction action, Issue issue, @Nullable User assignee, @Nullable Label label,
                            @Nullable Repository repository, User sender,
                            @Nullable Installation installation) implements WebhookEvent {
 

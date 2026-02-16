@@ -1,7 +1,8 @@
 package org.hiero.bot.handler;
 
+import org.hiero.bot.model.GitHubAction;
+import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssueCommentEvent;
-import org.hiero.bot.model.event.WebhookEvent;
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
@@ -10,18 +11,22 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-public class AssignCommandHandler implements EventHandler {
+public class AssignCommandHandler implements EventHandler<IssueCommentEvent> {
 
     private static final Pattern ASSIGN_PATTERN = Pattern.compile("/assign\\b");
 
     @Override
-    public boolean matches(String event, String action) {
-        return "issue_comment".equals(event) && "created".equals(action);
+    public Class<IssueCommentEvent> eventType() {
+        return IssueCommentEvent.class;
     }
 
     @Override
-    public void handle(WebhookEvent event, GitHub gitHub, Map<String, Object> repoConfig) throws IOException {
-        IssueCommentEvent commentEvent = (IssueCommentEvent) event;
+    public boolean matches(GitHubEventType event, GitHubAction action) {
+        return event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED;
+    }
+
+    @Override
+    public void handle(IssueCommentEvent commentEvent, GitHub gitHub, Map<String, Object> repoConfig) throws IOException {
 
         String body = commentEvent.comment().body();
         if (body == null || !ASSIGN_PATTERN.matcher(body).find()) {
