@@ -21,7 +21,7 @@ public enum GitHubAction {
 
     private final String webhookName;
 
-    GitHubAction(String webhookName) {
+    GitHubAction(final String webhookName) {
         this.webhookName = webhookName;
     }
 
@@ -39,9 +39,9 @@ public enum GitHubAction {
      * @return the matching enum constant
      * @throws IllegalArgumentException if the action is not supported
      */
-    public static GitHubAction fromWebhookName(String webhookName) {
+    public static GitHubAction fromWebhookName(final String webhookName) {
         Objects.requireNonNull(webhookName, "webhookName must not be null");
-        for (GitHubAction action : values()) {
+        for (final GitHubAction action : values()) {
             if (action.webhookName.equals(webhookName)) {
                 return action;
             }

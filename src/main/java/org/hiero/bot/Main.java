@@ -31,31 +31,31 @@ public final class Main {
     private Main() {
     }
 
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
 
-        Config config = Config.create();
-        BotConfig botConfig = BotConfig.fromConfig(config.get("bot"));
-        GitHubAppAuth auth = new GitHubAppAuth(botConfig);
-        WebhookVerifier verifier = new WebhookVerifier(botConfig.webhookSecret());
+        final Config config = Config.create();
+        final BotConfig botConfig = BotConfig.fromConfig(config.get("bot"));
+        final GitHubAppAuth auth = new GitHubAppAuth(botConfig);
+        final WebhookVerifier verifier = new WebhookVerifier(botConfig.webhookSecret());
 
-        SpamListLoader spamListLoader = new SpamListLoader();
-        PermissionChecker permissionChecker = new PermissionChecker();
+        final SpamListLoader spamListLoader = new SpamListLoader();
+        final PermissionChecker permissionChecker = new PermissionChecker();
 
-        List<EventHandler<?>> handlers = List.of(
+        final List<EventHandler<?>> handlers = List.of(
                 new AssignCommandHandler(),
                 new UnassignCommandHandler(),
                 new WorkingCommandHandler(),
                 new AssignmentLimitHandler(spamListLoader, permissionChecker)
         );
-        WebhookParser webhookParser = new JacksonWebhookParser();
-        EventRouter router = new EventRouter(handlers, webhookParser);
-        WebhookService webhookService = new WebhookService(verifier, router, auth, botConfig);
+        final WebhookParser webhookParser = new JacksonWebhookParser();
+        final EventRouter router = new EventRouter(handlers, webhookParser);
+        final WebhookService webhookService = new WebhookService(verifier, router, auth, botConfig);
 
-        ScheduledTaskManager scheduledTaskManager = new ScheduledTaskManager();
+        final ScheduledTaskManager scheduledTaskManager = new ScheduledTaskManager();
 
-        WebServer server = WebServer.builder()
+        final WebServer server = WebServer.builder()
                 .config(config.get("server"))
                 .routing(routing -> setupRouting(routing, webhookService))
                 .build()
@@ -69,7 +69,7 @@ public final class Main {
         }));
     }
 
-    static void setupRouting(HttpRouting.Builder routing, WebhookService webhookService) {
+    static void setupRouting(final HttpRouting.Builder routing, final WebhookService webhookService) {
         routing.register("/webhook", webhookService)
                 .get("/health", (req, res) -> res.send("OK"));
     }

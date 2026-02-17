@@ -27,29 +27,30 @@ public class WorkingCommandHandler implements EventHandler<IssueCommentEvent> {
     }
 
     @Override
-    public boolean matches(GitHubEventType event, GitHubAction action) {
+    public boolean matches(final GitHubEventType event, final GitHubAction action) {
         return event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED;
     }
 
     @Override
-    public void handle(IssueCommentEvent commentEvent, GitHub gitHub, Map<String, Object> repoConfig) throws IOException {
+    public void handle(final IssueCommentEvent commentEvent, final GitHub gitHub,
+                       final Map<String, Object> repoConfig) throws IOException {
 
         // Skip bots
         if ("Bot".equals(commentEvent.comment().user().type())) {
             return;
         }
 
-        String body = commentEvent.comment().body();
+        final String body = commentEvent.comment().body();
         if (body == null || !WORKING_PATTERN.matcher(body).find()) {
             return;
         }
 
-        String username = commentEvent.comment().user().login();
-        String repoFullName = commentEvent.repository().fullName();
-        int issueNumber = commentEvent.issue().number();
+        final String username = commentEvent.comment().user().login();
+        final String repoFullName = commentEvent.repository().fullName();
+        final int issueNumber = commentEvent.issue().number();
 
-        GHRepository repo = gitHub.getRepository(repoFullName);
-        GHIssue ghIssue = repo.getIssue(issueNumber);
+        final GHRepository repo = gitHub.getRepository(repoFullName);
+        final GHIssue ghIssue = repo.getIssue(issueNumber);
 
         // Authorization: assignee (issue) or author (PR)
         boolean authorized = false;
@@ -73,9 +74,9 @@ public class WorkingCommandHandler implements EventHandler<IssueCommentEvent> {
         }
 
         // React with eyes emoji on the triggering comment
-        List<GHIssueComment> comments = ghIssue.getComments();
+        final List<GHIssueComment> comments = ghIssue.getComments();
         GHIssueComment targetComment = null;
-        for (GHIssueComment c : comments) {
+        for (final GHIssueComment c : comments) {
             if (body.equals(c.getBody())) {
                 targetComment = c;
             }

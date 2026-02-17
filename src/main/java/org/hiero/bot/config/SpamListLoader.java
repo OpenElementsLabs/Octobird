@@ -22,32 +22,32 @@ public class SpamListLoader {
 
     private final ConcurrentHashMap<String, Set<String>> cache = new ConcurrentHashMap<>();
 
-    public boolean isSpamUser(GitHub gitHub, String repoFullName, String username) {
+    public boolean isSpamUser(final GitHub gitHub, final String repoFullName, final String username) {
         Objects.requireNonNull(gitHub, "gitHub must not be null");
         Objects.requireNonNull(repoFullName, "repoFullName must not be null");
         Objects.requireNonNull(username, "username must not be null");
-        Set<String> spamUsers = cache.computeIfAbsent(repoFullName, name -> loadSpamList(gitHub, name));
+        final Set<String> spamUsers = cache.computeIfAbsent(repoFullName, name -> loadSpamList(gitHub, name));
         return spamUsers.contains(username);
     }
 
-    private Set<String> loadSpamList(GitHub gitHub, String repoFullName) {
+    private Set<String> loadSpamList(final GitHub gitHub, final String repoFullName) {
         try {
-            GHRepository repo = gitHub.getRepository(repoFullName);
-            GHContent content = repo.getFileContent(SPAM_LIST_PATH);
-            try (BufferedReader reader = new BufferedReader(
+            final GHRepository repo = gitHub.getRepository(repoFullName);
+            final GHContent content = repo.getFileContent(SPAM_LIST_PATH);
+            try (final BufferedReader reader = new BufferedReader(
                     new InputStreamReader(content.read(), StandardCharsets.UTF_8))) {
                 return Set.copyOf(reader.lines()
                         .map(String::trim)
                         .filter(line -> !line.isEmpty() && !line.startsWith("#"))
                         .collect(Collectors.toSet()));
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOG.debug("No spam list found for {}, treating as empty", repoFullName);
             return Set.of();
         }
     }
 
-    public void invalidateCache(String repoFullName) {
+    public void invalidateCache(final String repoFullName) {
         cache.remove(repoFullName);
     }
 }

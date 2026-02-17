@@ -14,7 +14,7 @@ public enum GitHubEventType {
 
     private final String webhookName;
 
-    GitHubEventType(String webhookName) {
+    GitHubEventType(final String webhookName) {
         this.webhookName = webhookName;
     }
 
@@ -32,9 +32,9 @@ public enum GitHubEventType {
      * @return the matching enum constant
      * @throws IllegalArgumentException if the event type is not supported
      */
-    public static GitHubEventType fromWebhookName(String webhookName) {
+    public static GitHubEventType fromWebhookName(final String webhookName) {
         Objects.requireNonNull(webhookName, "webhookName must not be null");
-        for (GitHubEventType type : values()) {
+        for (final GitHubEventType type : values()) {
             if (type.webhookName.equals(webhookName)) {
                 return type;
             }

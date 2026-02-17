@@ -32,23 +32,23 @@ public class JacksonWebhookParser implements WebhookParser {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Override
-    public WebhookEvent parse(GitHubEventType eventType, String payload) {
+    public WebhookEvent parse(final GitHubEventType eventType, final String payload) {
         try {
-            JsonNode root = MAPPER.readTree(payload);
-            GitHubAction action = GitHubAction.fromWebhookName(text(root, "action"));
+            final JsonNode root = MAPPER.readTree(payload);
+            final GitHubAction action = GitHubAction.fromWebhookName(text(root, "action"));
             return switch (eventType) {
                 case ISSUE_COMMENT -> parseIssueCommentEvent(root, action);
                 case ISSUES -> parseIssuesEvent(root, action);
                 case PULL_REQUEST -> parsePullRequestEvent(root, action);
             };
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             throw e;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IllegalArgumentException("Failed to parse webhook payload for event: " + eventType, e);
         }
     }
 
-    private IssueCommentEvent parseIssueCommentEvent(JsonNode root, GitHubAction action) {
+    private IssueCommentEvent parseIssueCommentEvent(final JsonNode root, final GitHubAction action) {
         return new IssueCommentEvent(
                 action,
                 parseComment(root.path("comment")),
@@ -59,9 +59,9 @@ public class JacksonWebhookParser implements WebhookParser {
         );
     }
 
-    private IssuesEvent parseIssuesEvent(JsonNode root, GitHubAction action) {
-        JsonNode assigneeNode = root.path("assignee");
-        JsonNode labelNode = root.path("label");
+    private IssuesEvent parseIssuesEvent(final JsonNode root, final GitHubAction action) {
+        final JsonNode assigneeNode = root.path("assignee");
+        final JsonNode labelNode = root.path("label");
         return new IssuesEvent(
                 action,
                 parseIssue(root.path("issue")),
@@ -73,7 +73,7 @@ public class JacksonWebhookParser implements WebhookParser {
         );
     }
 
-    private PullRequestEvent parsePullRequestEvent(JsonNode root, GitHubAction action) {
+    private PullRequestEvent parsePullRequestEvent(final JsonNode root, final GitHubAction action) {
         return new PullRequestEvent(
                 action,
                 root.path("number").asInt(),
@@ -84,7 +84,7 @@ public class JacksonWebhookParser implements WebhookParser {
         );
     }
 
-    private @Nullable User parseUser(JsonNode node) {
+    private @Nullable User parseUser(final JsonNode node) {
         if (node.isMissingNode() || node.isNull()) {
             return null;
         }
@@ -98,7 +98,7 @@ public class JacksonWebhookParser implements WebhookParser {
         );
     }
 
-    private @Nullable Repository parseRepository(JsonNode node) {
+    private @Nullable Repository parseRepository(final JsonNode node) {
         if (node.isMissingNode() || node.isNull()) {
             return null;
         }
@@ -114,7 +114,7 @@ public class JacksonWebhookParser implements WebhookParser {
         );
     }
 
-    private @Nullable Label parseLabel(JsonNode node) {
+    private @Nullable Label parseLabel(final JsonNode node) {
         if (node.isMissingNode() || node.isNull()) {
             return null;
         }
@@ -126,7 +126,7 @@ public class JacksonWebhookParser implements WebhookParser {
         );
     }
 
-    private @Nullable Issue parseIssue(JsonNode node) {
+    private @Nullable Issue parseIssue(final JsonNode node) {
         if (node.isMissingNode() || node.isNull()) {
             return null;
         }
@@ -151,7 +151,7 @@ public class JacksonWebhookParser implements WebhookParser {
         );
     }
 
-    private @Nullable Comment parseComment(JsonNode node) {
+    private @Nullable Comment parseComment(final JsonNode node) {
         if (node.isMissingNode() || node.isNull()) {
             return null;
         }
@@ -166,7 +166,7 @@ public class JacksonWebhookParser implements WebhookParser {
         );
     }
 
-    private @Nullable PullRequest parsePullRequest(JsonNode node) {
+    private @Nullable PullRequest parsePullRequest(final JsonNode node) {
         if (node.isMissingNode() || node.isNull()) {
             return null;
         }
@@ -199,7 +199,7 @@ public class JacksonWebhookParser implements WebhookParser {
         );
     }
 
-    private @Nullable PullRequestRef parsePullRequestRef(JsonNode node) {
+    private @Nullable PullRequestRef parsePullRequestRef(final JsonNode node) {
         if (node.isMissingNode() || node.isNull()) {
             return null;
         }
@@ -212,7 +212,7 @@ public class JacksonWebhookParser implements WebhookParser {
         );
     }
 
-    private @Nullable Installation parseInstallation(JsonNode node) {
+    private @Nullable Installation parseInstallation(final JsonNode node) {
         if (node.isMissingNode() || node.isNull()) {
             return null;
         }
@@ -222,30 +222,30 @@ public class JacksonWebhookParser implements WebhookParser {
         );
     }
 
-    private List<User> parseUserList(JsonNode node) {
+    private List<User> parseUserList(final JsonNode node) {
         if (node.isMissingNode() || node.isNull()) {
             return List.of();
         }
-        List<User> users = new ArrayList<>();
-        for (JsonNode item : node) {
+        final List<User> users = new ArrayList<>();
+        for (final JsonNode item : node) {
             users.add(parseUser(item));
         }
         return List.copyOf(users);
     }
 
-    private List<Label> parseLabelList(JsonNode node) {
+    private List<Label> parseLabelList(final JsonNode node) {
         if (node.isMissingNode() || node.isNull()) {
             return List.of();
         }
-        List<Label> labels = new ArrayList<>();
-        for (JsonNode item : node) {
+        final List<Label> labels = new ArrayList<>();
+        for (final JsonNode item : node) {
             labels.add(parseLabel(item));
         }
         return List.copyOf(labels);
     }
 
-    private static @Nullable String text(JsonNode node, String field) {
-        JsonNode value = node.path(field);
+    private static @Nullable String text(final JsonNode node, final String field) {
+        final JsonNode value = node.path(field);
         if (value.isMissingNode() || value.isNull()) {
             return null;
         }

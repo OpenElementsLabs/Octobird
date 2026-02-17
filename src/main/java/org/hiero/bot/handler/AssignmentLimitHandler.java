@@ -26,7 +26,7 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
     private final SpamListLoader spamListLoader;
     private final PermissionChecker permissionChecker;
 
-    public AssignmentLimitHandler(SpamListLoader spamListLoader, PermissionChecker permissionChecker) {
+    public AssignmentLimitHandler(final SpamListLoader spamListLoader, final PermissionChecker permissionChecker) {
         this.spamListLoader = Objects.requireNonNull(spamListLoader, "spamListLoader must not be null");
         this.permissionChecker = Objects.requireNonNull(permissionChecker, "permissionChecker must not be null");
     }
@@ -37,23 +37,24 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
     }
 
     @Override
-    public boolean matches(GitHubEventType event, GitHubAction action) {
+    public boolean matches(final GitHubEventType event, final GitHubAction action) {
         return event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED;
     }
 
     @Override
-    public void handle(IssuesEvent issuesEvent, GitHub gitHub, Map<String, Object> repoConfig) throws IOException {
+    public void handle(final IssuesEvent issuesEvent, final GitHub gitHub,
+                       final Map<String, Object> repoConfig) throws IOException {
 
-        String assignee = issuesEvent.assignee() != null ? issuesEvent.assignee().login() : "";
+        final String assignee = issuesEvent.assignee() != null ? issuesEvent.assignee().login() : "";
         if (assignee.isEmpty()) {
             return;
         }
 
-        String repoFullName = issuesEvent.repository().fullName();
-        int issueNumber = issuesEvent.issue().number();
+        final String repoFullName = issuesEvent.repository().fullName();
+        final int issueNumber = issuesEvent.issue().number();
 
-        GHRepository repo = gitHub.getRepository(repoFullName);
-        GHIssue issue = repo.getIssue(issueNumber);
+        final GHRepository repo = gitHub.getRepository(repoFullName);
+        final GHIssue issue = repo.getIssue(issueNumber);
 
         // Maintainers have no limit
         if (permissionChecker.isMaintainer(repo, assignee)) {
@@ -61,7 +62,7 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
             return;
         }
 
-        boolean isSpam = spamListLoader.isSpamUser(gitHub, repoFullName, assignee);
+        final boolean isSpam = spamListLoader.isSpamUser(gitHub, repoFullName, assignee);
 
         if (isSpam) {
             handleSpamUser(gitHub, repo, issue, assignee, repoFullName, issueNumber);
@@ -70,10 +71,11 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
         }
     }
 
-    private void handleSpamUser(GitHub gitHub, GHRepository repo, GHIssue issue,
-                                String assignee, String repoFullName, int issueNumber) throws IOException {
+    private void handleSpamUser(final GitHub gitHub, final GHRepository repo, final GHIssue issue,
+                                final String assignee, final String repoFullName,
+                                final int issueNumber) throws IOException {
         // Spam users can only be assigned to Good First Issues
-        boolean hasGfiLabel = issue.getLabels().stream()
+        final boolean hasGfiLabel = issue.getLabels().stream()
                 .map(GHLabel::getName)
                 .anyMatch(GOOD_FIRST_ISSUE_LABEL::equals);
 
@@ -89,7 +91,7 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
         }
 
         // Spam users have a limit of 1 open assignment
-        int count = countOpenAssignments(gitHub, repoFullName, assignee);
+        final int count = countOpenAssignments(gitHub, repoFullName, assignee);
         if (count > SPAM_USER_MAX_ASSIGNMENTS) {
             LOG.info("Spam user {} exceeds limit: {} assignments", assignee, count);
             issue.removeAssignees(gitHub.getUser(assignee));
@@ -101,9 +103,10 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
         }
     }
 
-    private void handleNormalUser(GitHub gitHub, GHRepository repo, GHIssue issue,
-                                  String assignee, String repoFullName, int issueNumber) throws IOException {
-        int count = countOpenAssignments(gitHub, repoFullName, assignee);
+    private void handleNormalUser(final GitHub gitHub, final GHRepository repo, final GHIssue issue,
+                                  final String assignee, final String repoFullName,
+                                  final int issueNumber) throws IOException {
+        final int count = countOpenAssignments(gitHub, repoFullName, assignee);
         if (count > NORMAL_USER_MAX_ASSIGNMENTS) {
             LOG.info("User {} exceeds limit: {} assignments", assignee, count);
             issue.removeAssignees(gitHub.getUser(assignee));
@@ -114,7 +117,8 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
         }
     }
 
-    private int countOpenAssignments(GitHub gitHub, String repoFullName, String assignee) throws IOException {
+    private int countOpenAssignments(final GitHub gitHub, final String repoFullName,
+                                     final String assignee) throws IOException {
         return gitHub.searchIssues()
                 .q("repo:" + repoFullName + " is:issue is:open assignee:" + assignee)
                 .list()

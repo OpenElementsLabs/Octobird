@@ -23,24 +23,24 @@ public class RepoConfigLoader {
     private final Map<String, Map<String, Object>> cache = new ConcurrentHashMap<>();
 
     @SuppressWarnings("unchecked")
-    public Map<String, Object> loadConfig(GitHub gitHub, String repoFullName) {
+    public Map<String, Object> loadConfig(final GitHub gitHub, final String repoFullName) {
         Objects.requireNonNull(gitHub, "gitHub must not be null");
         Objects.requireNonNull(repoFullName, "repoFullName must not be null");
         return cache.computeIfAbsent(repoFullName, name -> {
             try {
-                GHRepository repo = gitHub.getRepository(name);
-                GHContent content = repo.getFileContent(CONFIG_PATH);
-                try (InputStream is = content.read()) {
+                final GHRepository repo = gitHub.getRepository(name);
+                final GHContent content = repo.getFileContent(CONFIG_PATH);
+                try (final InputStream is = content.read()) {
                     return YAML_MAPPER.readValue(is, Map.class);
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 LOG.debug("No config found for {}, using defaults", name);
                 return Map.of();
             }
         });
     }
 
-    public void invalidateCache(String repoFullName) {
+    public void invalidateCache(final String repoFullName) {
         cache.remove(repoFullName);
     }
 }

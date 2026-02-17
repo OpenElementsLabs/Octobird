@@ -10,17 +10,19 @@ public class ScheduledTaskManager {
 
     public ScheduledTaskManager() {
         this.executor = Executors.newScheduledThreadPool(1, r -> {
-            Thread t = Thread.ofVirtual().unstarted(r);
+            final Thread t = Thread.ofVirtual().unstarted(r);
             t.setName("scheduled-task");
             return t;
         });
     }
 
-    public void scheduleAtFixedRate(Runnable task, long initialDelay, long period, TimeUnit unit) {
+    public void scheduleAtFixedRate(final Runnable task, final long initialDelay,
+                                    final long period, final TimeUnit unit) {
         executor.scheduleAtFixedRate(task, initialDelay, period, unit);
     }
 
-    public void scheduleWithFixedDelay(Runnable task, long initialDelay, long delay, TimeUnit unit) {
+    public void scheduleWithFixedDelay(final Runnable task, final long initialDelay,
+                                       final long delay, final TimeUnit unit) {
         executor.scheduleWithFixedDelay(task, initialDelay, delay, unit);
     }
 
@@ -30,7 +32,7 @@ public class ScheduledTaskManager {
             if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
             }
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             executor.shutdownNow();
             Thread.currentThread().interrupt();
         }

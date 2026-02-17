@@ -25,8 +25,8 @@ public class WebhookService implements HttpService {
     private final GitHubAppAuth auth;
     private final BotConfig botConfig;
 
-    public WebhookService(WebhookVerifier verifier, EventRouter router,
-                          GitHubAppAuth auth, BotConfig botConfig) {
+    public WebhookService(final WebhookVerifier verifier, final EventRouter router,
+                          final GitHubAppAuth auth, final BotConfig botConfig) {
         this.verifier = Objects.requireNonNull(verifier, "verifier must not be null");
         this.router = Objects.requireNonNull(router, "router must not be null");
         this.auth = Objects.requireNonNull(auth, "auth must not be null");
@@ -34,21 +34,21 @@ public class WebhookService implements HttpService {
     }
 
     @Override
-    public void routing(HttpRules rules) {
+    public void routing(final HttpRules rules) {
         rules.post("/", this::handleWebhook);
     }
 
-    private void handleWebhook(ServerRequest req, ServerResponse res) {
-        String signature = req.headers().first(X_HUB_SIGNATURE_256).orElse("");
-        byte[] body = req.content().as(byte[].class);
-        String payload = new String(body, StandardCharsets.UTF_8);
+    private void handleWebhook(final ServerRequest req, final ServerResponse res) {
+        final String signature = req.headers().first(X_HUB_SIGNATURE_256).orElse("");
+        final byte[] body = req.content().as(byte[].class);
+        final String payload = new String(body, StandardCharsets.UTF_8);
 
         if (!verifier.verify(signature, body)) {
             res.status(401).send("Invalid signature");
             return;
         }
 
-        String event = req.headers().first(X_GITHUB_EVENT).orElse("");
+        final String event = req.headers().first(X_GITHUB_EVENT).orElse("");
         if (event.isEmpty()) {
             res.status(400).send("Missing event header");
             return;
@@ -57,7 +57,7 @@ public class WebhookService implements HttpService {
         try {
             router.route(event, payload, auth, botConfig);
             res.status(200).send("OK");
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOG.error("Error processing webhook", e);
             res.status(500).send("Internal error");
         }

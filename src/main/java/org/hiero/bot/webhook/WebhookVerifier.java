@@ -16,30 +16,30 @@ public class WebhookVerifier {
 
     private final byte[] secretKey;
 
-    public WebhookVerifier(String secret) {
+    public WebhookVerifier(final String secret) {
         Objects.requireNonNull(secret, "secret must not be null");
         this.secretKey = secret.getBytes(StandardCharsets.UTF_8);
     }
 
-    public boolean verify(String signature, byte[] payload) {
+    public boolean verify(final String signature, final byte[] payload) {
         if (signature == null || !signature.startsWith(SIGNATURE_PREFIX)) {
             return false;
         }
 
-        String expected = computeSignature(payload);
+        final String expected = computeSignature(payload);
         return MessageDigest.isEqual(
                 signature.getBytes(StandardCharsets.UTF_8),
                 expected.getBytes(StandardCharsets.UTF_8)
         );
     }
 
-    String computeSignature(byte[] payload) {
+    String computeSignature(final byte[] payload) {
         try {
-            Mac mac = Mac.getInstance(HMAC_SHA256);
+            final Mac mac = Mac.getInstance(HMAC_SHA256);
             mac.init(new SecretKeySpec(secretKey, HMAC_SHA256));
-            byte[] hash = mac.doFinal(payload);
+            final byte[] hash = mac.doFinal(payload);
             return SIGNATURE_PREFIX + HexFormat.of().formatHex(hash);
-        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+        } catch (final NoSuchAlgorithmException | InvalidKeyException e) {
             throw new RuntimeException("Failed to compute HMAC-SHA256", e);
         }
     }

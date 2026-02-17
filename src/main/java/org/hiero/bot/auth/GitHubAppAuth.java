@@ -20,53 +20,53 @@ public class GitHubAppAuth {
     private final BotConfig config;
     private final Map<Long, CachedToken> tokenCache = new ConcurrentHashMap<>();
 
-    public GitHubAppAuth(BotConfig config) {
+    public GitHubAppAuth(final BotConfig config) {
         this.config = Objects.requireNonNull(config, "config must not be null");
     }
 
-    public GitHub getInstallationClient(long installationId) throws IOException {
-        String token = getInstallationToken(installationId);
+    public GitHub getInstallationClient(final long installationId) throws IOException {
+        final String token = getInstallationToken(installationId);
         return new GitHubBuilder().withAppInstallationToken(token).build();
     }
 
-    private String getInstallationToken(long installationId) throws IOException {
-        CachedToken cached = tokenCache.get(installationId);
+    private String getInstallationToken(final long installationId) throws IOException {
+        final CachedToken cached = tokenCache.get(installationId);
         if (cached != null && cached.isValid()) {
             return cached.token;
         }
 
-        GitHub appGitHub = createAppClient();
-        GHAppInstallationToken installationToken = appGitHub.getApp()
+        final GitHub appGitHub = createAppClient();
+        final GHAppInstallationToken installationToken = appGitHub.getApp()
                 .getInstallationById(installationId)
                 .createToken()
                 .create();
 
-        String token = installationToken.getToken();
-        Instant expiresAt = installationToken.getExpiresAt().toInstant();
+        final String token = installationToken.getToken();
+        final Instant expiresAt = installationToken.getExpiresAt().toInstant();
         tokenCache.put(installationId, new CachedToken(token, expiresAt));
         return token;
     }
 
     private GitHub createAppClient() throws IOException {
         try {
-            PrivateKey key = parsePrivateKey(config.privateKey());
+            final PrivateKey key = parsePrivateKey(config.privateKey());
             return new GitHubBuilder()
                     .withAuthorizationProvider(new JwtAuthProvider(config.appId(), key))
                     .build();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IOException("Failed to create GitHub App client", e);
         }
     }
 
-    static PrivateKey parsePrivateKey(String pem) throws Exception {
-        String stripped = pem
+    static PrivateKey parsePrivateKey(final String pem) throws Exception {
+        final String stripped = pem
                 .replace("-----BEGIN PRIVATE KEY-----", "")
                 .replace("-----END PRIVATE KEY-----", "")
                 .replace("-----BEGIN RSA PRIVATE KEY-----", "")
                 .replace("-----END RSA PRIVATE KEY-----", "")
                 .replaceAll("\\s", "");
-        byte[] decoded = Base64.getDecoder().decode(stripped);
-        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(decoded);
+        final byte[] decoded = Base64.getDecoder().decode(stripped);
+        final PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(decoded);
         return KeyFactory.getInstance("RSA").generatePrivate(spec);
     }
 
