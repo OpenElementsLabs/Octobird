@@ -85,6 +85,7 @@ actions/                              # Reference workflows from Hiero (to be mi
 - Package-private access where appropriate, public for interfaces
 - No Lombok or annotation-based frameworks
 - Keep handlers focused: one handler per bot command/event type
+- Follow the rules in [JAVA-BEST-PRACTICES.md](JAVA-BEST-PRACTICES.md)
 
 ## Configuration
 
