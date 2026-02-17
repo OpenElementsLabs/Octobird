@@ -9,6 +9,8 @@ import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHLabel;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
@@ -16,6 +18,7 @@ import java.util.Objects;
 
 public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
 
+    private static final Logger LOG = LoggerFactory.getLogger(AssignmentLimitHandler.class);
     private static final String GOOD_FIRST_ISSUE_LABEL = "Good First Issue";
     private static final int SPAM_USER_MAX_ASSIGNMENTS = 1;
     private static final int NORMAL_USER_MAX_ASSIGNMENTS = 2;
@@ -54,7 +57,7 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
 
         // Maintainers have no limit
         if (permissionChecker.isMaintainer(repo, assignee)) {
-            System.out.println("[assignment-limit] " + assignee + " is a maintainer, no limit applies");
+            LOG.debug("{} is a maintainer, no limit applies", assignee);
             return;
         }
 
@@ -75,7 +78,7 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
                 .anyMatch(GOOD_FIRST_ISSUE_LABEL::equals);
 
         if (!hasGfiLabel) {
-            System.out.println("[assignment-limit] Spam user " + assignee + " attempted non-GFI issue #" + issueNumber);
+            LOG.info("Spam user {} attempted non-GFI issue #{}", assignee, issueNumber);
             issue.removeAssignees(gitHub.getUser(assignee));
             issue.comment("Hi @" + assignee + ", this is the Assignment Bot.\n\n" +
                     "Your account currently has limited assignment privileges. " +
@@ -88,7 +91,7 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
         // Spam users have a limit of 1 open assignment
         int count = countOpenAssignments(gitHub, repoFullName, assignee);
         if (count > SPAM_USER_MAX_ASSIGNMENTS) {
-            System.out.println("[assignment-limit] Spam user " + assignee + " exceeds limit: " + count + " assignments");
+            LOG.info("Spam user {} exceeds limit: {} assignments", assignee, count);
             issue.removeAssignees(gitHub.getUser(assignee));
             issue.comment("Hi @" + assignee + ", this is the Assignment Bot.\n\n" +
                     "Your account currently has limited assignment privileges with a maximum of **" +
@@ -102,7 +105,7 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
                                   String assignee, String repoFullName, int issueNumber) throws IOException {
         int count = countOpenAssignments(gitHub, repoFullName, assignee);
         if (count > NORMAL_USER_MAX_ASSIGNMENTS) {
-            System.out.println("[assignment-limit] User " + assignee + " exceeds limit: " + count + " assignments");
+            LOG.info("User {} exceeds limit: {} assignments", assignee, count);
             issue.removeAssignees(gitHub.getUser(assignee));
             issue.comment("Hi @" + assignee + ", this is the Assignment Bot.\n\n" +
                     "Assigning you to this issue would exceed the limit of " +

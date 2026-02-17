@@ -7,6 +7,8 @@ import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHIssueComment;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
@@ -14,6 +16,7 @@ import java.util.regex.Pattern;
 
 public class UnassignCommandHandler implements EventHandler<IssueCommentEvent> {
 
+    private static final Logger LOG = LoggerFactory.getLogger(UnassignCommandHandler.class);
     private static final Pattern UNASSIGN_PATTERN = Pattern.compile("(^|\\s)/unassign(\\s|$)", Pattern.CASE_INSENSITIVE);
 
     @Override
@@ -60,7 +63,7 @@ public class UnassignCommandHandler implements EventHandler<IssueCommentEvent> {
         boolean isAssignee = ghIssue.getAssignees().stream()
                 .anyMatch(u -> u.getLogin().equals(username));
         if (!isAssignee) {
-            System.out.println("[unassign] " + username + " is not an assignee of #" + issueNumber);
+            LOG.debug("{} is not an assignee of #{}", username, issueNumber);
             return;
         }
 
@@ -68,7 +71,7 @@ public class UnassignCommandHandler implements EventHandler<IssueCommentEvent> {
         String marker = "<!-- unassign-requested:" + username + " -->";
         for (GHIssueComment c : ghIssue.listComments()) {
             if (c.getBody() != null && c.getBody().contains(marker)) {
-                System.out.println("[unassign] Already unassigned previously: " + username + " on #" + issueNumber);
+                LOG.debug("Already unassigned previously: {} on #{}", username, issueNumber);
                 return;
             }
         }
@@ -83,6 +86,6 @@ public class UnassignCommandHandler implements EventHandler<IssueCommentEvent> {
                 "feel free to browse our open issues.";
         ghIssue.comment(confirmation);
 
-        System.out.println("[unassign] Unassigned " + username + " from " + repoFullName + "#" + issueNumber);
+        LOG.info("Unassigned {} from {}#{}", username, repoFullName, issueNumber);
     }
 }

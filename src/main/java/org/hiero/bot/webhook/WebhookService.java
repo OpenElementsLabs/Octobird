@@ -8,12 +8,15 @@ import io.helidon.webserver.http.ServerRequest;
 import io.helidon.webserver.http.ServerResponse;
 import org.hiero.bot.auth.GitHubAppAuth;
 import org.hiero.bot.config.BotConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 public class WebhookService implements HttpService {
 
+    private static final Logger LOG = LoggerFactory.getLogger(WebhookService.class);
     private static final HeaderName X_HUB_SIGNATURE_256 = HeaderNames.create("x-hub-signature-256");
     private static final HeaderName X_GITHUB_EVENT = HeaderNames.create("x-github-event");
 
@@ -55,8 +58,7 @@ public class WebhookService implements HttpService {
             router.route(event, payload, auth, botConfig);
             res.status(200).send("OK");
         } catch (Exception e) {
-            System.err.println("Error processing webhook: " + e.getMessage());
-            e.printStackTrace();
+            LOG.error("Error processing webhook", e);
             res.status(500).send("Internal error");
         }
     }

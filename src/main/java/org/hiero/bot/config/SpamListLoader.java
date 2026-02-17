@@ -3,6 +3,8 @@ package org.hiero.bot.config;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -15,6 +17,7 @@ import java.util.stream.Collectors;
 
 public class SpamListLoader {
 
+    private static final Logger LOG = LoggerFactory.getLogger(SpamListLoader.class);
     private static final String SPAM_LIST_PATH = ".github/spam-list.txt";
 
     private final ConcurrentHashMap<String, Set<String>> cache = new ConcurrentHashMap<>();
@@ -39,7 +42,7 @@ public class SpamListLoader {
                         .collect(Collectors.toSet()));
             }
         } catch (IOException e) {
-            System.out.println("No spam list found for " + repoFullName + ", treating as empty");
+            LOG.debug("No spam list found for {}, treating as empty", repoFullName);
             return Set.of();
         }
     }

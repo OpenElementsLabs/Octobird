@@ -5,6 +5,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,6 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class RepoConfigLoader {
 
+    private static final Logger LOG = LoggerFactory.getLogger(RepoConfigLoader.class);
     private static final String CONFIG_PATH = ".github/hiero-bot.yml";
     private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
@@ -31,7 +34,7 @@ public class RepoConfigLoader {
                     return YAML_MAPPER.readValue(is, Map.class);
                 }
             } catch (IOException e) {
-                System.out.println("No config found for " + name + ", using defaults");
+                LOG.debug("No config found for {}, using defaults", name);
                 return Map.of();
             }
         });

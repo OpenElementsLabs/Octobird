@@ -8,6 +8,8 @@ import org.kohsuke.github.GHIssueComment;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.ReactionContent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
@@ -16,6 +18,7 @@ import java.util.regex.Pattern;
 
 public class WorkingCommandHandler implements EventHandler<IssueCommentEvent> {
 
+    private static final Logger LOG = LoggerFactory.getLogger(WorkingCommandHandler.class);
     private static final Pattern WORKING_PATTERN = Pattern.compile("(^|\\s)/working(\\s|$)", Pattern.CASE_INSENSITIVE);
 
     @Override
@@ -65,7 +68,7 @@ public class WorkingCommandHandler implements EventHandler<IssueCommentEvent> {
         }
 
         if (!authorized) {
-            System.out.println("[working] " + username + " is not authorized on #" + issueNumber);
+            LOG.debug("{} is not authorized on #{}", username, issueNumber);
             return;
         }
 
@@ -81,6 +84,6 @@ public class WorkingCommandHandler implements EventHandler<IssueCommentEvent> {
             targetComment.createReaction(ReactionContent.EYES);
         }
 
-        System.out.println("[working] Acknowledged /working from " + username + " on " + repoFullName + "#" + issueNumber);
+        LOG.info("Acknowledged /working from {} on {}#{}", username, repoFullName, issueNumber);
     }
 }

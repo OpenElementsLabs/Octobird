@@ -8,6 +8,8 @@ import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.WebhookEvent;
 import org.hiero.bot.model.parse.WebhookParser;
 import org.kohsuke.github.GitHub;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.jspecify.annotations.Nullable;
 
@@ -17,6 +19,8 @@ import java.util.Map;
 import java.util.Objects;
 
 public class EventRouter {
+
+    private static final Logger LOG = LoggerFactory.getLogger(EventRouter.class);
 
     private final List<EventHandler<?>> handlers;
     private final RepoConfigLoader configLoader;
@@ -36,7 +40,7 @@ public class EventRouter {
         try {
             eventType = GitHubEventType.fromWebhookName(event);
         } catch (IllegalArgumentException e) {
-            System.out.println("Unsupported event type: " + event + ", skipping");
+            LOG.debug("Unsupported event type: {}, skipping", event);
             return;
         }
 
@@ -44,7 +48,7 @@ public class EventRouter {
         try {
             webhookEvent = parser.parse(eventType, payload);
         } catch (IllegalArgumentException e) {
-            System.out.println("Failed to parse event: " + event + ", skipping: " + e.getMessage());
+            LOG.warn("Failed to parse event: {}, skipping: {}", event, e.getMessage());
             return;
         }
 
@@ -53,7 +57,7 @@ public class EventRouter {
                 : 0;
 
         if (installationId == 0) {
-            System.out.println("No installation ID in payload, skipping");
+            LOG.warn("No installation ID in payload, skipping");
             return;
         }
 
@@ -79,8 +83,8 @@ public class EventRouter {
             GitHub gitHub, Map<String, Object> repoConfig) throws IOException {
         Class<T> type = handler.eventType();
         if (!type.isInstance(event)) {
-            System.out.println("Event type mismatch: handler expects " + type.getSimpleName()
-                    + " but got " + event.getClass().getSimpleName() + ", skipping");
+            LOG.warn("Event type mismatch: handler expects {} but got {}, skipping",
+                    type.getSimpleName(), event.getClass().getSimpleName());
             return;
         }
         handler.handle(type.cast(event), gitHub, repoConfig);

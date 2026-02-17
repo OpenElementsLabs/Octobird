@@ -18,15 +18,23 @@ import org.hiero.bot.model.parse.WebhookParser;
 import org.hiero.bot.webhook.EventRouter;
 import org.hiero.bot.webhook.WebhookService;
 import org.hiero.bot.webhook.WebhookVerifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.util.List;
 
 public final class Main {
 
+    private static final Logger LOG = LoggerFactory.getLogger(Main.class);
+
     private Main() {
     }
 
     public static void main(String[] args) {
+        SLF4JBridgeHandler.removeHandlersForRootLogger();
+        SLF4JBridgeHandler.install();
+
         Config config = Config.create();
         BotConfig botConfig = BotConfig.fromConfig(config.get("bot"));
         GitHubAppAuth auth = new GitHubAppAuth(botConfig);
@@ -53,7 +61,7 @@ public final class Main {
                 .build()
                 .start();
 
-        System.out.println("Hiero Bot started on http://localhost:" + server.port());
+        LOG.info("Hiero Bot started on http://localhost:{}", server.port());
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             scheduledTaskManager.shutdown();

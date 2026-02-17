@@ -6,6 +6,8 @@ import org.hiero.bot.model.event.IssueCommentEvent;
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
@@ -13,6 +15,7 @@ import java.util.regex.Pattern;
 
 public class AssignCommandHandler implements EventHandler<IssueCommentEvent> {
 
+    private static final Logger LOG = LoggerFactory.getLogger(AssignCommandHandler.class);
     private static final Pattern ASSIGN_PATTERN = Pattern.compile("/assign\\b");
 
     @Override
@@ -50,6 +53,6 @@ public class AssignCommandHandler implements EventHandler<IssueCommentEvent> {
 
         issue.addAssignees(gitHub.getUser(commenter));
         issue.comment("@" + commenter + " has been assigned to this issue.");
-        System.out.println("Assigned " + commenter + " to " + repoFullName + "#" + issueNumber);
+        LOG.info("Assigned {} to {}#{}", commenter, repoFullName, issueNumber);
     }
 }
