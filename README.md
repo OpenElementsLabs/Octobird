@@ -65,12 +65,15 @@ The bot exposes two endpoints:
 Point your GitHub App's webhook URL to `https://your-host/webhook` and select the events you want to handle (e.g.
 `issue_comment`, `issues`, `pull_request`).
 
-## Repository Configuration
+## Configuration
 
-Each repository configures the bot by adding a `.github/hiero-bot.yml` file. Additional files:
+Currently, each repository configures the bot by adding a `.github/hiero-bot.yml` file. Additional files:
 
 - `.github/spam-list.txt` — One username per line, restricts these users to Good First Issues with a limit of 1
   assignment
+
+A database-backed configuration with a web frontend (GitHub OAuth2 login) is planned, allowing repo admins to manage
+settings through a dashboard instead of config files. See [ROADMAP.md](ROADMAP.md) Phase 6 and 7 for details.
 
 ## Architecture
 

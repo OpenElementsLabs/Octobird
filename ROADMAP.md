@@ -188,29 +188,92 @@ nach Abhängigkeiten, Nutzen und technischer Machbarkeit.
 
 ---
 
+## Phase 6: Persistenz & Konfigurations-API
+
+> Ersetzt die dateibasierte Konfiguration (`.github/hiero-bot.yml`) durch eine datenbankgestützte
+> Lösung mit REST-API. Grundlage für das spätere Web-Frontend.
+
+### 6.1 Datenbank-Abstraktionsschicht
+- Repository-Pattern für alle persistenten Daten (Konfiguration, State, Audit)
+- **Produktion:** PostgreSQL
+- **Entwicklung/Tests:** H2 (In-Memory)
+- Profil-basierte Konfiguration (`application.yaml` mit `dev`/`prod`-Profilen)
+- Datenbank-Migrationen (z.B. Flyway oder manuelles Schema-Management)
+
+### 6.2 Repo-Konfigurations-Entity
+- Ersetzt `RepoConfigLoader` (aktuell: liest `.github/hiero-bot.yml` via GitHub API)
+- Entity pro Installation/Repository mit allen konfigurierbaren Einstellungen:
+  - Maintainer-Liste
+  - Assignment-Limits (normal / spam)
+  - Aktivierte Features (welche Handler aktiv sind)
+  - Team-Mentions und Label-Namen
+  - Mentor-Roster
+  - Spam-User-Liste
+- Fallback-Strategie: Datenbank hat Vorrang, `.github/hiero-bot.yml` als optionaler Fallback
+
+### 6.3 REST-API für Konfiguration
+- CRUD-Endpoints für Repo-Einstellungen (`/api/repos/{owner}/{repo}/config`)
+- Authentifizierung via GitHub OAuth2 Token (vorbereitet für Frontend)
+- Autorisierung: Nur Repo-Admins/Maintainer dürfen Einstellungen ändern
+- API-Dokumentation (z.B. OpenAPI/Swagger)
+
+### 6.4 App-State-Persistenz
+- State den die App selbst verwaltet (nicht vom User konfiguriert):
+  - Letzte Erinnerungszeitpunkte pro User/Issue
+  - Mentor-Rotations-Zähler
+  - Audit-Log (welche Aktionen wann ausgeführt wurden)
+
+---
+
+## Phase 7: Web-Frontend
+
+> Konfigurationsoberfläche für Repo-Admins. Baut auf Phase 6 (API) auf.
+
+### 7.1 GitHub OAuth2 Login
+- "Login with GitHub"-Flow (OAuth2 Authorization Code)
+- Session-Management
+- Berechtigungsprüfung: User muss Admin/Maintainer des Repos sein
+
+### 7.2 Konfigurations-Dashboard
+- Übersicht aller Repos, auf denen die App installiert ist
+- Pro Repo: Einstellungen bearbeiten (Maintainer, Limits, Features, Spam-Liste, etc.)
+- Aktivierung/Deaktivierung einzelner Features
+
+### 7.3 Activity-Log
+- Übersicht der letzten Bot-Aktionen pro Repo
+- Filtert nach Event-Typ, Handler, Zeitraum
+
+---
+
 ## Abhängigkeiten zwischen Phasen
 
 ```
 Phase 1 (Infrastruktur)
-  └──▶ Phase 2 (Assignment-Pipeline) ──▶ Phase 5 (Scheduled Tasks)
-  └──▶ Phase 3 (PR-Checks)
-  └──▶ Phase 4 (Benachrichtigungen)
+  ├──▶ Phase 2 (Assignment-Pipeline) ──▶ Phase 5 (Scheduled Tasks)
+  ├──▶ Phase 3 (PR-Checks)
+  ├──▶ Phase 4 (Benachrichtigungen)
+  └──▶ Phase 6 (Persistenz & API) ──▶ Phase 7 (Frontend)
 ```
 
 - Phase 1 ist Voraussetzung für alle anderen Phasen
-- Phase 2 und 3 können parallel entwickelt werden
-- Phase 4 ist unabhängig und kann jederzeit nach Phase 1 erfolgen
+- Phase 2, 3, 4 und 6 können parallel entwickelt werden
 - Phase 5 baut auf Phase 1+2 auf (nutzt `/working`-Logik und Assignment-Status)
+- Phase 7 baut auf Phase 6 auf (API muss stehen, bevor das Frontend darauf zugreift)
+- **Designprinzip:** Alle Handler sollten Konfiguration über ein abstraktes Interface
+  beziehen, damit der Wechsel von Datei → Datenbank transparent ist
 
 ---
 
 ## Konfiguration pro Repository
 
-Alle Features werden über `.github/hiero-bot.yml` im jeweiligen Repository konfiguriert.
-Zusätzlich benötigte Dateien:
-
+**Aktuell (Phase 1–5):** Konfiguration über Dateien im Repository:
+- `.github/hiero-bot.yml` - Hauptkonfiguration
 - `.github/spam-list.txt` - Spam-User (eine Zeile pro Username)
 - `.github/mentor_roster.json` - Mentor-Rotation (`{ "order": ["user1", "user2"] }`)
+
+**Ziel (Phase 6+):** Konfiguration in der Datenbank, verwaltbar über REST-API und
+Web-Frontend mit GitHub-OAuth-Login. Die Dateien im Repository dienen dann nur noch als
+optionaler Fallback.
 
 ---
 
@@ -225,3 +288,6 @@ Für alle Handler gelten folgende Muster (bereits in der bestehenden Architektur
 - **Rate-Limit-Handling:** GitHub API Rate Limits beachten
 - **Logging:** Strukturiertes Logging für Debugging und Monitoring
 - **Team-Konfigurierbarkeit:** Team-Mentions und Labels sollten per Repo-Config konfigurierbar sein
+- **Konfigurations-Abstraktion:** Handler greifen auf Konfiguration über ein Interface zu,
+  nicht direkt auf Dateien oder Datenbank. Dies ermöglicht den späteren Wechsel auf
+  datenbankgestützte Konfiguration (Phase 6) ohne Handler-Änderungen

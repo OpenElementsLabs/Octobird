@@ -68,7 +68,22 @@ actions/                              # Reference workflows from Hiero (to be mi
 - **Event-driven:** GitHub webhook → `WebhookService` → `EventRouter` → `EventHandler`
 - **Constructor-based DI:** No framework DI, dependencies wired manually in `Main.java`
 - **Handler pattern:** Implement `EventHandler` interface with `matches(event, action)` and `handle(...)` methods
-- **Per-repo config:** Loaded from `.github/hiero-bot.yml` in each repository via `RepoConfigLoader`
+- **Per-repo config:** Currently loaded from `.github/hiero-bot.yml` via `RepoConfigLoader`
+
+### Design for future persistence
+
+The app is designed to eventually support database-backed configuration (PostgreSQL in production,
+H2 for development/testing) with a web frontend using GitHub OAuth2 login. When building new
+features, keep the following in mind:
+
+- **Abstract configuration access:** Handlers should access repo configuration through interfaces,
+  not directly via file loaders or database queries. This allows swapping the implementation from
+  file-based to database-backed without changing handler code.
+- **Separate state from config:** Distinguish between user-managed settings (maintainer list,
+  assignment limits, enabled features) and app-managed state (last reminder timestamps, rotation
+  counters, audit logs).
+- **Multi-tenancy:** All data structures must be keyed per repository/installation. Never use
+  global singletons for repo-specific state.
 
 ## Adding a New Event Handler
 
