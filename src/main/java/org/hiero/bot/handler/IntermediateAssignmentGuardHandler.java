@@ -1,0 +1,113 @@
+package org.hiero.bot.handler;
+
+import org.hiero.bot.config.CommentMarkerChecker;
+import org.hiero.bot.config.IssueSearchHelper;
+import org.hiero.bot.config.PermissionChecker;
+import org.hiero.bot.model.GitHubAction;
+import org.hiero.bot.model.GitHubEventType;
+import org.hiero.bot.model.event.IssuesEvent;
+import org.kohsuke.github.GHIssue;
+import org.kohsuke.github.GHLabel;
+import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GitHub;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.Objects;
+
+public class IntermediateAssignmentGuardHandler implements EventHandler<IssuesEvent> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(IntermediateAssignmentGuardHandler.class);
+    private static final String INTERMEDIATE_LABEL = "intermediate";
+    private static final String BEGINNER_LABEL = "beginner";
+    private static final String MARKER_PREFIX = "<!-- Intermediate Issue Guard -->";
+    private static final int REQUIRED_BEGINNER_COUNT = 0;
+
+    private final PermissionChecker permissionChecker;
+    private final IssueSearchHelper searchHelper;
+    private final CommentMarkerChecker markerChecker;
+
+    public IntermediateAssignmentGuardHandler(final PermissionChecker permissionChecker,
+                                              final IssueSearchHelper searchHelper,
+                                              final CommentMarkerChecker markerChecker) {
+        this.permissionChecker = Objects.requireNonNull(permissionChecker, "permissionChecker must not be null");
+        this.searchHelper = Objects.requireNonNull(searchHelper, "searchHelper must not be null");
+        this.markerChecker = Objects.requireNonNull(markerChecker, "markerChecker must not be null");
+    }
+
+    @Override
+    public Class<IssuesEvent> eventType() {
+        return IssuesEvent.class;
+    }
+
+    @Override
+    public boolean matches(final GitHubEventType event, final GitHubAction action) {
+        return event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED;
+    }
+
+    @Override
+    public void handle(final IssuesEvent issuesEvent, final GitHub gitHub,
+                       final Map<String, Object> repoConfig) throws IOException {
+
+        // Guard deactivated when REQUIRED_BEGINNER_COUNT == 0
+        if (REQUIRED_BEGINNER_COUNT == 0) {
+            return;
+        }
+
+        final var assignee = issuesEvent.assignee();
+        if (assignee == null || assignee.login().isEmpty()) {
+            return;
+        }
+
+        final String assigneeLogin = assignee.login();
+
+        // Skip bots
+        if ("Bot".equals(assignee.type())) {
+            return;
+        }
+
+        final String repoFullName = issuesEvent.repository().fullName();
+        final int issueNumber = issuesEvent.issue().number();
+
+        final GHRepository repo = gitHub.getRepository(repoFullName);
+        final GHIssue issue = repo.getIssue(issueNumber);
+
+        // Only intermediate issues
+        final boolean hasIntermediateLabel = issue.getLabels().stream()
+                .map(GHLabel::getName)
+                .anyMatch(INTERMEDIATE_LABEL::equalsIgnoreCase);
+        if (!hasIntermediateLabel) {
+            return;
+        }
+
+        // Skip exempt users (ADMIN/WRITE)
+        if (permissionChecker.isExemptFromGuard(repo, assigneeLogin)) {
+            LOG.debug("{} is exempt from intermediate guard", assigneeLogin);
+            return;
+        }
+
+        // Check per-user marker
+        final String userMarker = MARKER_PREFIX + " @" + assigneeLogin;
+        if (markerChecker.hasMarker(issue, userMarker)) {
+            LOG.debug("Intermediate guard already checked for {} on {}#{}", assigneeLogin, repoFullName, issueNumber);
+            return;
+        }
+
+        // Check qualification
+        final int closedBeginner = searchHelper.countClosedIssuesByLabel(
+                gitHub, repoFullName, assigneeLogin, BEGINNER_LABEL);
+
+        if (closedBeginner < REQUIRED_BEGINNER_COUNT) {
+            issue.removeAssignees(gitHub.getUser(assigneeLogin));
+            issue.comment(userMarker + "\n\n" +
+                    "Hi @" + assigneeLogin + ", this is the Assignment Bot.\n\n" +
+                    "This is an **intermediate** issue that requires at least **" +
+                    REQUIRED_BEGINNER_COUNT + "** completed beginner issue(s).\n\n" +
+                    "You currently have **" + closedBeginner + "** completed beginner issue(s). " +
+                    "Please complete the required beginner issues first.");
+            LOG.info("Removed unqualified user {} from intermediate issue {}#{}", assigneeLogin, repoFullName, issueNumber);
+        }
+    }
+}

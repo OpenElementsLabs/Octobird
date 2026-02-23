@@ -1,5 +1,6 @@
 package org.hiero.bot.handler;
 
+import org.hiero.bot.config.IssueSearchHelper;
 import org.hiero.bot.config.PermissionChecker;
 import org.hiero.bot.config.SpamListLoader;
 import org.hiero.bot.model.GitHubAction;
@@ -25,10 +26,13 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
 
     private final SpamListLoader spamListLoader;
     private final PermissionChecker permissionChecker;
+    private final IssueSearchHelper searchHelper;
 
-    public AssignmentLimitHandler(final SpamListLoader spamListLoader, final PermissionChecker permissionChecker) {
+    public AssignmentLimitHandler(final SpamListLoader spamListLoader, final PermissionChecker permissionChecker,
+                                  final IssueSearchHelper searchHelper) {
         this.spamListLoader = Objects.requireNonNull(spamListLoader, "spamListLoader must not be null");
         this.permissionChecker = Objects.requireNonNull(permissionChecker, "permissionChecker must not be null");
+        this.searchHelper = Objects.requireNonNull(searchHelper, "searchHelper must not be null");
     }
 
     @Override
@@ -91,7 +95,7 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
         }
 
         // Spam users have a limit of 1 open assignment
-        final int count = countOpenAssignments(gitHub, repoFullName, assignee);
+        final int count = searchHelper.countOpenAssignments(gitHub, repoFullName, assignee);
         if (count > SPAM_USER_MAX_ASSIGNMENTS) {
             LOG.info("Spam user {} exceeds limit: {} assignments", assignee, count);
             issue.removeAssignees(gitHub.getUser(assignee));
@@ -106,7 +110,7 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
     private void handleNormalUser(final GitHub gitHub, final GHRepository repo, final GHIssue issue,
                                   final String assignee, final String repoFullName,
                                   final int issueNumber) throws IOException {
-        final int count = countOpenAssignments(gitHub, repoFullName, assignee);
+        final int count = searchHelper.countOpenAssignments(gitHub, repoFullName, assignee);
         if (count > NORMAL_USER_MAX_ASSIGNMENTS) {
             LOG.info("User {} exceeds limit: {} assignments", assignee, count);
             issue.removeAssignees(gitHub.getUser(assignee));
@@ -115,14 +119,5 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
                     NORMAL_USER_MAX_ASSIGNMENTS + " open assignments.\n\n" +
                     "Please resolve and merge your existing assigned issues before requesting new ones.");
         }
-    }
-
-    private int countOpenAssignments(final GitHub gitHub, final String repoFullName,
-                                     final String assignee) throws IOException {
-        return gitHub.searchIssues()
-                .q("repo:" + repoFullName + " is:issue is:open assignee:" + assignee)
-                .list()
-                .toList()
-                .size();
     }
 }

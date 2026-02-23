@@ -5,11 +5,19 @@ import io.helidon.webserver.WebServer;
 import io.helidon.webserver.http.HttpRouting;
 import org.hiero.bot.auth.GitHubAppAuth;
 import org.hiero.bot.config.BotConfig;
+import org.hiero.bot.config.CommentMarkerChecker;
+import org.hiero.bot.config.IssueSearchHelper;
+import org.hiero.bot.config.MentorRosterLoader;
 import org.hiero.bot.config.PermissionChecker;
 import org.hiero.bot.config.SpamListLoader;
-import org.hiero.bot.handler.AssignCommandHandler;
+import org.hiero.bot.handler.AdvancedAssignmentGuardHandler;
 import org.hiero.bot.handler.AssignmentLimitHandler;
+import org.hiero.bot.handler.BeginnerAssignCommandHandler;
+import org.hiero.bot.handler.CodeRabbitPlanTriggerHandler;
 import org.hiero.bot.handler.EventHandler;
+import org.hiero.bot.handler.GfiAssignCommandHandler;
+import org.hiero.bot.handler.IntermediateAssignmentGuardHandler;
+import org.hiero.bot.handler.MentorAssignmentHandler;
 import org.hiero.bot.handler.UnassignCommandHandler;
 import org.hiero.bot.handler.WorkingCommandHandler;
 import org.hiero.bot.scheduled.ScheduledTaskManager;
@@ -42,12 +50,24 @@ public final class Main {
 
         final SpamListLoader spamListLoader = new SpamListLoader();
         final PermissionChecker permissionChecker = new PermissionChecker();
+        final IssueSearchHelper searchHelper = new IssueSearchHelper();
+        final CommentMarkerChecker markerChecker = new CommentMarkerChecker();
+        final MentorRosterLoader rosterLoader = new MentorRosterLoader();
 
         final List<EventHandler<?>> handlers = List.of(
-                new AssignCommandHandler(),
+                // Phase 1 (retained):
                 new UnassignCommandHandler(),
                 new WorkingCommandHandler(),
-                new AssignmentLimitHandler(spamListLoader, permissionChecker)
+                new AssignmentLimitHandler(spamListLoader, permissionChecker, searchHelper),
+                // Phase 2 - Comment Commands:
+                new GfiAssignCommandHandler(spamListLoader, permissionChecker, searchHelper, markerChecker),
+                new BeginnerAssignCommandHandler(spamListLoader, permissionChecker, searchHelper, markerChecker),
+                // Phase 2 - Assignment Guards:
+                new MentorAssignmentHandler(rosterLoader, searchHelper, markerChecker),
+                new IntermediateAssignmentGuardHandler(permissionChecker, searchHelper, markerChecker),
+                new AdvancedAssignmentGuardHandler(permissionChecker, searchHelper, markerChecker),
+                // Phase 2 - Label Trigger:
+                new CodeRabbitPlanTriggerHandler(markerChecker)
         );
         final WebhookParser webhookParser = new JacksonWebhookParser();
         final EventRouter router = new EventRouter(handlers, webhookParser);

@@ -1,5 +1,6 @@
 package org.hiero.bot.handler;
 
+import org.hiero.bot.config.IssueSearchHelper;
 import org.hiero.bot.config.PermissionChecker;
 import org.hiero.bot.config.SpamListLoader;
 import org.hiero.bot.model.GitHubAction;
@@ -13,12 +14,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kohsuke.github.GHIssue;
-import org.kohsuke.github.GHIssueSearchBuilder;
 import org.kohsuke.github.GHLabel;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
-import org.kohsuke.github.PagedSearchIterable;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -38,6 +37,7 @@ class AssignmentLimitHandlerTest {
 
     @Mock private SpamListLoader spamListLoader;
     @Mock private PermissionChecker permissionChecker;
+    @Mock private IssueSearchHelper searchHelper;
     @Mock private GitHub gitHub;
     @Mock private GHRepository repo;
     @Mock private GHIssue issue;
@@ -45,7 +45,7 @@ class AssignmentLimitHandlerTest {
 
     @BeforeEach
     void setUp() {
-        handler = new AssignmentLimitHandler(spamListLoader, permissionChecker);
+        handler = new AssignmentLimitHandler(spamListLoader, permissionChecker, searchHelper);
     }
 
     @Test
@@ -73,7 +73,6 @@ class AssignmentLimitHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void normalUserWithinLimitIsAllowed() throws IOException {
         IssuesEvent event = buildEvent("alice");
 
@@ -81,13 +80,7 @@ class AssignmentLimitHandlerTest {
         when(repo.getIssue(42)).thenReturn(issue);
         when(permissionChecker.isMaintainer(repo, "alice")).thenReturn(false);
         when(spamListLoader.isSpamUser(gitHub, "owner/repo", "alice")).thenReturn(false);
-
-        GHIssueSearchBuilder searchBuilder = mock(GHIssueSearchBuilder.class);
-        when(gitHub.searchIssues()).thenReturn(searchBuilder);
-        when(searchBuilder.q(any())).thenReturn(searchBuilder);
-        PagedSearchIterable<GHIssue> searchResult = mock(PagedSearchIterable.class);
-        when(searchBuilder.list()).thenReturn(searchResult);
-        when(searchResult.toList()).thenReturn(List.of(mock(GHIssue.class), mock(GHIssue.class)));
+        when(searchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(2);
 
         handler.handle(event, gitHub, Map.of());
 
@@ -95,7 +88,6 @@ class AssignmentLimitHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void normalUserExceedingLimitIsRemoved() throws IOException {
         IssuesEvent event = buildEvent("alice");
 
@@ -103,13 +95,7 @@ class AssignmentLimitHandlerTest {
         when(repo.getIssue(42)).thenReturn(issue);
         when(permissionChecker.isMaintainer(repo, "alice")).thenReturn(false);
         when(spamListLoader.isSpamUser(gitHub, "owner/repo", "alice")).thenReturn(false);
-
-        GHIssueSearchBuilder searchBuilder = mock(GHIssueSearchBuilder.class);
-        when(gitHub.searchIssues()).thenReturn(searchBuilder);
-        when(searchBuilder.q(any())).thenReturn(searchBuilder);
-        PagedSearchIterable<GHIssue> searchResult = mock(PagedSearchIterable.class);
-        when(searchBuilder.list()).thenReturn(searchResult);
-        when(searchResult.toList()).thenReturn(List.of(mock(GHIssue.class), mock(GHIssue.class), mock(GHIssue.class)));
+        when(searchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(3);
 
         when(gitHub.getUser("alice")).thenReturn(assigneeUser);
 
@@ -120,7 +106,6 @@ class AssignmentLimitHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void spamUserOnNonGfiIsRemoved() throws IOException {
         IssuesEvent event = buildEvent("spammer");
 
@@ -139,7 +124,6 @@ class AssignmentLimitHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void spamUserOnGfiWithinLimitIsAllowed() throws IOException {
         IssuesEvent event = buildEvent("spammer");
 
@@ -151,13 +135,7 @@ class AssignmentLimitHandlerTest {
         GHLabel gfiLabel = mock(GHLabel.class);
         when(gfiLabel.getName()).thenReturn("Good First Issue");
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
-
-        GHIssueSearchBuilder searchBuilder = mock(GHIssueSearchBuilder.class);
-        when(gitHub.searchIssues()).thenReturn(searchBuilder);
-        when(searchBuilder.q(any())).thenReturn(searchBuilder);
-        PagedSearchIterable<GHIssue> searchResult = mock(PagedSearchIterable.class);
-        when(searchBuilder.list()).thenReturn(searchResult);
-        when(searchResult.toList()).thenReturn(List.of(mock(GHIssue.class)));
+        when(searchHelper.countOpenAssignments(gitHub, "owner/repo", "spammer")).thenReturn(1);
 
         handler.handle(event, gitHub, Map.of());
 
@@ -165,7 +143,6 @@ class AssignmentLimitHandlerTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void spamUserOnGfiExceedingLimitIsRemoved() throws IOException {
         IssuesEvent event = buildEvent("spammer");
 
@@ -177,13 +154,7 @@ class AssignmentLimitHandlerTest {
         GHLabel gfiLabel = mock(GHLabel.class);
         when(gfiLabel.getName()).thenReturn("Good First Issue");
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
-
-        GHIssueSearchBuilder searchBuilder = mock(GHIssueSearchBuilder.class);
-        when(gitHub.searchIssues()).thenReturn(searchBuilder);
-        when(searchBuilder.q(any())).thenReturn(searchBuilder);
-        PagedSearchIterable<GHIssue> searchResult = mock(PagedSearchIterable.class);
-        when(searchBuilder.list()).thenReturn(searchResult);
-        when(searchResult.toList()).thenReturn(List.of(mock(GHIssue.class), mock(GHIssue.class)));
+        when(searchHelper.countOpenAssignments(gitHub, "owner/repo", "spammer")).thenReturn(2);
 
         when(gitHub.getUser("spammer")).thenReturn(assigneeUser);
 
