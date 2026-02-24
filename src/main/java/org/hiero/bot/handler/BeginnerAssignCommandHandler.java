@@ -3,6 +3,7 @@ package org.hiero.bot.handler;
 import org.hiero.bot.config.CommentMarkerChecker;
 import org.hiero.bot.config.IssueSearchHelper;
 import org.hiero.bot.config.PermissionChecker;
+import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.config.SpamListLoader;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
@@ -15,20 +16,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
 public class BeginnerAssignCommandHandler implements EventHandler<IssueCommentEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(BeginnerAssignCommandHandler.class);
-    private static final Pattern ASSIGN_PATTERN = Pattern.compile("/assign\\b");
-    private static final String BEGINNER_LABEL = "beginner";
-    private static final String GOOD_FIRST_ISSUE_LABEL = "Good First Issue";
-    private static final String REMINDER_MARKER = "<!-- beginner assign reminder -->";
-    private static final String GFI_GUARD_MARKER = "<!-- beginner-gfi-guard -->";
-    private static final int NORMAL_USER_MAX_ASSIGNMENTS = 2;
-    private static final int REQUIRED_GFI_COUNT = 1;
 
     private final SpamListLoader spamListLoader;
     private final PermissionChecker permissionChecker;
@@ -57,7 +50,11 @@ public class BeginnerAssignCommandHandler implements EventHandler<IssueCommentEv
 
     @Override
     public void handle(final IssueCommentEvent commentEvent, final GitHub gitHub,
-                       final Map<String, Object> repoConfig) throws IOException {
+                       final RepoConfig repoConfig) throws IOException {
+
+        if (!repoConfig.features().beginnerAssignCommand()) {
+            return;
+        }
 
         // Skip bots
         if ("Bot".equals(commentEvent.comment().user().type())) {
@@ -71,38 +68,44 @@ public class BeginnerAssignCommandHandler implements EventHandler<IssueCommentEv
         final GHIssue issue = repo.getIssue(issueNumber);
 
         // Only beginner issues
+        final String beginnerLabel = repoConfig.labels().beginner();
         final boolean hasBeginnerLabel = issue.getLabels().stream()
                 .map(GHLabel::getName)
-                .anyMatch(BEGINNER_LABEL::equalsIgnoreCase);
+                .anyMatch(beginnerLabel::equalsIgnoreCase);
         if (!hasBeginnerLabel) {
             return;
         }
 
+        final Pattern assignPattern = repoConfig.commands().compiledAssignPattern();
         final String body = commentEvent.comment().body();
-        final boolean hasAssignCommand = body != null && ASSIGN_PATTERN.matcher(body).find();
+        final boolean hasAssignCommand = body != null && assignPattern.matcher(body).find();
         final String commenter = commentEvent.comment().user().login();
 
         if (hasAssignCommand) {
-            handleAssignCommand(gitHub, repo, issue, commenter, repoFullName, issueNumber);
+            handleAssignCommand(gitHub, repo, issue, commenter, repoFullName, issueNumber, repoConfig);
         } else {
-            handleReminder(repo, issue, commenter, repoFullName, issueNumber);
+            handleReminder(repo, issue, commenter, repoFullName, issueNumber, repoConfig);
         }
     }
 
     private void handleAssignCommand(final GitHub gitHub, final GHRepository repo, final GHIssue issue,
                                       final String commenter, final String repoFullName,
-                                      final int issueNumber) throws IOException {
+                                      final int issueNumber, final RepoConfig repoConfig) throws IOException {
+        final String gfiLabel = repoConfig.labels().goodFirstIssue();
+        final int requiredGfiCount = repoConfig.guards().requiredGfiCountForBeginner();
+        final String gfiGuardMarker = repoConfig.markers().beginnerGfiGuard();
+
         // GFI prerequisite check
         if (!permissionChecker.isExemptFromGuard(repo, commenter)) {
             final int closedGfi = searchHelper.countClosedIssuesByLabel(
-                    gitHub, repoFullName, commenter, GOOD_FIRST_ISSUE_LABEL);
-            if (closedGfi < REQUIRED_GFI_COUNT) {
-                final String userMarker = GFI_GUARD_MARKER + " @" + commenter;
+                    gitHub, repoFullName, commenter, gfiLabel);
+            if (closedGfi < requiredGfiCount) {
+                final String userMarker = gfiGuardMarker + " @" + commenter;
                 if (!markerChecker.hasMarker(issue, userMarker)) {
                     issue.comment(userMarker + "\n\n" +
                             "Hi @" + commenter + ", this is the Assignment Bot.\n\n" +
                             "This is a **beginner** issue that requires at least **" +
-                            REQUIRED_GFI_COUNT + "** completed Good First Issue(s).\n\n" +
+                            requiredGfiCount + "** completed Good First Issue(s).\n\n" +
                             "You currently have **" + closedGfi + "** completed Good First Issue(s). " +
                             "Please complete a Good First Issue before requesting a beginner issue.");
                 }
@@ -111,7 +114,8 @@ public class BeginnerAssignCommandHandler implements EventHandler<IssueCommentEv
         }
 
         // Spam users are completely blocked from beginner issues
-        final boolean isSpam = spamListLoader.isSpamUser(gitHub, repoFullName, commenter);
+        final String spamListPath = repoConfig.paths().spamList();
+        final boolean isSpam = spamListLoader.isSpamUser(gitHub, repoFullName, commenter, spamListPath);
         if (isSpam) {
             issue.comment("Hi @" + commenter + ", this is the Assignment Bot.\n\n" +
                     "Your account currently has limited assignment privileges. " +
@@ -130,11 +134,12 @@ public class BeginnerAssignCommandHandler implements EventHandler<IssueCommentEv
         }
 
         // Assignment limit check
+        final int normalMax = repoConfig.assignmentLimits().normalUserMax();
         final int count = searchHelper.countOpenAssignments(gitHub, repoFullName, commenter);
-        if (count >= NORMAL_USER_MAX_ASSIGNMENTS) {
+        if (count >= normalMax) {
             issue.comment("Hi @" + commenter + ", this is the Assignment Bot.\n\n" +
                     "Assigning you to this issue would exceed the limit of " +
-                    NORMAL_USER_MAX_ASSIGNMENTS + " open assignments.\n\n" +
+                    normalMax + " open assignments.\n\n" +
                     "Please resolve and merge your existing assigned issues before requesting new ones.");
             return;
         }
@@ -145,7 +150,8 @@ public class BeginnerAssignCommandHandler implements EventHandler<IssueCommentEv
     }
 
     private void handleReminder(final GHRepository repo, final GHIssue issue, final String commenter,
-                                 final String repoFullName, final int issueNumber) throws IOException {
+                                 final String repoFullName, final int issueNumber,
+                                 final RepoConfig repoConfig) throws IOException {
         // Only post reminder if issue is unassigned
         if (!issue.getAssignees().isEmpty()) {
             return;
@@ -156,12 +162,14 @@ public class BeginnerAssignCommandHandler implements EventHandler<IssueCommentEv
             return;
         }
 
+        final String reminderMarker = repoConfig.markers().beginnerReminder();
+
         // Check duplicate marker
-        if (markerChecker.hasMarker(issue, REMINDER_MARKER)) {
+        if (markerChecker.hasMarker(issue, reminderMarker)) {
             return;
         }
 
-        issue.comment(REMINDER_MARKER + "\n\n" +
+        issue.comment(reminderMarker + "\n\n" +
                 "Hi @" + commenter + ", thanks for your interest in this issue!\n\n" +
                 "This is a **beginner** issue \u2014 if you'd like to work on it, " +
                 "please comment `/assign` to get assigned.");

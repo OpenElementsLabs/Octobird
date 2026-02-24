@@ -1,6 +1,8 @@
 package org.hiero.bot.handler;
 
 import org.hiero.bot.config.CommentMarkerChecker;
+import org.hiero.bot.config.DefaultRepoConfig;
+import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.Installation;
@@ -20,7 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -29,6 +30,8 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CodeRabbitPlanTriggerHandlerTest {
+
+    private static final RepoConfig CONFIG = DefaultRepoConfig.allDefaults();
 
     private CodeRabbitPlanTriggerHandler handler;
 
@@ -61,7 +64,7 @@ class CodeRabbitPlanTriggerHandlerTest {
         when(repo.getIssue(42)).thenReturn(issue);
         when(markerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(false);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue).comment(argThat(msg -> msg.contains("@coderabbitai plan")));
     }
@@ -74,7 +77,7 @@ class CodeRabbitPlanTriggerHandlerTest {
         when(repo.getIssue(42)).thenReturn(issue);
         when(markerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(false);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue).comment(argThat(msg -> msg.contains("@coderabbitai plan")));
     }
@@ -87,7 +90,7 @@ class CodeRabbitPlanTriggerHandlerTest {
         when(repo.getIssue(42)).thenReturn(issue);
         when(markerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(false);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue).comment(argThat(msg -> msg.contains("@coderabbitai plan")));
     }
@@ -96,7 +99,7 @@ class CodeRabbitPlanTriggerHandlerTest {
     void skipsNonTriggerLabel() throws IOException {
         final IssuesEvent event = buildEvent("bug");
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verifyNoInteractions(repo, issue);
     }
@@ -109,7 +112,7 @@ class CodeRabbitPlanTriggerHandlerTest {
         when(repo.getIssue(42)).thenReturn(issue);
         when(markerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(true);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue, never()).comment(any());
     }

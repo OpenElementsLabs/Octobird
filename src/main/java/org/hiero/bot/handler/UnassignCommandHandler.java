@@ -1,5 +1,6 @@
 package org.hiero.bot.handler;
 
+import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssueCommentEvent;
@@ -11,13 +12,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 public class UnassignCommandHandler implements EventHandler<IssueCommentEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(UnassignCommandHandler.class);
-    private static final Pattern UNASSIGN_PATTERN = Pattern.compile("(^|\\s)/unassign(\\s|$)", Pattern.CASE_INSENSITIVE);
 
     @Override
     public Class<IssueCommentEvent> eventType() {
@@ -31,7 +30,11 @@ public class UnassignCommandHandler implements EventHandler<IssueCommentEvent> {
 
     @Override
     public void handle(final IssueCommentEvent commentEvent, final GitHub gitHub,
-                       final Map<String, Object> repoConfig) throws IOException {
+                       final RepoConfig repoConfig) throws IOException {
+
+        if (!repoConfig.features().unassignCommand()) {
+            return;
+        }
 
         // Skip PRs
         if (commentEvent.issue().hasPullRequest()) {
@@ -48,8 +51,9 @@ public class UnassignCommandHandler implements EventHandler<IssueCommentEvent> {
             return;
         }
 
+        final Pattern unassignPattern = repoConfig.commands().compiledUnassignPattern();
         final String body = commentEvent.comment().body();
-        if (body == null || !UNASSIGN_PATTERN.matcher(body).find()) {
+        if (body == null || !unassignPattern.matcher(body).find()) {
             return;
         }
 
@@ -69,7 +73,7 @@ public class UnassignCommandHandler implements EventHandler<IssueCommentEvent> {
         }
 
         // Check for duplicate unassign marker
-        final String marker = "<!-- unassign-requested:" + username + " -->";
+        final String marker = repoConfig.markers().unassignPrefix() + username + " -->";
         for (final GHIssueComment c : ghIssue.listComments()) {
             if (c.getBody() != null && c.getBody().contains(marker)) {
                 LOG.debug("Already unassigned previously: {} on #{}", username, issueNumber);

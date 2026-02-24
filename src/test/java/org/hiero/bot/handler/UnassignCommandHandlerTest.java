@@ -1,5 +1,7 @@
 package org.hiero.bot.handler;
 
+import org.hiero.bot.config.DefaultRepoConfig;
+import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.model.Comment;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
@@ -24,13 +26,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UnassignCommandHandlerTest {
+
+    private static final RepoConfig CONFIG = DefaultRepoConfig.allDefaults();
 
     private UnassignCommandHandler handler;
 
@@ -58,28 +61,28 @@ class UnassignCommandHandlerTest {
     @Test
     void ignoresCommentWithoutUnassignCommand() throws IOException {
         IssueCommentEvent event = buildEvent("/assign", "alice", "open", false, "User");
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
         verifyNoInteractions(gitHub);
     }
 
     @Test
     void ignoresPullRequests() throws IOException {
         IssueCommentEvent event = buildEvent("/unassign", "alice", "open", true, "User");
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
         verifyNoInteractions(gitHub);
     }
 
     @Test
     void ignoresClosedIssues() throws IOException {
         IssueCommentEvent event = buildEvent("/unassign", "alice", "closed", false, "User");
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
         verifyNoInteractions(gitHub);
     }
 
     @Test
     void ignoresBotComments() throws IOException {
         IssueCommentEvent event = buildEvent("/unassign", "bot-user", "open", false, "Bot");
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
         verifyNoInteractions(gitHub);
     }
 
@@ -91,7 +94,7 @@ class UnassignCommandHandlerTest {
         when(repo.getIssue(42)).thenReturn(issue);
         when(issue.getAssignees()).thenReturn(List.of());
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue, never()).removeAssignees(any(GHUser.class));
     }
@@ -116,7 +119,7 @@ class UnassignCommandHandlerTest {
 
         when(gitHub.getUser("alice")).thenReturn(user);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue).removeAssignees(user);
         verify(issue).comment(argThat(msg -> msg.contains("<!-- unassign-requested:alice -->")
@@ -147,7 +150,7 @@ class UnassignCommandHandlerTest {
         }));
         when(issue.listComments()).thenReturn(pagedIterable);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue, never()).removeAssignees(any(GHUser.class));
     }
@@ -173,7 +176,7 @@ class UnassignCommandHandlerTest {
 
         when(gitHub.getUser("alice")).thenReturn(user);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue).removeAssignees(user);
     }

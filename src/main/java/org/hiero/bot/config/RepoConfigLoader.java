@@ -20,10 +20,10 @@ public class RepoConfigLoader {
     private static final String CONFIG_PATH = ".github/hiero-bot.yml";
     private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
-    private final Map<String, Map<String, Object>> cache = new ConcurrentHashMap<>();
+    private final Map<String, RepoConfig> cache = new ConcurrentHashMap<>();
 
     @SuppressWarnings("unchecked")
-    public Map<String, Object> loadConfig(final GitHub gitHub, final String repoFullName) {
+    public RepoConfig loadConfig(final GitHub gitHub, final String repoFullName) {
         Objects.requireNonNull(gitHub, "gitHub must not be null");
         Objects.requireNonNull(repoFullName, "repoFullName must not be null");
         return cache.computeIfAbsent(repoFullName, name -> {
@@ -31,11 +31,12 @@ public class RepoConfigLoader {
                 final GHRepository repo = gitHub.getRepository(name);
                 final GHContent content = repo.getFileContent(CONFIG_PATH);
                 try (final InputStream is = content.read()) {
-                    return YAML_MAPPER.readValue(is, Map.class);
+                    final Map<String, Object> raw = YAML_MAPPER.readValue(is, Map.class);
+                    return RepoConfigMapper.fromMap(raw);
                 }
             } catch (final IOException e) {
                 LOG.debug("No config found for {}, using defaults", name);
-                return Map.of();
+                return DefaultRepoConfig.allDefaults();
             }
         });
     }

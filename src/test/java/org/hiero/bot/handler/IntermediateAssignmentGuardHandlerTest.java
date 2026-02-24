@@ -1,8 +1,10 @@
 package org.hiero.bot.handler;
 
 import org.hiero.bot.config.CommentMarkerChecker;
+import org.hiero.bot.config.DefaultRepoConfig;
 import org.hiero.bot.config.IssueSearchHelper;
 import org.hiero.bot.config.PermissionChecker;
+import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.Installation;
@@ -22,13 +24,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class IntermediateAssignmentGuardHandlerTest {
+
+    private static final RepoConfig CONFIG = DefaultRepoConfig.allDefaults();
 
     private IntermediateAssignmentGuardHandler handler;
 
@@ -57,10 +60,10 @@ class IntermediateAssignmentGuardHandlerTest {
 
     @Test
     void guardIsDeactivatedWhenRequiredCountIsZero() throws IOException {
-        // REQUIRED_BEGINNER_COUNT is currently 0, so the guard should be deactivated
+        // Default guards config has requiredBeginnerCountForIntermediate == 0, so guard is deactivated
         final IssuesEvent event = buildEvent("alice");
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         // Should return immediately without any interactions
         verifyNoInteractions(gitHub, repo, issue, permissionChecker, searchHelper, markerChecker);

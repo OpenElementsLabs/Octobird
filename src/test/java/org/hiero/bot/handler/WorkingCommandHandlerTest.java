@@ -1,5 +1,7 @@
 package org.hiero.bot.handler;
 
+import org.hiero.bot.config.DefaultRepoConfig;
+import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.model.Comment;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
@@ -22,13 +24,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class WorkingCommandHandlerTest {
+
+    private static final RepoConfig CONFIG = DefaultRepoConfig.allDefaults();
 
     private WorkingCommandHandler handler;
 
@@ -55,14 +58,14 @@ class WorkingCommandHandlerTest {
     @Test
     void ignoresCommentWithoutWorkingCommand() throws IOException {
         IssueCommentEvent event = buildIssueEvent("just a regular comment", "alice");
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
         verifyNoInteractions(gitHub);
     }
 
     @Test
     void ignoresBotComments() throws IOException {
         IssueCommentEvent event = buildBotEvent("/working", "bot-user");
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
         verifyNoInteractions(gitHub);
     }
 
@@ -74,7 +77,7 @@ class WorkingCommandHandlerTest {
         when(repo.getIssue(42)).thenReturn(issue);
         when(issue.getAssignees()).thenReturn(List.of());
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue, never()).getComments();
     }
@@ -94,7 +97,7 @@ class WorkingCommandHandlerTest {
         when(ghComment.getBody()).thenReturn("/working");
         when(issue.getComments()).thenReturn(List.of(ghComment));
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(ghComment).createReaction(ReactionContent.EYES);
     }
@@ -110,7 +113,7 @@ class WorkingCommandHandlerTest {
         when(ghComment.getBody()).thenReturn("/working");
         when(issue.getComments()).thenReturn(List.of(ghComment));
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(ghComment).createReaction(ReactionContent.EYES);
     }

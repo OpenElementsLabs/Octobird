@@ -1,8 +1,10 @@
 package org.hiero.bot.handler;
 
 import org.hiero.bot.config.CommentMarkerChecker;
+import org.hiero.bot.config.DefaultRepoConfig;
 import org.hiero.bot.config.IssueSearchHelper;
 import org.hiero.bot.config.PermissionChecker;
+import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.config.SpamListLoader;
 import org.hiero.bot.model.Comment;
 import org.hiero.bot.model.GitHubAction;
@@ -25,7 +27,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -33,6 +34,9 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GfiAssignCommandHandlerTest {
+
+    private static final RepoConfig CONFIG = DefaultRepoConfig.allDefaults();
+    private static final String SPAM_LIST_PATH = CONFIG.paths().spamList();
 
     private GfiAssignCommandHandler handler;
 
@@ -63,7 +67,7 @@ class GfiAssignCommandHandlerTest {
     @Test
     void skipsBotComments() throws IOException {
         final IssueCommentEvent event = buildEvent("/assign", "bot", "Bot");
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
         verifyNoInteractions(repo, issue);
     }
 
@@ -75,7 +79,7 @@ class GfiAssignCommandHandlerTest {
         when(repo.getIssue(42)).thenReturn(issue);
         when(issue.getLabels()).thenReturn(List.of());
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue, never()).comment(any());
         verify(issue, never()).addAssignees(any(GHUser.class));
@@ -92,11 +96,11 @@ class GfiAssignCommandHandlerTest {
         when(gfiLabel.getName()).thenReturn("Good First Issue");
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
         when(issue.getAssignees()).thenReturn(List.of());
-        when(spamListLoader.isSpamUser(gitHub, "owner/repo", "alice")).thenReturn(false);
+        when(spamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
         when(searchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(0);
         when(gitHub.getUser("alice")).thenReturn(ghUser);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue).addAssignees(ghUser);
         verify(issue).comment(argThat(msg -> msg.contains("has been assigned")));
@@ -117,7 +121,7 @@ class GfiAssignCommandHandlerTest {
         when(assignee.getLogin()).thenReturn("alice");
         when(issue.getAssignees()).thenReturn(List.of(assignee));
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue).comment(argThat(msg -> msg.contains("already assigned")));
         verify(issue, never()).addAssignees(any(GHUser.class));
@@ -134,10 +138,10 @@ class GfiAssignCommandHandlerTest {
         when(gfiLabel.getName()).thenReturn("Good First Issue");
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
         when(issue.getAssignees()).thenReturn(List.of());
-        when(spamListLoader.isSpamUser(gitHub, "owner/repo", "spammer")).thenReturn(true);
+        when(spamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
         when(searchHelper.countOpenAssignments(gitHub, "owner/repo", "spammer")).thenReturn(1);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue).comment(argThat(msg -> msg.contains("limited assignment privileges")));
         verify(issue, never()).addAssignees(any(GHUser.class));
@@ -154,10 +158,10 @@ class GfiAssignCommandHandlerTest {
         when(gfiLabel.getName()).thenReturn("Good First Issue");
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
         when(issue.getAssignees()).thenReturn(List.of());
-        when(spamListLoader.isSpamUser(gitHub, "owner/repo", "alice")).thenReturn(false);
+        when(spamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
         when(searchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(2);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue).comment(argThat(msg -> msg.contains("exceed the limit")));
         verify(issue, never()).addAssignees(any(GHUser.class));
@@ -177,7 +181,7 @@ class GfiAssignCommandHandlerTest {
         when(permissionChecker.isCollaborator(repo, "alice")).thenReturn(false);
         when(markerChecker.hasMarker(eq(issue), eq("<!-- GFI assign reminder -->"))).thenReturn(false);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue).comment(argThat(msg ->
                 msg.contains("<!-- GFI assign reminder -->") && msg.contains("/assign")));
@@ -196,7 +200,7 @@ class GfiAssignCommandHandlerTest {
         when(issue.getAssignees()).thenReturn(List.of());
         when(permissionChecker.isCollaborator(repo, "alice")).thenReturn(true);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue, never()).comment(any());
     }
@@ -215,7 +219,7 @@ class GfiAssignCommandHandlerTest {
         final GHUser assignee = mock(GHUser.class);
         when(issue.getAssignees()).thenReturn(List.of(assignee));
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue, never()).comment(any());
     }

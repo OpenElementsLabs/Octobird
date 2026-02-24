@@ -20,13 +20,21 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MentorRosterLoader {
 
     private static final Logger LOG = LoggerFactory.getLogger(MentorRosterLoader.class);
-    private static final String ROSTER_PATH = ".github/mentor_roster.json";
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final ConcurrentHashMap<String, List<String>> cache = new ConcurrentHashMap<>();
 
-    public List<String> loadRoster(final GitHub gitHub, final String repoFullName) {
-        return cache.computeIfAbsent(repoFullName, name -> doLoadRoster(gitHub, name));
+    /**
+     * Loads the mentor roster for the given repository from the specified path.
+     *
+     * @param gitHub       authenticated GitHub client
+     * @param repoFullName full repository name (owner/repo)
+     * @param rosterPath   path to the mentor roster JSON file in the repository
+     * @return an unmodifiable list of mentor usernames
+     */
+    public List<String> loadRoster(final GitHub gitHub, final String repoFullName, final String rosterPath) {
+        final String cacheKey = repoFullName + ":" + rosterPath;
+        return cache.computeIfAbsent(cacheKey, key -> doLoadRoster(gitHub, repoFullName, rosterPath));
     }
 
     public String selectMentor(final List<String> roster) {
@@ -38,10 +46,10 @@ public class MentorRosterLoader {
         return roster.get(index);
     }
 
-    private List<String> doLoadRoster(final GitHub gitHub, final String repoFullName) {
+    private List<String> doLoadRoster(final GitHub gitHub, final String repoFullName, final String rosterPath) {
         try {
             final GHRepository repo = gitHub.getRepository(repoFullName);
-            final GHContent content = repo.getFileContent(ROSTER_PATH);
+            final GHContent content = repo.getFileContent(rosterPath);
             try (final InputStream is = content.read()) {
                 final JsonNode root = MAPPER.readTree(is);
                 final JsonNode order = root.get("order");
@@ -56,12 +64,12 @@ public class MentorRosterLoader {
                 return Collections.unmodifiableList(mentors);
             }
         } catch (final IOException e) {
-            LOG.debug("No mentor roster found for {}, treating as empty", repoFullName);
+            LOG.debug("No mentor roster found for {} at {}, treating as empty", repoFullName, rosterPath);
             return List.of();
         }
     }
 
     public void invalidateCache(final String repoFullName) {
-        cache.remove(repoFullName);
+        cache.keySet().removeIf(key -> key.startsWith(repoFullName + ":"));
     }
 }

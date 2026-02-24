@@ -19,6 +19,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class SpamListLoaderTest {
 
+    private static final String SPAM_LIST_PATH = ".github/spam-list.txt";
+
     private SpamListLoader loader;
 
     @Mock private GitHub gitHub;
@@ -35,13 +37,13 @@ class SpamListLoaderTest {
         String spamList = "# Comment line\nspammer1\nspammer2\n\n# Another comment\nspammer3\n";
 
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
-        when(repo.getFileContent(".github/spam-list.txt")).thenReturn(content);
+        when(repo.getFileContent(SPAM_LIST_PATH)).thenReturn(content);
         when(content.read()).thenReturn(new ByteArrayInputStream(spamList.getBytes(StandardCharsets.UTF_8)));
 
-        assertTrue(loader.isSpamUser(gitHub, "owner/repo", "spammer1"));
-        assertTrue(loader.isSpamUser(gitHub, "owner/repo", "spammer2"));
-        assertTrue(loader.isSpamUser(gitHub, "owner/repo", "spammer3"));
-        assertFalse(loader.isSpamUser(gitHub, "owner/repo", "legitimate-user"));
+        assertTrue(loader.isSpamUser(gitHub, "owner/repo", "spammer1", SPAM_LIST_PATH));
+        assertTrue(loader.isSpamUser(gitHub, "owner/repo", "spammer2", SPAM_LIST_PATH));
+        assertTrue(loader.isSpamUser(gitHub, "owner/repo", "spammer3", SPAM_LIST_PATH));
+        assertFalse(loader.isSpamUser(gitHub, "owner/repo", "legitimate-user", SPAM_LIST_PATH));
     }
 
     @Test
@@ -49,19 +51,19 @@ class SpamListLoaderTest {
         String spamList = "# This is a comment\n\n  \nspammer1\n# another comment\n";
 
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
-        when(repo.getFileContent(".github/spam-list.txt")).thenReturn(content);
+        when(repo.getFileContent(SPAM_LIST_PATH)).thenReturn(content);
         when(content.read()).thenReturn(new ByteArrayInputStream(spamList.getBytes(StandardCharsets.UTF_8)));
 
-        assertTrue(loader.isSpamUser(gitHub, "owner/repo", "spammer1"));
-        assertFalse(loader.isSpamUser(gitHub, "owner/repo", "# This is a comment"));
+        assertTrue(loader.isSpamUser(gitHub, "owner/repo", "spammer1", SPAM_LIST_PATH));
+        assertFalse(loader.isSpamUser(gitHub, "owner/repo", "# This is a comment", SPAM_LIST_PATH));
     }
 
     @Test
     void treatsEmptyAsNoSpam() throws IOException {
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
-        when(repo.getFileContent(".github/spam-list.txt")).thenThrow(new IOException("Not found"));
+        when(repo.getFileContent(SPAM_LIST_PATH)).thenThrow(new IOException("Not found"));
 
-        assertFalse(loader.isSpamUser(gitHub, "owner/repo", "anyone"));
+        assertFalse(loader.isSpamUser(gitHub, "owner/repo", "anyone", SPAM_LIST_PATH));
     }
 
     @Test
@@ -69,14 +71,14 @@ class SpamListLoaderTest {
         String spamList = "spammer1\n";
 
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
-        when(repo.getFileContent(".github/spam-list.txt")).thenReturn(content);
+        when(repo.getFileContent(SPAM_LIST_PATH)).thenReturn(content);
         when(content.read()).thenReturn(new ByteArrayInputStream(spamList.getBytes(StandardCharsets.UTF_8)));
 
-        loader.isSpamUser(gitHub, "owner/repo", "spammer1");
-        loader.isSpamUser(gitHub, "owner/repo", "spammer1");
+        loader.isSpamUser(gitHub, "owner/repo", "spammer1", SPAM_LIST_PATH);
+        loader.isSpamUser(gitHub, "owner/repo", "spammer1", SPAM_LIST_PATH);
 
         // Should only load once due to caching
-        verify(repo, times(1)).getFileContent(".github/spam-list.txt");
+        verify(repo, times(1)).getFileContent(SPAM_LIST_PATH);
     }
 
     @Test
@@ -84,16 +86,16 @@ class SpamListLoaderTest {
         String spamList = "spammer1\n";
 
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
-        when(repo.getFileContent(".github/spam-list.txt")).thenReturn(content);
+        when(repo.getFileContent(SPAM_LIST_PATH)).thenReturn(content);
         when(content.read()).thenReturn(
                 new ByteArrayInputStream(spamList.getBytes(StandardCharsets.UTF_8)),
                 new ByteArrayInputStream(spamList.getBytes(StandardCharsets.UTF_8))
         );
 
-        loader.isSpamUser(gitHub, "owner/repo", "spammer1");
+        loader.isSpamUser(gitHub, "owner/repo", "spammer1", SPAM_LIST_PATH);
         loader.invalidateCache("owner/repo");
-        loader.isSpamUser(gitHub, "owner/repo", "spammer1");
+        loader.isSpamUser(gitHub, "owner/repo", "spammer1", SPAM_LIST_PATH);
 
-        verify(repo, times(2)).getFileContent(".github/spam-list.txt");
+        verify(repo, times(2)).getFileContent(SPAM_LIST_PATH);
     }
 }

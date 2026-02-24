@@ -18,22 +18,34 @@ import java.util.stream.Collectors;
 public class SpamListLoader {
 
     private static final Logger LOG = LoggerFactory.getLogger(SpamListLoader.class);
-    private static final String SPAM_LIST_PATH = ".github/spam-list.txt";
 
     private final ConcurrentHashMap<String, Set<String>> cache = new ConcurrentHashMap<>();
 
-    public boolean isSpamUser(final GitHub gitHub, final String repoFullName, final String username) {
+    /**
+     * Checks whether the given user is on the spam list for the given repository.
+     *
+     * @param gitHub       authenticated GitHub client
+     * @param repoFullName full repository name (owner/repo)
+     * @param username     the user to check
+     * @param spamListPath path to the spam list file in the repository
+     * @return {@code true} if the user is on the spam list
+     */
+    public boolean isSpamUser(final GitHub gitHub, final String repoFullName, final String username,
+                              final String spamListPath) {
         Objects.requireNonNull(gitHub, "gitHub must not be null");
         Objects.requireNonNull(repoFullName, "repoFullName must not be null");
         Objects.requireNonNull(username, "username must not be null");
-        final Set<String> spamUsers = cache.computeIfAbsent(repoFullName, name -> loadSpamList(gitHub, name));
+        Objects.requireNonNull(spamListPath, "spamListPath must not be null");
+        final String cacheKey = repoFullName + ":" + spamListPath;
+        final Set<String> spamUsers = cache.computeIfAbsent(cacheKey,
+                key -> loadSpamList(gitHub, repoFullName, spamListPath));
         return spamUsers.contains(username);
     }
 
-    private Set<String> loadSpamList(final GitHub gitHub, final String repoFullName) {
+    private Set<String> loadSpamList(final GitHub gitHub, final String repoFullName, final String spamListPath) {
         try {
             final GHRepository repo = gitHub.getRepository(repoFullName);
-            final GHContent content = repo.getFileContent(SPAM_LIST_PATH);
+            final GHContent content = repo.getFileContent(spamListPath);
             try (final BufferedReader reader = new BufferedReader(
                     new InputStreamReader(content.read(), StandardCharsets.UTF_8))) {
                 return Set.copyOf(reader.lines()
@@ -42,12 +54,12 @@ public class SpamListLoader {
                         .collect(Collectors.toSet()));
             }
         } catch (final IOException e) {
-            LOG.debug("No spam list found for {}, treating as empty", repoFullName);
+            LOG.debug("No spam list found for {} at {}, treating as empty", repoFullName, spamListPath);
             return Set.of();
         }
     }
 
     public void invalidateCache(final String repoFullName) {
-        cache.remove(repoFullName);
+        cache.keySet().removeIf(key -> key.startsWith(repoFullName + ":"));
     }
 }

@@ -20,6 +20,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class MentorRosterLoaderTest {
 
+    private static final String ROSTER_PATH = ".github/mentor_roster.json";
+
     private MentorRosterLoader loader;
 
     @Mock private GitHub gitHub;
@@ -35,10 +37,10 @@ class MentorRosterLoaderTest {
     void loadsRosterFromFile() throws IOException {
         final String json = "{\"order\": [\"mentor1\", \"mentor2\", \"mentor3\"]}";
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
-        when(repo.getFileContent(".github/mentor_roster.json")).thenReturn(content);
+        when(repo.getFileContent(ROSTER_PATH)).thenReturn(content);
         when(content.read()).thenReturn(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
 
-        final List<String> roster = loader.loadRoster(gitHub, "owner/repo");
+        final List<String> roster = loader.loadRoster(gitHub, "owner/repo", ROSTER_PATH);
 
         assertEquals(List.of("mentor1", "mentor2", "mentor3"), roster);
     }
@@ -46,9 +48,9 @@ class MentorRosterLoaderTest {
     @Test
     void returnsEmptyListWhenFileNotFound() throws IOException {
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
-        when(repo.getFileContent(".github/mentor_roster.json")).thenThrow(new IOException("Not found"));
+        when(repo.getFileContent(ROSTER_PATH)).thenThrow(new IOException("Not found"));
 
-        final List<String> roster = loader.loadRoster(gitHub, "owner/repo");
+        final List<String> roster = loader.loadRoster(gitHub, "owner/repo", ROSTER_PATH);
 
         assertTrue(roster.isEmpty());
     }
@@ -69,28 +71,28 @@ class MentorRosterLoaderTest {
     void cachesRosterPerRepo() throws IOException {
         final String json = "{\"order\": [\"mentor1\"]}";
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
-        when(repo.getFileContent(".github/mentor_roster.json")).thenReturn(content);
+        when(repo.getFileContent(ROSTER_PATH)).thenReturn(content);
         when(content.read()).thenReturn(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
 
-        loader.loadRoster(gitHub, "owner/repo");
-        loader.loadRoster(gitHub, "owner/repo");
+        loader.loadRoster(gitHub, "owner/repo", ROSTER_PATH);
+        loader.loadRoster(gitHub, "owner/repo", ROSTER_PATH);
 
-        verify(repo, times(1)).getFileContent(".github/mentor_roster.json");
+        verify(repo, times(1)).getFileContent(ROSTER_PATH);
     }
 
     @Test
     void invalidateCacheForcesReload() throws IOException {
         final String json = "{\"order\": [\"mentor1\"]}";
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
-        when(repo.getFileContent(".github/mentor_roster.json")).thenReturn(content);
+        when(repo.getFileContent(ROSTER_PATH)).thenReturn(content);
         when(content.read()).thenReturn(
                 new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)),
                 new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
 
-        loader.loadRoster(gitHub, "owner/repo");
+        loader.loadRoster(gitHub, "owner/repo", ROSTER_PATH);
         loader.invalidateCache("owner/repo");
-        loader.loadRoster(gitHub, "owner/repo");
+        loader.loadRoster(gitHub, "owner/repo", ROSTER_PATH);
 
-        verify(repo, times(2)).getFileContent(".github/mentor_roster.json");
+        verify(repo, times(2)).getFileContent(ROSTER_PATH);
     }
 }

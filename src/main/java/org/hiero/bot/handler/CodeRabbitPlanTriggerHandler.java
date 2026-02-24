@@ -1,6 +1,7 @@
 package org.hiero.bot.handler;
 
 import org.hiero.bot.config.CommentMarkerChecker;
+import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssuesEvent;
@@ -11,15 +12,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 public class CodeRabbitPlanTriggerHandler implements EventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(CodeRabbitPlanTriggerHandler.class);
-    private static final String MARKER = "<!-- CodeRabbit Plan Trigger -->";
-    private static final Set<String> TRIGGER_LABELS = Set.of("beginner", "intermediate", "advanced");
 
     private final CommentMarkerChecker markerChecker;
 
@@ -39,7 +36,11 @@ public class CodeRabbitPlanTriggerHandler implements EventHandler<IssuesEvent> {
 
     @Override
     public void handle(final IssuesEvent issuesEvent, final GitHub gitHub,
-                       final Map<String, Object> repoConfig) throws IOException {
+                       final RepoConfig repoConfig) throws IOException {
+
+        if (!repoConfig.features().codeRabbitPlanTrigger()) {
+            return;
+        }
 
         final var label = issuesEvent.label();
         if (label == null) {
@@ -47,7 +48,7 @@ public class CodeRabbitPlanTriggerHandler implements EventHandler<IssuesEvent> {
         }
 
         final String labelName = label.name().toLowerCase();
-        if (!TRIGGER_LABELS.contains(labelName)) {
+        if (!repoConfig.codeRabbit().triggerLabels().contains(labelName)) {
             return;
         }
 
@@ -57,12 +58,13 @@ public class CodeRabbitPlanTriggerHandler implements EventHandler<IssuesEvent> {
         final GHRepository repo = gitHub.getRepository(repoFullName);
         final GHIssue issue = repo.getIssue(issueNumber);
 
-        if (markerChecker.hasMarker(issue, MARKER)) {
+        final String marker = repoConfig.markers().codeRabbitPlanTrigger();
+        if (markerChecker.hasMarker(issue, marker)) {
             LOG.debug("CodeRabbit plan already triggered for {}#{}", repoFullName, issueNumber);
             return;
         }
 
-        issue.comment(MARKER + "\n@coderabbitai plan");
+        issue.comment(marker + "\n@coderabbitai plan");
         LOG.info("Triggered CodeRabbit plan for {}#{} (label: {})", repoFullName, issueNumber, label.name());
     }
 }

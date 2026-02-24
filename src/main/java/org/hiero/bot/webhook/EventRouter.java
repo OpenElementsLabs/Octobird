@@ -2,6 +2,8 @@ package org.hiero.bot.webhook;
 
 import org.hiero.bot.auth.GitHubAppAuth;
 import org.hiero.bot.config.BotConfig;
+import org.hiero.bot.config.DefaultRepoConfig;
+import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.config.RepoConfigLoader;
 import org.hiero.bot.handler.EventHandler;
 import org.hiero.bot.model.GitHubEventType;
@@ -15,7 +17,6 @@ import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public class EventRouter {
@@ -67,9 +68,9 @@ public class EventRouter {
                 ? webhookEvent.repository().fullName()
                 : null;
 
-        final Map<String, Object> repoConfig = repoFullName != null
+        final RepoConfig repoConfig = repoFullName != null
                 ? configLoader.loadConfig(gitHub, repoFullName)
-                : Map.of();
+                : DefaultRepoConfig.allDefaults();
 
         for (final EventHandler<?> handler : handlers) {
             if (handler.matches(eventType, webhookEvent.action())) {
@@ -80,7 +81,7 @@ public class EventRouter {
 
     private <T extends WebhookEvent> void invokeHandler(
             final EventHandler<T> handler, final WebhookEvent event,
-            final GitHub gitHub, final Map<String, Object> repoConfig) throws IOException {
+            final GitHub gitHub, final RepoConfig repoConfig) throws IOException {
         final Class<T> type = handler.eventType();
         if (!type.isInstance(event)) {
             LOG.warn("Event type mismatch: handler expects {} but got {}, skipping",

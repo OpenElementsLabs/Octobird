@@ -1,8 +1,10 @@
 package org.hiero.bot.handler;
 
 import org.hiero.bot.config.CommentMarkerChecker;
+import org.hiero.bot.config.DefaultRepoConfig;
 import org.hiero.bot.config.IssueSearchHelper;
 import org.hiero.bot.config.MentorRosterLoader;
+import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.Installation;
@@ -22,7 +24,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -30,6 +31,9 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class MentorAssignmentHandlerTest {
+
+    private static final RepoConfig CONFIG = DefaultRepoConfig.allDefaults();
+    private static final String ROSTER_PATH = CONFIG.paths().mentorRoster();
 
     private MentorAssignmentHandler handler;
 
@@ -59,7 +63,7 @@ class MentorAssignmentHandlerTest {
     @Test
     void skipsBotAssignees() throws IOException {
         final IssuesEvent event = buildEvent("bot-user", "Bot");
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
         verifyNoInteractions(repo, issue);
     }
 
@@ -71,7 +75,7 @@ class MentorAssignmentHandlerTest {
         when(repo.getIssue(42)).thenReturn(issue);
         when(issue.getLabels()).thenReturn(List.of());
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue, never()).comment(any());
     }
@@ -88,7 +92,7 @@ class MentorAssignmentHandlerTest {
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
         when(markerChecker.hasMarker(eq(issue), eq("<!-- Mentor Assignment Bot -->"))).thenReturn(true);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue, never()).comment(any());
     }
@@ -106,7 +110,7 @@ class MentorAssignmentHandlerTest {
         when(markerChecker.hasMarker(eq(issue), eq("<!-- Mentor Assignment Bot -->"))).thenReturn(false);
         when(searchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice")).thenReturn(false);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue, never()).comment(any());
     }
@@ -123,10 +127,10 @@ class MentorAssignmentHandlerTest {
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
         when(markerChecker.hasMarker(eq(issue), eq("<!-- Mentor Assignment Bot -->"))).thenReturn(false);
         when(searchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice")).thenReturn(true);
-        when(rosterLoader.loadRoster(gitHub, "owner/repo")).thenReturn(List.of("mentor1", "mentor2"));
+        when(rosterLoader.loadRoster(gitHub, "owner/repo", ROSTER_PATH)).thenReturn(List.of("mentor1", "mentor2"));
         when(rosterLoader.selectMentor(List.of("mentor1", "mentor2"))).thenReturn("mentor1");
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue).comment(argThat(msg ->
                 msg.contains("<!-- Mentor Assignment Bot -->")
@@ -146,10 +150,10 @@ class MentorAssignmentHandlerTest {
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
         when(markerChecker.hasMarker(eq(issue), eq("<!-- Mentor Assignment Bot -->"))).thenReturn(false);
         when(searchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice")).thenReturn(true);
-        when(rosterLoader.loadRoster(gitHub, "owner/repo")).thenReturn(List.of());
+        when(rosterLoader.loadRoster(gitHub, "owner/repo", ROSTER_PATH)).thenReturn(List.of());
         when(rosterLoader.selectMentor(List.of())).thenReturn(null);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue, never()).comment(any());
     }

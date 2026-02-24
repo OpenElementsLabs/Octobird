@@ -1,0 +1,175 @@
+package org.hiero.bot.config;
+
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+/**
+ * Maps a raw YAML configuration map to a typed {@link RepoConfig}, merging partial values with
+ * defaults. Missing keys fall back to the corresponding default value.
+ */
+public final class RepoConfigMapper {
+
+    private RepoConfigMapper() {
+    }
+
+    /**
+     * Creates a {@link RepoConfig} from a raw map parsed from YAML, merging with defaults.
+     *
+     * @param raw the raw configuration map (may be empty)
+     * @return a fully-populated {@link RepoConfig}
+     */
+    public static RepoConfig fromMap(final Map<String, Object> raw) {
+        Objects.requireNonNull(raw, "raw must not be null");
+
+        final LabelsConfig labels = mapLabels(asMap(raw.get("labels")));
+        final AssignmentLimitsConfig limits = mapAssignmentLimits(asMap(raw.get("assignment-limits")));
+        final GuardsConfig guards = mapGuards(asMap(raw.get("guards")));
+        final FeaturesConfig features = mapFeatures(asMap(raw.get("features")));
+        final MarkersConfig markers = mapMarkers(asMap(raw.get("markers")));
+        final CommandsConfig commands = mapCommands(asMap(raw.get("commands")));
+        final PathsConfig paths = mapPaths(asMap(raw.get("paths")));
+        final CodeRabbitConfig codeRabbit = mapCodeRabbit(asMap(raw.get("coderabbit")));
+
+        return new DefaultRepoConfig(labels, limits, guards, features, markers, commands, paths, codeRabbit);
+    }
+
+    private static LabelsConfig mapLabels(final Map<String, Object> m) {
+        final LabelsConfig d = LabelsConfig.defaults();
+        if (m.isEmpty()) {
+            return d;
+        }
+        return new LabelsConfig(
+                stringOr(m.get("good-first-issue"), d.goodFirstIssue()),
+                stringOr(m.get("beginner"), d.beginner()),
+                stringOr(m.get("intermediate"), d.intermediate()),
+                stringOr(m.get("advanced"), d.advanced())
+        );
+    }
+
+    private static AssignmentLimitsConfig mapAssignmentLimits(final Map<String, Object> m) {
+        final AssignmentLimitsConfig d = AssignmentLimitsConfig.defaults();
+        if (m.isEmpty()) {
+            return d;
+        }
+        return new AssignmentLimitsConfig(
+                intOr(m.get("normal-user-max"), d.normalUserMax()),
+                intOr(m.get("spam-user-max"), d.spamUserMax())
+        );
+    }
+
+    private static GuardsConfig mapGuards(final Map<String, Object> m) {
+        final GuardsConfig d = GuardsConfig.defaults();
+        if (m.isEmpty()) {
+            return d;
+        }
+        return new GuardsConfig(
+                intOr(m.get("required-gfi-count-for-beginner"), d.requiredGfiCountForBeginner()),
+                intOr(m.get("required-beginner-count-for-intermediate"), d.requiredBeginnerCountForIntermediate()),
+                intOr(m.get("required-intermediate-count-for-advanced"), d.requiredIntermediateCountForAdvanced())
+        );
+    }
+
+    private static FeaturesConfig mapFeatures(final Map<String, Object> m) {
+        final FeaturesConfig d = FeaturesConfig.defaults();
+        if (m.isEmpty()) {
+            return d;
+        }
+        return new FeaturesConfig(
+                boolOr(m.get("unassign-command"), d.unassignCommand()),
+                boolOr(m.get("working-command"), d.workingCommand()),
+                boolOr(m.get("assignment-limit"), d.assignmentLimit()),
+                boolOr(m.get("gfi-assign-command"), d.gfiAssignCommand()),
+                boolOr(m.get("beginner-assign-command"), d.beginnerAssignCommand()),
+                boolOr(m.get("mentor-assignment"), d.mentorAssignment()),
+                boolOr(m.get("intermediate-guard"), d.intermediateGuard()),
+                boolOr(m.get("advanced-guard"), d.advancedGuard()),
+                boolOr(m.get("coderabbit-plan-trigger"), d.codeRabbitPlanTrigger())
+        );
+    }
+
+    private static MarkersConfig mapMarkers(final Map<String, Object> m) {
+        final MarkersConfig d = MarkersConfig.defaults();
+        if (m.isEmpty()) {
+            return d;
+        }
+        return new MarkersConfig(
+                stringOr(m.get("unassign-prefix"), d.unassignPrefix()),
+                stringOr(m.get("gfi-reminder"), d.gfiReminder()),
+                stringOr(m.get("beginner-reminder"), d.beginnerReminder()),
+                stringOr(m.get("beginner-gfi-guard"), d.beginnerGfiGuard()),
+                stringOr(m.get("mentor-assignment"), d.mentorAssignment()),
+                stringOr(m.get("intermediate-guard"), d.intermediateGuard()),
+                stringOr(m.get("advanced-guard"), d.advancedGuard()),
+                stringOr(m.get("coderabbit-plan-trigger"), d.codeRabbitPlanTrigger())
+        );
+    }
+
+    private static CommandsConfig mapCommands(final Map<String, Object> m) {
+        final CommandsConfig d = CommandsConfig.defaults();
+        if (m.isEmpty()) {
+            return d;
+        }
+        return new CommandsConfig(
+                stringOr(m.get("assign-pattern"), d.assignPattern()),
+                stringOr(m.get("unassign-pattern"), d.unassignPattern()),
+                stringOr(m.get("working-pattern"), d.workingPattern())
+        );
+    }
+
+    private static PathsConfig mapPaths(final Map<String, Object> m) {
+        final PathsConfig d = PathsConfig.defaults();
+        if (m.isEmpty()) {
+            return d;
+        }
+        return new PathsConfig(
+                stringOr(m.get("spam-list"), d.spamList()),
+                stringOr(m.get("mentor-roster"), d.mentorRoster())
+        );
+    }
+
+    private static CodeRabbitConfig mapCodeRabbit(final Map<String, Object> m) {
+        final CodeRabbitConfig d = CodeRabbitConfig.defaults();
+        if (m.isEmpty()) {
+            return d;
+        }
+        final Object triggerObj = m.get("trigger-labels");
+        if (triggerObj instanceof Collection<?> collection) {
+            final Set<String> labels = new HashSet<>();
+            for (final Object item : collection) {
+                labels.add(String.valueOf(item));
+            }
+            return new CodeRabbitConfig(Set.copyOf(labels));
+        }
+        return d;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> asMap(final Object value) {
+        if (value instanceof Map<?, ?> map) {
+            return (Map<String, Object>) map;
+        }
+        return Map.of();
+    }
+
+    private static String stringOr(final Object value, final String defaultValue) {
+        return value instanceof String s ? s : defaultValue;
+    }
+
+    private static int intOr(final Object value, final int defaultValue) {
+        if (value instanceof Number n) {
+            return n.intValue();
+        }
+        return defaultValue;
+    }
+
+    private static boolean boolOr(final Object value, final boolean defaultValue) {
+        if (value instanceof Boolean b) {
+            return b;
+        }
+        return defaultValue;
+    }
+}

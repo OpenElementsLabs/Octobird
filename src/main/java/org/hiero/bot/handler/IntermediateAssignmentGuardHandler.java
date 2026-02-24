@@ -3,6 +3,7 @@ package org.hiero.bot.handler;
 import org.hiero.bot.config.CommentMarkerChecker;
 import org.hiero.bot.config.IssueSearchHelper;
 import org.hiero.bot.config.PermissionChecker;
+import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssuesEvent;
@@ -14,16 +15,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Objects;
 
 public class IntermediateAssignmentGuardHandler implements EventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(IntermediateAssignmentGuardHandler.class);
-    private static final String INTERMEDIATE_LABEL = "intermediate";
-    private static final String BEGINNER_LABEL = "beginner";
-    private static final String MARKER_PREFIX = "<!-- Intermediate Issue Guard -->";
-    private static final int REQUIRED_BEGINNER_COUNT = 0;
 
     private final PermissionChecker permissionChecker;
     private final IssueSearchHelper searchHelper;
@@ -49,10 +45,16 @@ public class IntermediateAssignmentGuardHandler implements EventHandler<IssuesEv
 
     @Override
     public void handle(final IssuesEvent issuesEvent, final GitHub gitHub,
-                       final Map<String, Object> repoConfig) throws IOException {
+                       final RepoConfig repoConfig) throws IOException {
 
-        // Guard deactivated when REQUIRED_BEGINNER_COUNT == 0
-        if (REQUIRED_BEGINNER_COUNT == 0) {
+        if (!repoConfig.features().intermediateGuard()) {
+            return;
+        }
+
+        final int requiredBeginnerCount = repoConfig.guards().requiredBeginnerCountForIntermediate();
+
+        // Guard deactivated when requiredBeginnerCount == 0
+        if (requiredBeginnerCount == 0) {
             return;
         }
 
@@ -75,9 +77,10 @@ public class IntermediateAssignmentGuardHandler implements EventHandler<IssuesEv
         final GHIssue issue = repo.getIssue(issueNumber);
 
         // Only intermediate issues
+        final String intermediateLabel = repoConfig.labels().intermediate();
         final boolean hasIntermediateLabel = issue.getLabels().stream()
                 .map(GHLabel::getName)
-                .anyMatch(INTERMEDIATE_LABEL::equalsIgnoreCase);
+                .anyMatch(intermediateLabel::equalsIgnoreCase);
         if (!hasIntermediateLabel) {
             return;
         }
@@ -89,22 +92,24 @@ public class IntermediateAssignmentGuardHandler implements EventHandler<IssuesEv
         }
 
         // Check per-user marker
-        final String userMarker = MARKER_PREFIX + " @" + assigneeLogin;
+        final String markerPrefix = repoConfig.markers().intermediateGuard();
+        final String userMarker = markerPrefix + " @" + assigneeLogin;
         if (markerChecker.hasMarker(issue, userMarker)) {
             LOG.debug("Intermediate guard already checked for {} on {}#{}", assigneeLogin, repoFullName, issueNumber);
             return;
         }
 
         // Check qualification
+        final String beginnerLabel = repoConfig.labels().beginner();
         final int closedBeginner = searchHelper.countClosedIssuesByLabel(
-                gitHub, repoFullName, assigneeLogin, BEGINNER_LABEL);
+                gitHub, repoFullName, assigneeLogin, beginnerLabel);
 
-        if (closedBeginner < REQUIRED_BEGINNER_COUNT) {
+        if (closedBeginner < requiredBeginnerCount) {
             issue.removeAssignees(gitHub.getUser(assigneeLogin));
             issue.comment(userMarker + "\n\n" +
                     "Hi @" + assigneeLogin + ", this is the Assignment Bot.\n\n" +
                     "This is an **intermediate** issue that requires at least **" +
-                    REQUIRED_BEGINNER_COUNT + "** completed beginner issue(s).\n\n" +
+                    requiredBeginnerCount + "** completed beginner issue(s).\n\n" +
                     "You currently have **" + closedBeginner + "** completed beginner issue(s). " +
                     "Please complete the required beginner issues first.");
             LOG.info("Removed unqualified user {} from intermediate issue {}#{}", assigneeLogin, repoFullName, issueNumber);

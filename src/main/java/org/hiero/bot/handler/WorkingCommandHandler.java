@@ -1,5 +1,6 @@
 package org.hiero.bot.handler;
 
+import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssueCommentEvent;
@@ -13,13 +14,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 public class WorkingCommandHandler implements EventHandler<IssueCommentEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkingCommandHandler.class);
-    private static final Pattern WORKING_PATTERN = Pattern.compile("(^|\\s)/working(\\s|$)", Pattern.CASE_INSENSITIVE);
 
     @Override
     public Class<IssueCommentEvent> eventType() {
@@ -33,15 +32,20 @@ public class WorkingCommandHandler implements EventHandler<IssueCommentEvent> {
 
     @Override
     public void handle(final IssueCommentEvent commentEvent, final GitHub gitHub,
-                       final Map<String, Object> repoConfig) throws IOException {
+                       final RepoConfig repoConfig) throws IOException {
+
+        if (!repoConfig.features().workingCommand()) {
+            return;
+        }
 
         // Skip bots
         if ("Bot".equals(commentEvent.comment().user().type())) {
             return;
         }
 
+        final Pattern workingPattern = repoConfig.commands().compiledWorkingPattern();
         final String body = commentEvent.comment().body();
-        if (body == null || !WORKING_PATTERN.matcher(body).find()) {
+        if (body == null || !workingPattern.matcher(body).find()) {
             return;
         }
 

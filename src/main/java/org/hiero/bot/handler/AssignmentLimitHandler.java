@@ -1,5 +1,6 @@
 package org.hiero.bot.handler;
 
+import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.config.IssueSearchHelper;
 import org.hiero.bot.config.PermissionChecker;
 import org.hiero.bot.config.SpamListLoader;
@@ -14,15 +15,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Objects;
 
 public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(AssignmentLimitHandler.class);
-    private static final String GOOD_FIRST_ISSUE_LABEL = "Good First Issue";
-    private static final int SPAM_USER_MAX_ASSIGNMENTS = 1;
-    private static final int NORMAL_USER_MAX_ASSIGNMENTS = 2;
 
     private final SpamListLoader spamListLoader;
     private final PermissionChecker permissionChecker;
@@ -47,7 +44,11 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
 
     @Override
     public void handle(final IssuesEvent issuesEvent, final GitHub gitHub,
-                       final Map<String, Object> repoConfig) throws IOException {
+                       final RepoConfig repoConfig) throws IOException {
+
+        if (!repoConfig.features().assignmentLimit()) {
+            return;
+        }
 
         final String assignee = issuesEvent.assignee() != null ? issuesEvent.assignee().login() : "";
         if (assignee.isEmpty()) {
@@ -66,22 +67,25 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
             return;
         }
 
-        final boolean isSpam = spamListLoader.isSpamUser(gitHub, repoFullName, assignee);
+        final String spamListPath = repoConfig.paths().spamList();
+        final boolean isSpam = spamListLoader.isSpamUser(gitHub, repoFullName, assignee, spamListPath);
 
         if (isSpam) {
-            handleSpamUser(gitHub, repo, issue, assignee, repoFullName, issueNumber);
+            handleSpamUser(gitHub, repo, issue, assignee, repoFullName, issueNumber, repoConfig);
         } else {
-            handleNormalUser(gitHub, repo, issue, assignee, repoFullName, issueNumber);
+            handleNormalUser(gitHub, repo, issue, assignee, repoFullName, issueNumber, repoConfig);
         }
     }
 
     private void handleSpamUser(final GitHub gitHub, final GHRepository repo, final GHIssue issue,
                                 final String assignee, final String repoFullName,
-                                final int issueNumber) throws IOException {
+                                final int issueNumber, final RepoConfig repoConfig) throws IOException {
+        final String gfiLabel = repoConfig.labels().goodFirstIssue();
+
         // Spam users can only be assigned to Good First Issues
         final boolean hasGfiLabel = issue.getLabels().stream()
                 .map(GHLabel::getName)
-                .anyMatch(GOOD_FIRST_ISSUE_LABEL::equals);
+                .anyMatch(gfiLabel::equals);
 
         if (!hasGfiLabel) {
             LOG.info("Spam user {} attempted non-GFI issue #{}", assignee, issueNumber);
@@ -94,14 +98,16 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
             return;
         }
 
-        // Spam users have a limit of 1 open assignment
+        final int spamMax = repoConfig.assignmentLimits().spamUserMax();
+
+        // Spam users have a limit of open assignments
         final int count = searchHelper.countOpenAssignments(gitHub, repoFullName, assignee);
-        if (count > SPAM_USER_MAX_ASSIGNMENTS) {
+        if (count > spamMax) {
             LOG.info("Spam user {} exceeds limit: {} assignments", assignee, count);
             issue.removeAssignees(gitHub.getUser(assignee));
             issue.comment("Hi @" + assignee + ", this is the Assignment Bot.\n\n" +
                     "Your account currently has limited assignment privileges with a maximum of **" +
-                    SPAM_USER_MAX_ASSIGNMENTS + " open assignment** at a time.\n\n" +
+                    spamMax + " open assignment** at a time.\n\n" +
                     "You currently have " + count + " open issue(s) assigned. " +
                     "Please complete and merge your existing assignment before requesting a new one.");
         }
@@ -109,14 +115,15 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
 
     private void handleNormalUser(final GitHub gitHub, final GHRepository repo, final GHIssue issue,
                                   final String assignee, final String repoFullName,
-                                  final int issueNumber) throws IOException {
+                                  final int issueNumber, final RepoConfig repoConfig) throws IOException {
+        final int normalMax = repoConfig.assignmentLimits().normalUserMax();
         final int count = searchHelper.countOpenAssignments(gitHub, repoFullName, assignee);
-        if (count > NORMAL_USER_MAX_ASSIGNMENTS) {
+        if (count > normalMax) {
             LOG.info("User {} exceeds limit: {} assignments", assignee, count);
             issue.removeAssignees(gitHub.getUser(assignee));
             issue.comment("Hi @" + assignee + ", this is the Assignment Bot.\n\n" +
                     "Assigning you to this issue would exceed the limit of " +
-                    NORMAL_USER_MAX_ASSIGNMENTS + " open assignments.\n\n" +
+                    normalMax + " open assignments.\n\n" +
                     "Please resolve and merge your existing assigned issues before requesting new ones.");
         }
     }

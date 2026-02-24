@@ -1,8 +1,10 @@
 package org.hiero.bot.handler;
 
 import org.hiero.bot.config.CommentMarkerChecker;
+import org.hiero.bot.config.DefaultRepoConfig;
 import org.hiero.bot.config.IssueSearchHelper;
 import org.hiero.bot.config.PermissionChecker;
+import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.Installation;
@@ -24,7 +26,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -32,6 +33,8 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AdvancedAssignmentGuardHandlerTest {
+
+    private static final RepoConfig CONFIG = DefaultRepoConfig.allDefaults();
 
     private AdvancedAssignmentGuardHandler handler;
 
@@ -72,7 +75,7 @@ class AdvancedAssignmentGuardHandlerTest {
         when(repo.getIssue(42)).thenReturn(issue);
         when(issue.getLabels()).thenReturn(List.of());
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue, never()).comment(any());
         verify(issue, never()).removeAssignees(any(GHUser.class));
@@ -90,7 +93,7 @@ class AdvancedAssignmentGuardHandlerTest {
         when(issue.getLabels()).thenReturn(List.of(advancedLabel));
         when(permissionChecker.isExemptFromGuard(repo, "admin-user")).thenReturn(true);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue, never()).comment(any());
         verify(issue, never()).removeAssignees(any(GHUser.class));
@@ -111,7 +114,7 @@ class AdvancedAssignmentGuardHandlerTest {
         when(searchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "intermediate")).thenReturn(0);
         when(gitHub.getUser("alice")).thenReturn(assigneeUser);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue).removeAssignees(assigneeUser);
         verify(issue).comment(argThat(msg -> msg.contains("advanced") && msg.contains("@alice")));
@@ -131,7 +134,7 @@ class AdvancedAssignmentGuardHandlerTest {
         when(markerChecker.hasMarker(eq(issue), contains("@alice"))).thenReturn(false);
         when(searchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "intermediate")).thenReturn(1);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue, never()).removeAssignees(any(GHUser.class));
         verify(issue, never()).comment(any());
@@ -152,7 +155,7 @@ class AdvancedAssignmentGuardHandlerTest {
         when(searchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "intermediate")).thenReturn(0);
         when(gitHub.getUser("alice")).thenReturn(assigneeUser);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue).removeAssignees(assigneeUser);
     }
@@ -164,7 +167,7 @@ class AdvancedAssignmentGuardHandlerTest {
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
-        handler.handle(event, gitHub, Map.of());
+        handler.handle(event, gitHub, CONFIG);
 
         verify(issue, never()).comment(any());
         verify(issue, never()).removeAssignees(any(GHUser.class));

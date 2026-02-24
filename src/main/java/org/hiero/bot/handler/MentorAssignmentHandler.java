@@ -3,6 +3,7 @@ package org.hiero.bot.handler;
 import org.hiero.bot.config.CommentMarkerChecker;
 import org.hiero.bot.config.IssueSearchHelper;
 import org.hiero.bot.config.MentorRosterLoader;
+import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssuesEvent;
@@ -15,14 +16,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public class MentorAssignmentHandler implements EventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(MentorAssignmentHandler.class);
-    private static final String GOOD_FIRST_ISSUE_LABEL = "Good First Issue";
-    private static final String MARKER = "<!-- Mentor Assignment Bot -->";
 
     private final MentorRosterLoader rosterLoader;
     private final IssueSearchHelper searchHelper;
@@ -48,7 +46,11 @@ public class MentorAssignmentHandler implements EventHandler<IssuesEvent> {
 
     @Override
     public void handle(final IssuesEvent issuesEvent, final GitHub gitHub,
-                       final Map<String, Object> repoConfig) throws IOException {
+                       final RepoConfig repoConfig) throws IOException {
+
+        if (!repoConfig.features().mentorAssignment()) {
+            return;
+        }
 
         final var assignee = issuesEvent.assignee();
         if (assignee == null || assignee.login().isEmpty()) {
@@ -69,15 +71,17 @@ public class MentorAssignmentHandler implements EventHandler<IssuesEvent> {
         final GHIssue issue = repo.getIssue(issueNumber);
 
         // Only GFI issues
+        final String gfiLabel = repoConfig.labels().goodFirstIssue();
         final boolean hasGfiLabel = issue.getLabels().stream()
                 .map(GHLabel::getName)
-                .anyMatch(GOOD_FIRST_ISSUE_LABEL::equalsIgnoreCase);
+                .anyMatch(gfiLabel::equalsIgnoreCase);
         if (!hasGfiLabel) {
             return;
         }
 
         // Check duplicate marker
-        if (markerChecker.hasMarker(issue, MARKER)) {
+        final String marker = repoConfig.markers().mentorAssignment();
+        if (markerChecker.hasMarker(issue, marker)) {
             LOG.debug("Mentor already assigned for {}#{}", repoFullName, issueNumber);
             return;
         }
@@ -89,14 +93,15 @@ public class MentorAssignmentHandler implements EventHandler<IssuesEvent> {
         }
 
         // Select mentor from roster
-        final List<String> roster = rosterLoader.loadRoster(gitHub, repoFullName);
+        final String rosterPath = repoConfig.paths().mentorRoster();
+        final List<String> roster = rosterLoader.loadRoster(gitHub, repoFullName, rosterPath);
         final String mentor = rosterLoader.selectMentor(roster);
         if (mentor == null) {
             LOG.debug("No mentors available for {}", repoFullName);
             return;
         }
 
-        final String comment = MARKER + "\n\n" +
+        final String comment = marker + "\n\n" +
                 "Welcome @" + assigneeLogin + "! \uD83D\uDC4B This is your first contribution — exciting!\n\n" +
                 "@" + mentor + " has been assigned as your mentor for this issue. " +
                 "Feel free to ask them any questions as you work through it.\n\n" +
