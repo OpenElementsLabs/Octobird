@@ -22,6 +22,7 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
@@ -38,9 +39,6 @@ class AdvancedAssignmentGuardHandlerTest {
 
     private AdvancedAssignmentGuardHandler handler;
 
-    @Mock private PermissionChecker permissionChecker;
-    @Mock private IssueSearchHelper searchHelper;
-    @Mock private CommentMarkerChecker markerChecker;
     @Mock private GitHub gitHub;
     @Mock private GHRepository repo;
     @Mock private GHIssue issue;
@@ -48,7 +46,7 @@ class AdvancedAssignmentGuardHandlerTest {
 
     @BeforeEach
     void setUp() {
-        handler = new AdvancedAssignmentGuardHandler(permissionChecker, searchHelper, markerChecker);
+        handler = new AdvancedAssignmentGuardHandler();
     }
 
     @Test
@@ -91,12 +89,15 @@ class AdvancedAssignmentGuardHandlerTest {
         final GHLabel advancedLabel = mock(GHLabel.class);
         when(advancedLabel.getName()).thenReturn("advanced");
         when(issue.getLabels()).thenReturn(List.of(advancedLabel));
-        when(permissionChecker.isExemptFromGuard(repo, "admin-user")).thenReturn(true);
 
-        handler.handle(event, gitHub, CONFIG);
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class)) {
+            pc.when(() -> PermissionChecker.isExemptFromGuard(repo, "admin-user")).thenReturn(true);
 
-        verify(issue, never()).comment(any());
-        verify(issue, never()).removeAssignees(any(GHUser.class));
+            handler.handle(event, gitHub, CONFIG);
+
+            verify(issue, never()).comment(any());
+            verify(issue, never()).removeAssignees(any(GHUser.class));
+        }
     }
 
     @Test
@@ -109,15 +110,20 @@ class AdvancedAssignmentGuardHandlerTest {
         final GHLabel advancedLabel = mock(GHLabel.class);
         when(advancedLabel.getName()).thenReturn("advanced");
         when(issue.getLabels()).thenReturn(List.of(advancedLabel));
-        when(permissionChecker.isExemptFromGuard(repo, "alice")).thenReturn(false);
-        when(markerChecker.hasMarker(eq(issue), contains("@alice"))).thenReturn(false);
-        when(searchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "intermediate")).thenReturn(0);
         when(gitHub.getUser("alice")).thenReturn(assigneeUser);
 
-        handler.handle(event, gitHub, CONFIG);
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
+             final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+            pc.when(() -> PermissionChecker.isExemptFromGuard(repo, "alice")).thenReturn(false);
+            mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), contains("@alice"))).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "intermediate")).thenReturn(0);
 
-        verify(issue).removeAssignees(assigneeUser);
-        verify(issue).comment(argThat(msg -> msg.contains("advanced") && msg.contains("@alice")));
+            handler.handle(event, gitHub, CONFIG);
+
+            verify(issue).removeAssignees(assigneeUser);
+            verify(issue).comment(argThat(msg -> msg.contains("advanced") && msg.contains("@alice")));
+        }
     }
 
     @Test
@@ -130,14 +136,19 @@ class AdvancedAssignmentGuardHandlerTest {
         final GHLabel advancedLabel = mock(GHLabel.class);
         when(advancedLabel.getName()).thenReturn("advanced");
         when(issue.getLabels()).thenReturn(List.of(advancedLabel));
-        when(permissionChecker.isExemptFromGuard(repo, "alice")).thenReturn(false);
-        when(markerChecker.hasMarker(eq(issue), contains("@alice"))).thenReturn(false);
-        when(searchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "intermediate")).thenReturn(1);
 
-        handler.handle(event, gitHub, CONFIG);
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
+             final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+            pc.when(() -> PermissionChecker.isExemptFromGuard(repo, "alice")).thenReturn(false);
+            mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), contains("@alice"))).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "intermediate")).thenReturn(1);
 
-        verify(issue, never()).removeAssignees(any(GHUser.class));
-        verify(issue, never()).comment(any());
+            handler.handle(event, gitHub, CONFIG);
+
+            verify(issue, never()).removeAssignees(any(GHUser.class));
+            verify(issue, never()).comment(any());
+        }
     }
 
     @Test
@@ -150,14 +161,19 @@ class AdvancedAssignmentGuardHandlerTest {
         final GHUser ghUser = mock(GHUser.class);
         when(ghUser.getLogin()).thenReturn("alice");
         when(issue.getAssignees()).thenReturn(List.of(ghUser));
-        when(permissionChecker.isExemptFromGuard(repo, "alice")).thenReturn(false);
-        when(markerChecker.hasMarker(eq(issue), contains("@alice"))).thenReturn(false);
-        when(searchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "intermediate")).thenReturn(0);
         when(gitHub.getUser("alice")).thenReturn(assigneeUser);
 
-        handler.handle(event, gitHub, CONFIG);
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
+             final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+            pc.when(() -> PermissionChecker.isExemptFromGuard(repo, "alice")).thenReturn(false);
+            mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), contains("@alice"))).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "intermediate")).thenReturn(0);
 
-        verify(issue).removeAssignees(assigneeUser);
+            handler.handle(event, gitHub, CONFIG);
+
+            verify(issue).removeAssignees(assigneeUser);
+        }
     }
 
     @Test

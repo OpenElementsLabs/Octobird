@@ -1,6 +1,5 @@
 package org.hiero.bot.config;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kohsuke.github.GHIssue;
@@ -19,14 +18,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class CommentMarkerCheckerTest {
 
-    private CommentMarkerChecker checker;
-
     @Mock private GHIssue issue;
-
-    @BeforeEach
-    void setUp() {
-        checker = new CommentMarkerChecker();
-    }
 
     @Test
     void returnsTrueWhenMarkerPresent() throws IOException {
@@ -34,7 +26,7 @@ class CommentMarkerCheckerTest {
         when(comment.getBody()).thenReturn("<!-- test-marker -->\nSome text");
         mockCommentList(List.of(comment));
 
-        assertTrue(checker.hasMarker(issue, "<!-- test-marker -->"));
+        assertTrue(CommentMarkerChecker.hasMarker(issue, "<!-- test-marker -->"));
     }
 
     @Test
@@ -43,14 +35,14 @@ class CommentMarkerCheckerTest {
         when(comment.getBody()).thenReturn("Some regular comment");
         mockCommentList(List.of(comment));
 
-        assertFalse(checker.hasMarker(issue, "<!-- test-marker -->"));
+        assertFalse(CommentMarkerChecker.hasMarker(issue, "<!-- test-marker -->"));
     }
 
     @Test
     void returnsFalseWhenNoComments() throws IOException {
         mockCommentList(List.of());
 
-        assertFalse(checker.hasMarker(issue, "<!-- test-marker -->"));
+        assertFalse(CommentMarkerChecker.hasMarker(issue, "<!-- test-marker -->"));
     }
 
     @Test
@@ -59,7 +51,7 @@ class CommentMarkerCheckerTest {
         when(comment.getBody()).thenReturn(null);
         mockCommentList(List.of(comment));
 
-        assertFalse(checker.hasMarker(issue, "<!-- test-marker -->"));
+        assertFalse(CommentMarkerChecker.hasMarker(issue, "<!-- test-marker -->"));
     }
 
     @SuppressWarnings("unchecked")

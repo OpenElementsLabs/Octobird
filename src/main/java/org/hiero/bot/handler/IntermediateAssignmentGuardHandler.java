@@ -15,23 +15,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Objects;
 
 public class IntermediateAssignmentGuardHandler implements EventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(IntermediateAssignmentGuardHandler.class);
-
-    private final PermissionChecker permissionChecker;
-    private final IssueSearchHelper searchHelper;
-    private final CommentMarkerChecker markerChecker;
-
-    public IntermediateAssignmentGuardHandler(final PermissionChecker permissionChecker,
-                                              final IssueSearchHelper searchHelper,
-                                              final CommentMarkerChecker markerChecker) {
-        this.permissionChecker = Objects.requireNonNull(permissionChecker, "permissionChecker must not be null");
-        this.searchHelper = Objects.requireNonNull(searchHelper, "searchHelper must not be null");
-        this.markerChecker = Objects.requireNonNull(markerChecker, "markerChecker must not be null");
-    }
 
     @Override
     public Class<IssuesEvent> eventType() {
@@ -86,7 +73,7 @@ public class IntermediateAssignmentGuardHandler implements EventHandler<IssuesEv
         }
 
         // Skip exempt users (ADMIN/WRITE)
-        if (permissionChecker.isExemptFromGuard(repo, assigneeLogin)) {
+        if (PermissionChecker.isExemptFromGuard(repo, assigneeLogin)) {
             LOG.debug("{} is exempt from intermediate guard", assigneeLogin);
             return;
         }
@@ -94,14 +81,14 @@ public class IntermediateAssignmentGuardHandler implements EventHandler<IssuesEv
         // Check per-user marker
         final String markerPrefix = repoConfig.markers().intermediateGuard();
         final String userMarker = markerPrefix + " @" + assigneeLogin;
-        if (markerChecker.hasMarker(issue, userMarker)) {
+        if (CommentMarkerChecker.hasMarker(issue, userMarker)) {
             LOG.debug("Intermediate guard already checked for {} on {}#{}", assigneeLogin, repoFullName, issueNumber);
             return;
         }
 
         // Check qualification
         final String beginnerLabel = repoConfig.labels().beginner();
-        final int closedBeginner = searchHelper.countClosedIssuesByLabel(
+        final int closedBeginner = IssueSearchHelper.countClosedIssuesByLabel(
                 gitHub, repoFullName, assigneeLogin, beginnerLabel);
 
         if (closedBeginner < requiredBeginnerCount) {

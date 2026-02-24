@@ -5,9 +5,12 @@ import org.kohsuke.github.GitHub;
 import java.io.IOException;
 import java.util.Objects;
 
-public class IssueSearchHelper {
+public final class IssueSearchHelper {
 
-    public int countOpenAssignments(final GitHub gitHub, final String repoFullName,
+    private IssueSearchHelper() {
+    }
+
+    public static int countOpenAssignments(final GitHub gitHub, final String repoFullName,
                                     final String username) throws IOException {
         Objects.requireNonNull(gitHub, "gitHub must not be null");
         Objects.requireNonNull(repoFullName, "repoFullName must not be null");
@@ -19,7 +22,7 @@ public class IssueSearchHelper {
                 .size();
     }
 
-    public int countClosedIssuesByLabel(final GitHub gitHub, final String repoFullName,
+    public static int countClosedIssuesByLabel(final GitHub gitHub, final String repoFullName,
                                         final String username, final String label) throws IOException {
         Objects.requireNonNull(gitHub, "gitHub must not be null");
         Objects.requireNonNull(repoFullName, "repoFullName must not be null");
@@ -33,7 +36,7 @@ public class IssueSearchHelper {
                 .size();
     }
 
-    public boolean hasNoMergedPullRequests(final GitHub gitHub, final String repoFullName,
+    public static boolean hasNoMergedPullRequests(final GitHub gitHub, final String repoFullName,
                                            final String username) throws IOException {
         Objects.requireNonNull(gitHub, "gitHub must not be null");
         Objects.requireNonNull(repoFullName, "repoFullName must not be null");

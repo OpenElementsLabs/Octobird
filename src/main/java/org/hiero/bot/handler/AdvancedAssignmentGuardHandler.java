@@ -12,23 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Objects;
 
 public class AdvancedAssignmentGuardHandler implements EventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(AdvancedAssignmentGuardHandler.class);
-
-    private final PermissionChecker permissionChecker;
-    private final IssueSearchHelper searchHelper;
-    private final CommentMarkerChecker markerChecker;
-
-    public AdvancedAssignmentGuardHandler(final PermissionChecker permissionChecker,
-                                          final IssueSearchHelper searchHelper,
-                                          final CommentMarkerChecker markerChecker) {
-        this.permissionChecker = Objects.requireNonNull(permissionChecker, "permissionChecker must not be null");
-        this.searchHelper = Objects.requireNonNull(searchHelper, "searchHelper must not be null");
-        this.markerChecker = Objects.requireNonNull(markerChecker, "markerChecker must not be null");
-    }
 
     @Override
     public Class<IssuesEvent> eventType() {
@@ -109,7 +96,7 @@ public class AdvancedAssignmentGuardHandler implements EventHandler<IssuesEvent>
                                              final String repoFullName, final int issueNumber,
                                              final RepoConfig repoConfig) throws IOException {
         // Skip exempt users (ADMIN/WRITE)
-        if (permissionChecker.isExemptFromGuard(repo, username)) {
+        if (PermissionChecker.isExemptFromGuard(repo, username)) {
             LOG.debug("{} is exempt from advanced guard", username);
             return;
         }
@@ -117,7 +104,7 @@ public class AdvancedAssignmentGuardHandler implements EventHandler<IssuesEvent>
         // Check per-user marker
         final String markerPrefix = repoConfig.markers().advancedGuard();
         final String userMarker = markerPrefix + " @" + username;
-        if (markerChecker.hasMarker(issue, userMarker)) {
+        if (CommentMarkerChecker.hasMarker(issue, userMarker)) {
             LOG.debug("Advanced guard already checked for {} on {}#{}", username, repoFullName, issueNumber);
             return;
         }
@@ -125,7 +112,7 @@ public class AdvancedAssignmentGuardHandler implements EventHandler<IssuesEvent>
         // Check qualification
         final String intermediateLabel = repoConfig.labels().intermediate();
         final int requiredIntermediateCount = repoConfig.guards().requiredIntermediateCountForAdvanced();
-        final int closedIntermediate = searchHelper.countClosedIssuesByLabel(
+        final int closedIntermediate = IssueSearchHelper.countClosedIssuesByLabel(
                 gitHub, repoFullName, username, intermediateLabel);
 
         if (closedIntermediate < requiredIntermediateCount) {

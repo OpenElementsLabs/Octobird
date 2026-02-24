@@ -1,6 +1,5 @@
 package org.hiero.bot.config;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kohsuke.github.GHIssue;
@@ -20,16 +19,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class IssueSearchHelperTest {
 
-    private IssueSearchHelper helper;
-
     @Mock private GitHub gitHub;
     @Mock private GHIssueSearchBuilder searchBuilder;
     @Mock private PagedSearchIterable<GHIssue> searchResult;
-
-    @BeforeEach
-    void setUp() {
-        helper = new IssueSearchHelper();
-    }
 
     @Test
     @SuppressWarnings("unchecked")
@@ -39,7 +31,7 @@ class IssueSearchHelperTest {
         when(searchBuilder.list()).thenReturn(searchResult);
         when(searchResult.toList()).thenReturn(List.of(mock(GHIssue.class), mock(GHIssue.class)));
 
-        final int count = helper.countOpenAssignments(gitHub, "owner/repo", "alice");
+        final int count = IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice");
 
         assertEquals(2, count);
     }
@@ -52,7 +44,7 @@ class IssueSearchHelperTest {
         when(searchBuilder.list()).thenReturn(searchResult);
         when(searchResult.toList()).thenReturn(List.of(mock(GHIssue.class)));
 
-        final int count = helper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "beginner");
+        final int count = IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "beginner");
 
         assertEquals(1, count);
     }
@@ -65,7 +57,7 @@ class IssueSearchHelperTest {
         when(searchBuilder.list()).thenReturn(searchResult);
         when(searchResult.toList()).thenReturn(List.of());
 
-        assertTrue(helper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice"));
+        assertTrue(IssueSearchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice"));
     }
 
     @Test
@@ -76,6 +68,6 @@ class IssueSearchHelperTest {
         when(searchBuilder.list()).thenReturn(searchResult);
         when(searchResult.toList()).thenReturn(List.of(mock(GHIssue.class)));
 
-        assertFalse(helper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice"));
+        assertFalse(IssueSearchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice"));
     }
 }

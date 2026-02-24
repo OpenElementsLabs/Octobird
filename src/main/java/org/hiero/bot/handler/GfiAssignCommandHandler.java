@@ -24,18 +24,9 @@ public class GfiAssignCommandHandler implements EventHandler<IssueCommentEvent> 
     private static final Logger LOG = LoggerFactory.getLogger(GfiAssignCommandHandler.class);
 
     private final SpamListLoader spamListLoader;
-    private final PermissionChecker permissionChecker;
-    private final IssueSearchHelper searchHelper;
-    private final CommentMarkerChecker markerChecker;
 
-    public GfiAssignCommandHandler(final SpamListLoader spamListLoader,
-                                   final PermissionChecker permissionChecker,
-                                   final IssueSearchHelper searchHelper,
-                                   final CommentMarkerChecker markerChecker) {
+    public GfiAssignCommandHandler(final SpamListLoader spamListLoader) {
         this.spamListLoader = Objects.requireNonNull(spamListLoader, "spamListLoader must not be null");
-        this.permissionChecker = Objects.requireNonNull(permissionChecker, "permissionChecker must not be null");
-        this.searchHelper = Objects.requireNonNull(searchHelper, "searchHelper must not be null");
-        this.markerChecker = Objects.requireNonNull(markerChecker, "markerChecker must not be null");
     }
 
     @Override
@@ -105,7 +96,7 @@ public class GfiAssignCommandHandler implements EventHandler<IssueCommentEvent> 
         final int normalMax = repoConfig.assignmentLimits().normalUserMax();
 
         if (isSpam) {
-            final int count = searchHelper.countOpenAssignments(gitHub, repoFullName, commenter);
+            final int count = IssueSearchHelper.countOpenAssignments(gitHub, repoFullName, commenter);
             if (count >= spamMax) {
                 issue.comment("Hi @" + commenter + ", this is the Assignment Bot.\n\n" +
                         "Your account currently has limited assignment privileges with a maximum of **" +
@@ -115,7 +106,7 @@ public class GfiAssignCommandHandler implements EventHandler<IssueCommentEvent> 
                 return;
             }
         } else {
-            final int count = searchHelper.countOpenAssignments(gitHub, repoFullName, commenter);
+            final int count = IssueSearchHelper.countOpenAssignments(gitHub, repoFullName, commenter);
             if (count >= normalMax) {
                 issue.comment("Hi @" + commenter + ", this is the Assignment Bot.\n\n" +
                         "Assigning you to this issue would exceed the limit of " +
@@ -139,14 +130,14 @@ public class GfiAssignCommandHandler implements EventHandler<IssueCommentEvent> 
         }
 
         // Only for non-collaborators
-        if (permissionChecker.isCollaborator(repo, commenter)) {
+        if (PermissionChecker.isCollaborator(repo, commenter)) {
             return;
         }
 
         final String reminderMarker = repoConfig.markers().gfiReminder();
 
         // Check duplicate marker
-        if (markerChecker.hasMarker(issue, reminderMarker)) {
+        if (CommentMarkerChecker.hasMarker(issue, reminderMarker)) {
             return;
         }
 

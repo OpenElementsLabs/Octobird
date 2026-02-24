@@ -12,17 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Objects;
 
 public class CodeRabbitPlanTriggerHandler implements EventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(CodeRabbitPlanTriggerHandler.class);
-
-    private final CommentMarkerChecker markerChecker;
-
-    public CodeRabbitPlanTriggerHandler(final CommentMarkerChecker markerChecker) {
-        this.markerChecker = Objects.requireNonNull(markerChecker, "markerChecker must not be null");
-    }
 
     @Override
     public Class<IssuesEvent> eventType() {
@@ -59,7 +52,7 @@ public class CodeRabbitPlanTriggerHandler implements EventHandler<IssuesEvent> {
         final GHIssue issue = repo.getIssue(issueNumber);
 
         final String marker = repoConfig.markers().codeRabbitPlanTrigger();
-        if (markerChecker.hasMarker(issue, marker)) {
+        if (CommentMarkerChecker.hasMarker(issue, marker)) {
             LOG.debug("CodeRabbit plan already triggered for {}#{}", repoFullName, issueNumber);
             return;
         }

@@ -22,14 +22,9 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
     private static final Logger LOG = LoggerFactory.getLogger(AssignmentLimitHandler.class);
 
     private final SpamListLoader spamListLoader;
-    private final PermissionChecker permissionChecker;
-    private final IssueSearchHelper searchHelper;
 
-    public AssignmentLimitHandler(final SpamListLoader spamListLoader, final PermissionChecker permissionChecker,
-                                  final IssueSearchHelper searchHelper) {
+    public AssignmentLimitHandler(final SpamListLoader spamListLoader) {
         this.spamListLoader = Objects.requireNonNull(spamListLoader, "spamListLoader must not be null");
-        this.permissionChecker = Objects.requireNonNull(permissionChecker, "permissionChecker must not be null");
-        this.searchHelper = Objects.requireNonNull(searchHelper, "searchHelper must not be null");
     }
 
     @Override
@@ -62,7 +57,7 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
         final GHIssue issue = repo.getIssue(issueNumber);
 
         // Maintainers have no limit
-        if (permissionChecker.isMaintainer(repo, assignee)) {
+        if (PermissionChecker.isMaintainer(repo, assignee)) {
             LOG.debug("{} is a maintainer, no limit applies", assignee);
             return;
         }
@@ -101,7 +96,7 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
         final int spamMax = repoConfig.assignmentLimits().spamUserMax();
 
         // Spam users have a limit of open assignments
-        final int count = searchHelper.countOpenAssignments(gitHub, repoFullName, assignee);
+        final int count = IssueSearchHelper.countOpenAssignments(gitHub, repoFullName, assignee);
         if (count > spamMax) {
             LOG.info("Spam user {} exceeds limit: {} assignments", assignee, count);
             issue.removeAssignees(gitHub.getUser(assignee));
@@ -117,7 +112,7 @@ public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
                                   final String assignee, final String repoFullName,
                                   final int issueNumber, final RepoConfig repoConfig) throws IOException {
         final int normalMax = repoConfig.assignmentLimits().normalUserMax();
-        final int count = searchHelper.countOpenAssignments(gitHub, repoFullName, assignee);
+        final int count = IssueSearchHelper.countOpenAssignments(gitHub, repoFullName, assignee);
         if (count > normalMax) {
             LOG.info("User {} exceeds limit: {} assignments", assignee, count);
             issue.removeAssignees(gitHub.getUser(assignee));

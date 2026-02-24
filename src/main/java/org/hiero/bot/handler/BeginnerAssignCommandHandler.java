@@ -24,18 +24,9 @@ public class BeginnerAssignCommandHandler implements EventHandler<IssueCommentEv
     private static final Logger LOG = LoggerFactory.getLogger(BeginnerAssignCommandHandler.class);
 
     private final SpamListLoader spamListLoader;
-    private final PermissionChecker permissionChecker;
-    private final IssueSearchHelper searchHelper;
-    private final CommentMarkerChecker markerChecker;
 
-    public BeginnerAssignCommandHandler(final SpamListLoader spamListLoader,
-                                        final PermissionChecker permissionChecker,
-                                        final IssueSearchHelper searchHelper,
-                                        final CommentMarkerChecker markerChecker) {
+    public BeginnerAssignCommandHandler(final SpamListLoader spamListLoader) {
         this.spamListLoader = Objects.requireNonNull(spamListLoader, "spamListLoader must not be null");
-        this.permissionChecker = Objects.requireNonNull(permissionChecker, "permissionChecker must not be null");
-        this.searchHelper = Objects.requireNonNull(searchHelper, "searchHelper must not be null");
-        this.markerChecker = Objects.requireNonNull(markerChecker, "markerChecker must not be null");
     }
 
     @Override
@@ -96,12 +87,12 @@ public class BeginnerAssignCommandHandler implements EventHandler<IssueCommentEv
         final String gfiGuardMarker = repoConfig.markers().beginnerGfiGuard();
 
         // GFI prerequisite check
-        if (!permissionChecker.isExemptFromGuard(repo, commenter)) {
-            final int closedGfi = searchHelper.countClosedIssuesByLabel(
+        if (!PermissionChecker.isExemptFromGuard(repo, commenter)) {
+            final int closedGfi = IssueSearchHelper.countClosedIssuesByLabel(
                     gitHub, repoFullName, commenter, gfiLabel);
             if (closedGfi < requiredGfiCount) {
                 final String userMarker = gfiGuardMarker + " @" + commenter;
-                if (!markerChecker.hasMarker(issue, userMarker)) {
+                if (!CommentMarkerChecker.hasMarker(issue, userMarker)) {
                     issue.comment(userMarker + "\n\n" +
                             "Hi @" + commenter + ", this is the Assignment Bot.\n\n" +
                             "This is a **beginner** issue that requires at least **" +
@@ -135,7 +126,7 @@ public class BeginnerAssignCommandHandler implements EventHandler<IssueCommentEv
 
         // Assignment limit check
         final int normalMax = repoConfig.assignmentLimits().normalUserMax();
-        final int count = searchHelper.countOpenAssignments(gitHub, repoFullName, commenter);
+        final int count = IssueSearchHelper.countOpenAssignments(gitHub, repoFullName, commenter);
         if (count >= normalMax) {
             issue.comment("Hi @" + commenter + ", this is the Assignment Bot.\n\n" +
                     "Assigning you to this issue would exceed the limit of " +
@@ -158,14 +149,14 @@ public class BeginnerAssignCommandHandler implements EventHandler<IssueCommentEv
         }
 
         // Only for non-collaborators
-        if (permissionChecker.isCollaborator(repo, commenter)) {
+        if (PermissionChecker.isCollaborator(repo, commenter)) {
             return;
         }
 
         final String reminderMarker = repoConfig.markers().beginnerReminder();
 
         // Check duplicate marker
-        if (markerChecker.hasMarker(issue, reminderMarker)) {
+        if (CommentMarkerChecker.hasMarker(issue, reminderMarker)) {
             return;
         }
 

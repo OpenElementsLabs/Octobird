@@ -21,6 +21,7 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
@@ -41,8 +42,6 @@ class AssignmentLimitHandlerTest {
     private AssignmentLimitHandler handler;
 
     @Mock private SpamListLoader spamListLoader;
-    @Mock private PermissionChecker permissionChecker;
-    @Mock private IssueSearchHelper searchHelper;
     @Mock private GitHub gitHub;
     @Mock private GHRepository repo;
     @Mock private GHIssue issue;
@@ -50,7 +49,7 @@ class AssignmentLimitHandlerTest {
 
     @BeforeEach
     void setUp() {
-        handler = new AssignmentLimitHandler(spamListLoader, permissionChecker, searchHelper);
+        handler = new AssignmentLimitHandler(spamListLoader);
     }
 
     @Test
@@ -66,116 +65,135 @@ class AssignmentLimitHandlerTest {
 
     @Test
     void maintainerHasNoLimit() throws IOException {
-        IssuesEvent event = buildEvent("alice");
+        final IssuesEvent event = buildEvent("alice");
 
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
-        when(permissionChecker.isMaintainer(repo, "alice")).thenReturn(true);
 
-        handler.handle(event, gitHub, CONFIG);
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class)) {
+            pc.when(() -> PermissionChecker.isMaintainer(repo, "alice")).thenReturn(true);
 
-        verify(issue, never()).removeAssignees(any(GHUser.class));
+            handler.handle(event, gitHub, CONFIG);
+
+            verify(issue, never()).removeAssignees(any(GHUser.class));
+        }
     }
 
     @Test
     void normalUserWithinLimitIsAllowed() throws IOException {
-        IssuesEvent event = buildEvent("alice");
+        final IssuesEvent event = buildEvent("alice");
 
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
-        when(permissionChecker.isMaintainer(repo, "alice")).thenReturn(false);
         when(spamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
-        when(searchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(2);
 
-        handler.handle(event, gitHub, CONFIG);
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+            pc.when(() -> PermissionChecker.isMaintainer(repo, "alice")).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(2);
 
-        verify(issue, never()).removeAssignees(any(GHUser.class));
+            handler.handle(event, gitHub, CONFIG);
+
+            verify(issue, never()).removeAssignees(any(GHUser.class));
+        }
     }
 
     @Test
     void normalUserExceedingLimitIsRemoved() throws IOException {
-        IssuesEvent event = buildEvent("alice");
+        final IssuesEvent event = buildEvent("alice");
 
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
-        when(permissionChecker.isMaintainer(repo, "alice")).thenReturn(false);
         when(spamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
-        when(searchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(3);
-
         when(gitHub.getUser("alice")).thenReturn(assigneeUser);
 
-        handler.handle(event, gitHub, CONFIG);
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+            pc.when(() -> PermissionChecker.isMaintainer(repo, "alice")).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(3);
 
-        verify(issue).removeAssignees(assigneeUser);
-        verify(issue).comment(argThat(msg -> msg.contains("exceed the limit of 2")));
+            handler.handle(event, gitHub, CONFIG);
+
+            verify(issue).removeAssignees(assigneeUser);
+            verify(issue).comment(argThat(msg -> msg.contains("exceed the limit of 2")));
+        }
     }
 
     @Test
     void spamUserOnNonGfiIsRemoved() throws IOException {
-        IssuesEvent event = buildEvent("spammer");
+        final IssuesEvent event = buildEvent("spammer");
 
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
-        when(permissionChecker.isMaintainer(repo, "spammer")).thenReturn(false);
         when(spamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
         when(issue.getLabels()).thenReturn(List.of());
-
         when(gitHub.getUser("spammer")).thenReturn(assigneeUser);
 
-        handler.handle(event, gitHub, CONFIG);
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class)) {
+            pc.when(() -> PermissionChecker.isMaintainer(repo, "spammer")).thenReturn(false);
 
-        verify(issue).removeAssignees(assigneeUser);
-        verify(issue).comment(argThat(msg -> msg.contains("limited assignment privileges")));
+            handler.handle(event, gitHub, CONFIG);
+
+            verify(issue).removeAssignees(assigneeUser);
+            verify(issue).comment(argThat(msg -> msg.contains("limited assignment privileges")));
+        }
     }
 
     @Test
     void spamUserOnGfiWithinLimitIsAllowed() throws IOException {
-        IssuesEvent event = buildEvent("spammer");
+        final IssuesEvent event = buildEvent("spammer");
 
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
-        when(permissionChecker.isMaintainer(repo, "spammer")).thenReturn(false);
         when(spamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
 
-        GHLabel gfiLabel = mock(GHLabel.class);
+        final GHLabel gfiLabel = mock(GHLabel.class);
         when(gfiLabel.getName()).thenReturn("Good First Issue");
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
-        when(searchHelper.countOpenAssignments(gitHub, "owner/repo", "spammer")).thenReturn(1);
 
-        handler.handle(event, gitHub, CONFIG);
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+            pc.when(() -> PermissionChecker.isMaintainer(repo, "spammer")).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "spammer")).thenReturn(1);
 
-        verify(issue, never()).removeAssignees(any(GHUser.class));
+            handler.handle(event, gitHub, CONFIG);
+
+            verify(issue, never()).removeAssignees(any(GHUser.class));
+        }
     }
 
     @Test
     void spamUserOnGfiExceedingLimitIsRemoved() throws IOException {
-        IssuesEvent event = buildEvent("spammer");
+        final IssuesEvent event = buildEvent("spammer");
 
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
-        when(permissionChecker.isMaintainer(repo, "spammer")).thenReturn(false);
         when(spamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
 
-        GHLabel gfiLabel = mock(GHLabel.class);
+        final GHLabel gfiLabel = mock(GHLabel.class);
         when(gfiLabel.getName()).thenReturn("Good First Issue");
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
-        when(searchHelper.countOpenAssignments(gitHub, "owner/repo", "spammer")).thenReturn(2);
-
         when(gitHub.getUser("spammer")).thenReturn(assigneeUser);
 
-        handler.handle(event, gitHub, CONFIG);
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+            pc.when(() -> PermissionChecker.isMaintainer(repo, "spammer")).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "spammer")).thenReturn(2);
 
-        verify(issue).removeAssignees(assigneeUser);
-        verify(issue).comment(argThat(msg -> msg.contains("limited assignment privileges")
-                && msg.contains("1 open assignment")));
+            handler.handle(event, gitHub, CONFIG);
+
+            verify(issue).removeAssignees(assigneeUser);
+            verify(issue).comment(argThat(msg -> msg.contains("limited assignment privileges")
+                    && msg.contains("1 open assignment")));
+        }
     }
 
-    private IssuesEvent buildEvent(String assignee) {
-        User assigneeModel = new User(1, assignee, "User", null, null, false);
-        Issue modelIssue = new Issue(1, 42, "Test", null, "open", null, null,
+    private IssuesEvent buildEvent(final String assignee) {
+        final User assigneeModel = new User(1, assignee, "User", null, null, false);
+        final Issue modelIssue = new Issue(1, 42, "Test", null, "open", null, null,
                 null, List.of(), List.of(), false, null, false, null, null, null, null);
-        Repository repository = new Repository(1, "repo", "owner/repo", null, false, null, null, null);
-        Installation installation = new Installation(1, 1);
+        final Repository repository = new Repository(1, "repo", "owner/repo", null, false, null, null, null);
+        final Installation installation = new Installation(1, 1);
         return new IssuesEvent(GitHubAction.ASSIGNED, modelIssue, assigneeModel, null, repository, assigneeModel, installation);
     }
 }

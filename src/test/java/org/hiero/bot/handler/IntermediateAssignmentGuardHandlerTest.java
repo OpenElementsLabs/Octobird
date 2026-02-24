@@ -1,9 +1,6 @@
 package org.hiero.bot.handler;
 
-import org.hiero.bot.config.CommentMarkerChecker;
 import org.hiero.bot.config.DefaultRepoConfig;
-import org.hiero.bot.config.IssueSearchHelper;
-import org.hiero.bot.config.PermissionChecker;
 import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
@@ -35,16 +32,13 @@ class IntermediateAssignmentGuardHandlerTest {
 
     private IntermediateAssignmentGuardHandler handler;
 
-    @Mock private PermissionChecker permissionChecker;
-    @Mock private IssueSearchHelper searchHelper;
-    @Mock private CommentMarkerChecker markerChecker;
     @Mock private GitHub gitHub;
     @Mock private GHRepository repo;
     @Mock private GHIssue issue;
 
     @BeforeEach
     void setUp() {
-        handler = new IntermediateAssignmentGuardHandler(permissionChecker, searchHelper, markerChecker);
+        handler = new IntermediateAssignmentGuardHandler();
     }
 
     @Test
@@ -66,7 +60,7 @@ class IntermediateAssignmentGuardHandlerTest {
         handler.handle(event, gitHub, CONFIG);
 
         // Should return immediately without any interactions
-        verifyNoInteractions(gitHub, repo, issue, permissionChecker, searchHelper, markerChecker);
+        verifyNoInteractions(gitHub, repo, issue);
     }
 
     private IssuesEvent buildEvent(final String assignee) {

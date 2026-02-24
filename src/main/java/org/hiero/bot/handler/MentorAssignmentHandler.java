@@ -23,15 +23,9 @@ public class MentorAssignmentHandler implements EventHandler<IssuesEvent> {
     private static final Logger LOG = LoggerFactory.getLogger(MentorAssignmentHandler.class);
 
     private final MentorRosterLoader rosterLoader;
-    private final IssueSearchHelper searchHelper;
-    private final CommentMarkerChecker markerChecker;
 
-    public MentorAssignmentHandler(final MentorRosterLoader rosterLoader,
-                                   final IssueSearchHelper searchHelper,
-                                   final CommentMarkerChecker markerChecker) {
+    public MentorAssignmentHandler(final MentorRosterLoader rosterLoader) {
         this.rosterLoader = Objects.requireNonNull(rosterLoader, "rosterLoader must not be null");
-        this.searchHelper = Objects.requireNonNull(searchHelper, "searchHelper must not be null");
-        this.markerChecker = Objects.requireNonNull(markerChecker, "markerChecker must not be null");
     }
 
     @Override
@@ -81,13 +75,13 @@ public class MentorAssignmentHandler implements EventHandler<IssuesEvent> {
 
         // Check duplicate marker
         final String marker = repoConfig.markers().mentorAssignment();
-        if (markerChecker.hasMarker(issue, marker)) {
+        if (CommentMarkerChecker.hasMarker(issue, marker)) {
             LOG.debug("Mentor already assigned for {}#{}", repoFullName, issueNumber);
             return;
         }
 
         // Only for new contributors (no merged PRs)
-        if (!searchHelper.hasNoMergedPullRequests(gitHub, repoFullName, assigneeLogin)) {
+        if (!IssueSearchHelper.hasNoMergedPullRequests(gitHub, repoFullName, assigneeLogin)) {
             LOG.debug("{} already has merged PRs, skipping mentor assignment", assigneeLogin);
             return;
         }

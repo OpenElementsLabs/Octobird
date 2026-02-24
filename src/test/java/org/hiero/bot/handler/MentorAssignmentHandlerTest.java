@@ -20,6 +20,7 @@ import org.kohsuke.github.GHLabel;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
@@ -38,15 +39,13 @@ class MentorAssignmentHandlerTest {
     private MentorAssignmentHandler handler;
 
     @Mock private MentorRosterLoader rosterLoader;
-    @Mock private IssueSearchHelper searchHelper;
-    @Mock private CommentMarkerChecker markerChecker;
     @Mock private GitHub gitHub;
     @Mock private GHRepository repo;
     @Mock private GHIssue issue;
 
     @BeforeEach
     void setUp() {
-        handler = new MentorAssignmentHandler(rosterLoader, searchHelper, markerChecker);
+        handler = new MentorAssignmentHandler(rosterLoader);
     }
 
     @Test
@@ -90,11 +89,14 @@ class MentorAssignmentHandlerTest {
         final GHLabel gfiLabel = mock(GHLabel.class);
         when(gfiLabel.getName()).thenReturn("Good First Issue");
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
-        when(markerChecker.hasMarker(eq(issue), eq("<!-- Mentor Assignment Bot -->"))).thenReturn(true);
 
-        handler.handle(event, gitHub, CONFIG);
+        try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
+            mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- Mentor Assignment Bot -->"))).thenReturn(true);
 
-        verify(issue, never()).comment(any());
+            handler.handle(event, gitHub, CONFIG);
+
+            verify(issue, never()).comment(any());
+        }
     }
 
     @Test
@@ -107,12 +109,16 @@ class MentorAssignmentHandlerTest {
         final GHLabel gfiLabel = mock(GHLabel.class);
         when(gfiLabel.getName()).thenReturn("Good First Issue");
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
-        when(markerChecker.hasMarker(eq(issue), eq("<!-- Mentor Assignment Bot -->"))).thenReturn(false);
-        when(searchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice")).thenReturn(false);
 
-        handler.handle(event, gitHub, CONFIG);
+        try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+            mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- Mentor Assignment Bot -->"))).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice")).thenReturn(false);
 
-        verify(issue, never()).comment(any());
+            handler.handle(event, gitHub, CONFIG);
+
+            verify(issue, never()).comment(any());
+        }
     }
 
     @Test
@@ -125,17 +131,21 @@ class MentorAssignmentHandlerTest {
         final GHLabel gfiLabel = mock(GHLabel.class);
         when(gfiLabel.getName()).thenReturn("Good First Issue");
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
-        when(markerChecker.hasMarker(eq(issue), eq("<!-- Mentor Assignment Bot -->"))).thenReturn(false);
-        when(searchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice")).thenReturn(true);
         when(rosterLoader.loadRoster(gitHub, "owner/repo", ROSTER_PATH)).thenReturn(List.of("mentor1", "mentor2"));
         when(rosterLoader.selectMentor(List.of("mentor1", "mentor2"))).thenReturn("mentor1");
 
-        handler.handle(event, gitHub, CONFIG);
+        try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+            mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- Mentor Assignment Bot -->"))).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice")).thenReturn(true);
 
-        verify(issue).comment(argThat(msg ->
-                msg.contains("<!-- Mentor Assignment Bot -->")
-                        && msg.contains("@alice")
-                        && msg.contains("@mentor1")));
+            handler.handle(event, gitHub, CONFIG);
+
+            verify(issue).comment(argThat(msg ->
+                    msg.contains("<!-- Mentor Assignment Bot -->")
+                            && msg.contains("@alice")
+                            && msg.contains("@mentor1")));
+        }
     }
 
     @Test
@@ -148,14 +158,18 @@ class MentorAssignmentHandlerTest {
         final GHLabel gfiLabel = mock(GHLabel.class);
         when(gfiLabel.getName()).thenReturn("Good First Issue");
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
-        when(markerChecker.hasMarker(eq(issue), eq("<!-- Mentor Assignment Bot -->"))).thenReturn(false);
-        when(searchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice")).thenReturn(true);
         when(rosterLoader.loadRoster(gitHub, "owner/repo", ROSTER_PATH)).thenReturn(List.of());
         when(rosterLoader.selectMentor(List.of())).thenReturn(null);
 
-        handler.handle(event, gitHub, CONFIG);
+        try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+            mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- Mentor Assignment Bot -->"))).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice")).thenReturn(true);
 
-        verify(issue, never()).comment(any());
+            handler.handle(event, gitHub, CONFIG);
+
+            verify(issue, never()).comment(any());
+        }
     }
 
     private IssuesEvent buildEvent(final String assignee, final String type) {

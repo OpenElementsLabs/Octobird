@@ -18,6 +18,7 @@ import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
@@ -35,14 +36,13 @@ class CodeRabbitPlanTriggerHandlerTest {
 
     private CodeRabbitPlanTriggerHandler handler;
 
-    @Mock private CommentMarkerChecker markerChecker;
     @Mock private GitHub gitHub;
     @Mock private GHRepository repo;
     @Mock private GHIssue issue;
 
     @BeforeEach
     void setUp() {
-        handler = new CodeRabbitPlanTriggerHandler(markerChecker);
+        handler = new CodeRabbitPlanTriggerHandler();
     }
 
     @Test
@@ -62,11 +62,14 @@ class CodeRabbitPlanTriggerHandlerTest {
 
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
-        when(markerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(false);
 
-        handler.handle(event, gitHub, CONFIG);
+        try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
+            mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(false);
 
-        verify(issue).comment(argThat(msg -> msg.contains("@coderabbitai plan")));
+            handler.handle(event, gitHub, CONFIG);
+
+            verify(issue).comment(argThat(msg -> msg.contains("@coderabbitai plan")));
+        }
     }
 
     @Test
@@ -75,11 +78,14 @@ class CodeRabbitPlanTriggerHandlerTest {
 
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
-        when(markerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(false);
 
-        handler.handle(event, gitHub, CONFIG);
+        try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
+            mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(false);
 
-        verify(issue).comment(argThat(msg -> msg.contains("@coderabbitai plan")));
+            handler.handle(event, gitHub, CONFIG);
+
+            verify(issue).comment(argThat(msg -> msg.contains("@coderabbitai plan")));
+        }
     }
 
     @Test
@@ -88,11 +94,14 @@ class CodeRabbitPlanTriggerHandlerTest {
 
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
-        when(markerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(false);
 
-        handler.handle(event, gitHub, CONFIG);
+        try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
+            mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(false);
 
-        verify(issue).comment(argThat(msg -> msg.contains("@coderabbitai plan")));
+            handler.handle(event, gitHub, CONFIG);
+
+            verify(issue).comment(argThat(msg -> msg.contains("@coderabbitai plan")));
+        }
     }
 
     @Test
@@ -110,11 +119,14 @@ class CodeRabbitPlanTriggerHandlerTest {
 
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
-        when(markerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(true);
 
-        handler.handle(event, gitHub, CONFIG);
+        try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
+            mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(true);
 
-        verify(issue, never()).comment(any());
+            handler.handle(event, gitHub, CONFIG);
+
+            verify(issue, never()).comment(any());
+        }
     }
 
     private IssuesEvent buildEvent(final String labelName) {
