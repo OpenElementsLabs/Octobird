@@ -17,24 +17,15 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Objects;
 
-public class AssignmentLimitHandler implements EventHandler<IssuesEvent> {
+public class AssignmentLimitHandler extends AbstractEventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(AssignmentLimitHandler.class);
 
     private final SpamListLoader spamListLoader;
 
     public AssignmentLimitHandler(final SpamListLoader spamListLoader) {
+        super(IssuesEvent.class, (event, action) -> event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED);
         this.spamListLoader = Objects.requireNonNull(spamListLoader, "spamListLoader must not be null");
-    }
-
-    @Override
-    public Class<IssuesEvent> eventType() {
-        return IssuesEvent.class;
-    }
-
-    @Override
-    public boolean matches(final GitHubEventType event, final GitHubAction action) {
-        return event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED;
     }
 
     @Override

@@ -14,18 +14,12 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.regex.Pattern;
 
-public class UnassignCommandHandler implements EventHandler<IssueCommentEvent> {
+public class UnassignCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(UnassignCommandHandler.class);
 
-    @Override
-    public Class<IssueCommentEvent> eventType() {
-        return IssueCommentEvent.class;
-    }
-
-    @Override
-    public boolean matches(final GitHubEventType event, final GitHubAction action) {
-        return event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED;
+    public UnassignCommandHandler() {
+        super(IssueCommentEvent.class, (event, action) -> event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED);
     }
 
     @Override

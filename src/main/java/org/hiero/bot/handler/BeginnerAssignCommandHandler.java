@@ -19,24 +19,15 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
-public class BeginnerAssignCommandHandler implements EventHandler<IssueCommentEvent> {
+public class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(BeginnerAssignCommandHandler.class);
 
     private final SpamListLoader spamListLoader;
 
     public BeginnerAssignCommandHandler(final SpamListLoader spamListLoader) {
+        super(IssueCommentEvent.class, (event, action) -> event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED);
         this.spamListLoader = Objects.requireNonNull(spamListLoader, "spamListLoader must not be null");
-    }
-
-    @Override
-    public Class<IssueCommentEvent> eventType() {
-        return IssueCommentEvent.class;
-    }
-
-    @Override
-    public boolean matches(final GitHubEventType event, final GitHubAction action) {
-        return event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED;
     }
 
     @Override

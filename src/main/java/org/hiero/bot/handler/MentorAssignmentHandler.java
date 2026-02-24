@@ -18,24 +18,15 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
-public class MentorAssignmentHandler implements EventHandler<IssuesEvent> {
+public class MentorAssignmentHandler extends AbstractEventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(MentorAssignmentHandler.class);
 
     private final MentorRosterLoader rosterLoader;
 
     public MentorAssignmentHandler(final MentorRosterLoader rosterLoader) {
+        super(IssuesEvent.class, (event, action) -> event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED);
         this.rosterLoader = Objects.requireNonNull(rosterLoader, "rosterLoader must not be null");
-    }
-
-    @Override
-    public Class<IssuesEvent> eventType() {
-        return IssuesEvent.class;
-    }
-
-    @Override
-    public boolean matches(final GitHubEventType event, final GitHubAction action) {
-        return event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED;
     }
 
     @Override

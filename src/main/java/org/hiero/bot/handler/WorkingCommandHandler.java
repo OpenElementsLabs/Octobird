@@ -16,18 +16,12 @@ import java.io.IOException;
 import java.util.List;
 import java.util.regex.Pattern;
 
-public class WorkingCommandHandler implements EventHandler<IssueCommentEvent> {
+public class WorkingCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkingCommandHandler.class);
 
-    @Override
-    public Class<IssueCommentEvent> eventType() {
-        return IssueCommentEvent.class;
-    }
-
-    @Override
-    public boolean matches(final GitHubEventType event, final GitHubAction action) {
-        return event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED;
+    public WorkingCommandHandler() {
+        super(IssueCommentEvent.class, (event, action) -> event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED);
     }
 
     @Override

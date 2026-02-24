@@ -13,18 +13,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-public class CodeRabbitPlanTriggerHandler implements EventHandler<IssuesEvent> {
+public class CodeRabbitPlanTriggerHandler extends AbstractEventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(CodeRabbitPlanTriggerHandler.class);
 
-    @Override
-    public Class<IssuesEvent> eventType() {
-        return IssuesEvent.class;
-    }
-
-    @Override
-    public boolean matches(final GitHubEventType event, final GitHubAction action) {
-        return event == GitHubEventType.ISSUES && action == GitHubAction.LABELED;
+    public CodeRabbitPlanTriggerHandler() {
+        super(IssuesEvent.class, (event, action) -> event == GitHubEventType.ISSUES && action == GitHubAction.LABELED);
     }
 
     @Override

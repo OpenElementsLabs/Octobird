@@ -13,19 +13,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-public class AdvancedAssignmentGuardHandler implements EventHandler<IssuesEvent> {
+public class AdvancedAssignmentGuardHandler extends AbstractEventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(AdvancedAssignmentGuardHandler.class);
 
-    @Override
-    public Class<IssuesEvent> eventType() {
-        return IssuesEvent.class;
-    }
-
-    @Override
-    public boolean matches(final GitHubEventType event, final GitHubAction action) {
-        return event == GitHubEventType.ISSUES
-                && (action == GitHubAction.ASSIGNED || action == GitHubAction.LABELED);
+    public AdvancedAssignmentGuardHandler() {
+        super(IssuesEvent.class, (event, action) -> event == GitHubEventType.ISSUES
+                && (action == GitHubAction.ASSIGNED || action == GitHubAction.LABELED));
     }
 
     @Override
