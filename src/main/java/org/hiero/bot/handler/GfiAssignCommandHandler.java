@@ -16,18 +16,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Objects;
 import java.util.regex.Pattern;
 
 public class GfiAssignCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(GfiAssignCommandHandler.class);
 
-    private final SpamListLoader spamListLoader;
-
-    public GfiAssignCommandHandler(final SpamListLoader spamListLoader) {
+    public GfiAssignCommandHandler() {
         super(IssueCommentEvent.class, (event, action) -> event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED);
-        this.spamListLoader = Objects.requireNonNull(spamListLoader, "spamListLoader must not be null");
     }
 
     @Override
@@ -82,7 +78,7 @@ public class GfiAssignCommandHandler extends AbstractEventHandler<IssueCommentEv
         }
 
         final String spamListPath = repoConfig.paths().spamList();
-        final boolean isSpam = spamListLoader.isSpamUser(gitHub, repoFullName, commenter, spamListPath);
+        final boolean isSpam = SpamListLoader.isSpamUser(gitHub, repoFullName, commenter, spamListPath);
         final int spamMax = repoConfig.assignmentLimits().spamUserMax();
         final int normalMax = repoConfig.assignmentLimits().normalUserMax();
 

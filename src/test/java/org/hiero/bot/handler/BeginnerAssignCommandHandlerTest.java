@@ -41,7 +41,6 @@ class BeginnerAssignCommandHandlerTest {
 
     private BeginnerAssignCommandHandler handler;
 
-    @Mock private SpamListLoader spamListLoader;
     @Mock private GitHub gitHub;
     @Mock private GHRepository repo;
     @Mock private GHIssue issue;
@@ -49,7 +48,7 @@ class BeginnerAssignCommandHandlerTest {
 
     @BeforeEach
     void setUp() {
-        handler = new BeginnerAssignCommandHandler(spamListLoader);
+        handler = new BeginnerAssignCommandHandler();
     }
 
     @Test
@@ -118,12 +117,13 @@ class BeginnerAssignCommandHandlerTest {
         final GHLabel beginnerLabel = mock(GHLabel.class);
         when(beginnerLabel.getName()).thenReturn("beginner");
         when(issue.getLabels()).thenReturn(List.of(beginnerLabel));
-        when(spamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
 
         try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
-             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
+             final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class)) {
             pc.when(() -> PermissionChecker.isExemptFromGuard(repo, "spammer")).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "spammer", "Good First Issue")).thenReturn(1);
+            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
 
             handler.handle(event, gitHub, CONFIG);
 
@@ -142,14 +142,15 @@ class BeginnerAssignCommandHandlerTest {
         final GHLabel beginnerLabel = mock(GHLabel.class);
         when(beginnerLabel.getName()).thenReturn("beginner");
         when(issue.getLabels()).thenReturn(List.of(beginnerLabel));
-        when(spamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
         when(issue.getAssignees()).thenReturn(List.of());
         when(gitHub.getUser("alice")).thenReturn(ghUser);
 
         try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
-             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
+             final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class)) {
             pc.when(() -> PermissionChecker.isExemptFromGuard(repo, "alice")).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "Good First Issue")).thenReturn(1);
+            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(0);
 
             handler.handle(event, gitHub, CONFIG);
@@ -169,13 +170,14 @@ class BeginnerAssignCommandHandlerTest {
         final GHLabel beginnerLabel = mock(GHLabel.class);
         when(beginnerLabel.getName()).thenReturn("beginner");
         when(issue.getLabels()).thenReturn(List.of(beginnerLabel));
-        when(spamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
         when(issue.getAssignees()).thenReturn(List.of());
 
         try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
-             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
+             final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class)) {
             pc.when(() -> PermissionChecker.isExemptFromGuard(repo, "alice")).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "Good First Issue")).thenReturn(1);
+            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(2);
 
             handler.handle(event, gitHub, CONFIG);

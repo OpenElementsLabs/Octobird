@@ -15,17 +15,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Objects;
 
 public class AssignmentLimitHandler extends AbstractEventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(AssignmentLimitHandler.class);
 
-    private final SpamListLoader spamListLoader;
-
-    public AssignmentLimitHandler(final SpamListLoader spamListLoader) {
+    public AssignmentLimitHandler() {
         super(IssuesEvent.class, (event, action) -> event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED);
-        this.spamListLoader = Objects.requireNonNull(spamListLoader, "spamListLoader must not be null");
     }
 
     @Override
@@ -54,16 +50,16 @@ public class AssignmentLimitHandler extends AbstractEventHandler<IssuesEvent> {
         }
 
         final String spamListPath = repoConfig.paths().spamList();
-        final boolean isSpam = spamListLoader.isSpamUser(gitHub, repoFullName, assignee, spamListPath);
+        final boolean isSpam = SpamListLoader.isSpamUser(gitHub, repoFullName, assignee, spamListPath);
 
         if (isSpam) {
-            handleSpamUser(gitHub, repo, issue, assignee, repoFullName, issueNumber, repoConfig);
+            handleSpamUser(gitHub, issue, assignee, repoFullName, issueNumber, repoConfig);
         } else {
-            handleNormalUser(gitHub, repo, issue, assignee, repoFullName, issueNumber, repoConfig);
+            handleNormalUser(gitHub, issue, assignee, repoFullName, repoConfig);
         }
     }
 
-    private void handleSpamUser(final GitHub gitHub, final GHRepository repo, final GHIssue issue,
+    private void handleSpamUser(final GitHub gitHub, final GHIssue issue,
                                 final String assignee, final String repoFullName,
                                 final int issueNumber, final RepoConfig repoConfig) throws IOException {
         final String gfiLabel = repoConfig.labels().goodFirstIssue();
@@ -99,9 +95,9 @@ public class AssignmentLimitHandler extends AbstractEventHandler<IssuesEvent> {
         }
     }
 
-    private void handleNormalUser(final GitHub gitHub, final GHRepository repo, final GHIssue issue,
+    private void handleNormalUser(final GitHub gitHub, final GHIssue issue,
                                   final String assignee, final String repoFullName,
-                                  final int issueNumber, final RepoConfig repoConfig) throws IOException {
+                                  final RepoConfig repoConfig) throws IOException {
         final int normalMax = repoConfig.assignmentLimits().normalUserMax();
         final int count = IssueSearchHelper.countOpenAssignments(gitHub, repoFullName, assignee);
         if (count > normalMax) {

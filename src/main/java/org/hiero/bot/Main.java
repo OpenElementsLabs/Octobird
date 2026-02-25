@@ -5,8 +5,6 @@ import io.helidon.webserver.WebServer;
 import io.helidon.webserver.http.HttpRouting;
 import org.hiero.bot.auth.GitHubAppAuth;
 import org.hiero.bot.config.BotConfig;
-import org.hiero.bot.config.MentorRosterLoader;
-import org.hiero.bot.config.SpamListLoader;
 import org.hiero.bot.handler.AdvancedAssignmentGuardHandler;
 import org.hiero.bot.handler.AssignmentLimitHandler;
 import org.hiero.bot.handler.BeginnerAssignCommandHandler;
@@ -45,19 +43,16 @@ public final class Main {
         final GitHubAppAuth auth = new GitHubAppAuth(botConfig);
         final WebhookVerifier verifier = new WebhookVerifier(botConfig.webhookSecret());
 
-        final SpamListLoader spamListLoader = new SpamListLoader();
-        final MentorRosterLoader rosterLoader = new MentorRosterLoader();
-
         final List<EventHandler<?>> handlers = List.of(
                 // Phase 1 (retained):
                 new UnassignCommandHandler(),
                 new WorkingCommandHandler(),
-                new AssignmentLimitHandler(spamListLoader),
+                new AssignmentLimitHandler(),
                 // Phase 2 - Comment Commands:
-                new GfiAssignCommandHandler(spamListLoader),
-                new BeginnerAssignCommandHandler(spamListLoader),
+                new GfiAssignCommandHandler(),
+                new BeginnerAssignCommandHandler(),
                 // Phase 2 - Assignment Guards:
-                new MentorAssignmentHandler(rosterLoader),
+                new MentorAssignmentHandler(),
                 new IntermediateAssignmentGuardHandler(),
                 new AdvancedAssignmentGuardHandler(),
                 // Phase 2 - Label Trigger:

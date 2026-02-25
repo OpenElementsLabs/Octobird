@@ -38,14 +38,13 @@ class MentorAssignmentHandlerTest {
 
     private MentorAssignmentHandler handler;
 
-    @Mock private MentorRosterLoader rosterLoader;
     @Mock private GitHub gitHub;
     @Mock private GHRepository repo;
     @Mock private GHIssue issue;
 
     @BeforeEach
     void setUp() {
-        handler = new MentorAssignmentHandler(rosterLoader);
+        handler = new MentorAssignmentHandler();
     }
 
     @Test
@@ -131,13 +130,14 @@ class MentorAssignmentHandlerTest {
         final GHLabel gfiLabel = mock(GHLabel.class);
         when(gfiLabel.getName()).thenReturn("Good First Issue");
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
-        when(rosterLoader.loadRoster(gitHub, "owner/repo", ROSTER_PATH)).thenReturn(List.of("mentor1", "mentor2"));
-        when(rosterLoader.selectMentor(List.of("mentor1", "mentor2"))).thenReturn("mentor1");
 
         try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class);
-             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
+             final MockedStatic<MentorRosterLoader> rl = mockStatic(MentorRosterLoader.class)) {
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- Mentor Assignment Bot -->"))).thenReturn(false);
             sh.when(() -> IssueSearchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice")).thenReturn(true);
+            rl.when(() -> MentorRosterLoader.loadRoster(gitHub, "owner/repo", ROSTER_PATH)).thenReturn(List.of("mentor1", "mentor2"));
+            rl.when(() -> MentorRosterLoader.selectMentor(List.of("mentor1", "mentor2"))).thenReturn("mentor1");
 
             handler.handle(event, gitHub, CONFIG);
 
@@ -158,13 +158,14 @@ class MentorAssignmentHandlerTest {
         final GHLabel gfiLabel = mock(GHLabel.class);
         when(gfiLabel.getName()).thenReturn("Good First Issue");
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
-        when(rosterLoader.loadRoster(gitHub, "owner/repo", ROSTER_PATH)).thenReturn(List.of());
-        when(rosterLoader.selectMentor(List.of())).thenReturn(null);
 
         try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class);
-             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
+             final MockedStatic<MentorRosterLoader> rl = mockStatic(MentorRosterLoader.class)) {
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- Mentor Assignment Bot -->"))).thenReturn(false);
             sh.when(() -> IssueSearchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice")).thenReturn(true);
+            rl.when(() -> MentorRosterLoader.loadRoster(gitHub, "owner/repo", ROSTER_PATH)).thenReturn(List.of());
+            rl.when(() -> MentorRosterLoader.selectMentor(List.of())).thenReturn(null);
 
             handler.handle(event, gitHub, CONFIG);
 

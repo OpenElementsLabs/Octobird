@@ -41,7 +41,6 @@ class GfiAssignCommandHandlerTest {
 
     private GfiAssignCommandHandler handler;
 
-    @Mock private SpamListLoader spamListLoader;
     @Mock private GitHub gitHub;
     @Mock private GHRepository repo;
     @Mock private GHIssue issue;
@@ -49,7 +48,7 @@ class GfiAssignCommandHandlerTest {
 
     @BeforeEach
     void setUp() {
-        handler = new GfiAssignCommandHandler(spamListLoader);
+        handler = new GfiAssignCommandHandler();
     }
 
     @Test
@@ -94,10 +93,11 @@ class GfiAssignCommandHandlerTest {
         when(gfiLabel.getName()).thenReturn("Good First Issue");
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
         when(issue.getAssignees()).thenReturn(List.of());
-        when(spamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
         when(gitHub.getUser("alice")).thenReturn(ghUser);
 
-        try (final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+        try (final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(0);
 
             handler.handle(event, gitHub, CONFIG);
@@ -139,9 +139,10 @@ class GfiAssignCommandHandlerTest {
         when(gfiLabel.getName()).thenReturn("Good First Issue");
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
         when(issue.getAssignees()).thenReturn(List.of());
-        when(spamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
 
-        try (final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+        try (final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "spammer")).thenReturn(1);
 
             handler.handle(event, gitHub, CONFIG);
@@ -162,9 +163,10 @@ class GfiAssignCommandHandlerTest {
         when(gfiLabel.getName()).thenReturn("Good First Issue");
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
         when(issue.getAssignees()).thenReturn(List.of());
-        when(spamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
 
-        try (final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+        try (final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(2);
 
             handler.handle(event, gitHub, CONFIG);

@@ -17,12 +17,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class MentorRosterLoader {
+public final class MentorRosterLoader {
 
     private static final Logger LOG = LoggerFactory.getLogger(MentorRosterLoader.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private final ConcurrentHashMap<String, List<String>> cache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, List<String>> CACHE = new ConcurrentHashMap<>();
+
+    private MentorRosterLoader() {
+    }
 
     /**
      * Loads the mentor roster for the given repository from the specified path.
@@ -32,12 +35,13 @@ public class MentorRosterLoader {
      * @param rosterPath   path to the mentor roster JSON file in the repository
      * @return an unmodifiable list of mentor usernames
      */
-    public List<String> loadRoster(final GitHub gitHub, final String repoFullName, final String rosterPath) {
+    public static List<String> loadRoster(final GitHub gitHub, final String repoFullName,
+                                          final String rosterPath) {
         final String cacheKey = repoFullName + ":" + rosterPath;
-        return cache.computeIfAbsent(cacheKey, key -> doLoadRoster(gitHub, repoFullName, rosterPath));
+        return CACHE.computeIfAbsent(cacheKey, key -> doLoadRoster(gitHub, repoFullName, rosterPath));
     }
 
-    public String selectMentor(final List<String> roster) {
+    public static String selectMentor(final List<String> roster) {
         if (roster.isEmpty()) {
             return null;
         }
@@ -46,7 +50,8 @@ public class MentorRosterLoader {
         return roster.get(index);
     }
 
-    private List<String> doLoadRoster(final GitHub gitHub, final String repoFullName, final String rosterPath) {
+    private static List<String> doLoadRoster(final GitHub gitHub, final String repoFullName,
+                                             final String rosterPath) {
         try {
             final GHRepository repo = gitHub.getRepository(repoFullName);
             final GHContent content = repo.getFileContent(rosterPath);
@@ -69,7 +74,7 @@ public class MentorRosterLoader {
         }
     }
 
-    public void invalidateCache(final String repoFullName) {
-        cache.keySet().removeIf(key -> key.startsWith(repoFullName + ":"));
+    public static void invalidateCache(final String repoFullName) {
+        CACHE.keySet().removeIf(key -> key.startsWith(repoFullName + ":"));
     }
 }

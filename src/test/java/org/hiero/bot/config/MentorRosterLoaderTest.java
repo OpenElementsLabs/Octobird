@@ -1,6 +1,6 @@
 package org.hiero.bot.config;
 
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kohsuke.github.GHContent;
@@ -22,15 +22,13 @@ class MentorRosterLoaderTest {
 
     private static final String ROSTER_PATH = ".github/mentor_roster.json";
 
-    private MentorRosterLoader loader;
-
     @Mock private GitHub gitHub;
     @Mock private GHRepository repo;
     @Mock private GHContent content;
 
-    @BeforeEach
-    void setUp() {
-        loader = new MentorRosterLoader();
+    @AfterEach
+    void tearDown() {
+        MentorRosterLoader.invalidateCache("owner/repo");
     }
 
     @Test
@@ -40,7 +38,7 @@ class MentorRosterLoaderTest {
         when(repo.getFileContent(ROSTER_PATH)).thenReturn(content);
         when(content.read()).thenReturn(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
 
-        final List<String> roster = loader.loadRoster(gitHub, "owner/repo", ROSTER_PATH);
+        final List<String> roster = MentorRosterLoader.loadRoster(gitHub, "owner/repo", ROSTER_PATH);
 
         assertEquals(List.of("mentor1", "mentor2", "mentor3"), roster);
     }
@@ -50,20 +48,20 @@ class MentorRosterLoaderTest {
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getFileContent(ROSTER_PATH)).thenThrow(new IOException("Not found"));
 
-        final List<String> roster = loader.loadRoster(gitHub, "owner/repo", ROSTER_PATH);
+        final List<String> roster = MentorRosterLoader.loadRoster(gitHub, "owner/repo", ROSTER_PATH);
 
         assertTrue(roster.isEmpty());
     }
 
     @Test
     void selectMentorReturnsNullForEmptyRoster() {
-        assertNull(loader.selectMentor(List.of()));
+        assertNull(MentorRosterLoader.selectMentor(List.of()));
     }
 
     @Test
     void selectMentorReturnsMentorFromRoster() {
         final List<String> roster = List.of("mentor1", "mentor2", "mentor3");
-        final String selected = loader.selectMentor(roster);
+        final String selected = MentorRosterLoader.selectMentor(roster);
         assertTrue(roster.contains(selected));
     }
 
@@ -74,8 +72,8 @@ class MentorRosterLoaderTest {
         when(repo.getFileContent(ROSTER_PATH)).thenReturn(content);
         when(content.read()).thenReturn(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
 
-        loader.loadRoster(gitHub, "owner/repo", ROSTER_PATH);
-        loader.loadRoster(gitHub, "owner/repo", ROSTER_PATH);
+        MentorRosterLoader.loadRoster(gitHub, "owner/repo", ROSTER_PATH);
+        MentorRosterLoader.loadRoster(gitHub, "owner/repo", ROSTER_PATH);
 
         verify(repo, times(1)).getFileContent(ROSTER_PATH);
     }
@@ -89,9 +87,9 @@ class MentorRosterLoaderTest {
                 new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)),
                 new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
 
-        loader.loadRoster(gitHub, "owner/repo", ROSTER_PATH);
-        loader.invalidateCache("owner/repo");
-        loader.loadRoster(gitHub, "owner/repo", ROSTER_PATH);
+        MentorRosterLoader.loadRoster(gitHub, "owner/repo", ROSTER_PATH);
+        MentorRosterLoader.invalidateCache("owner/repo");
+        MentorRosterLoader.loadRoster(gitHub, "owner/repo", ROSTER_PATH);
 
         verify(repo, times(2)).getFileContent(ROSTER_PATH);
     }

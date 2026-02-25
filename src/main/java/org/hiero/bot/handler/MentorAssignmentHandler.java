@@ -16,17 +16,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 
 public class MentorAssignmentHandler extends AbstractEventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(MentorAssignmentHandler.class);
 
-    private final MentorRosterLoader rosterLoader;
-
-    public MentorAssignmentHandler(final MentorRosterLoader rosterLoader) {
+    public MentorAssignmentHandler() {
         super(IssuesEvent.class, (event, action) -> event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED);
-        this.rosterLoader = Objects.requireNonNull(rosterLoader, "rosterLoader must not be null");
     }
 
     @Override
@@ -79,8 +75,8 @@ public class MentorAssignmentHandler extends AbstractEventHandler<IssuesEvent> {
 
         // Select mentor from roster
         final String rosterPath = repoConfig.paths().mentorRoster();
-        final List<String> roster = rosterLoader.loadRoster(gitHub, repoFullName, rosterPath);
-        final String mentor = rosterLoader.selectMentor(roster);
+        final List<String> roster = MentorRosterLoader.loadRoster(gitHub, repoFullName, rosterPath);
+        final String mentor = MentorRosterLoader.selectMentor(roster);
         if (mentor == null) {
             LOG.debug("No mentors available for {}", repoFullName);
             return;

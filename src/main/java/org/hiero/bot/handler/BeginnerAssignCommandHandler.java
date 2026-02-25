@@ -16,18 +16,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Objects;
 import java.util.regex.Pattern;
 
 public class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(BeginnerAssignCommandHandler.class);
 
-    private final SpamListLoader spamListLoader;
-
-    public BeginnerAssignCommandHandler(final SpamListLoader spamListLoader) {
+    public BeginnerAssignCommandHandler() {
         super(IssueCommentEvent.class, (event, action) -> event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED);
-        this.spamListLoader = Objects.requireNonNull(spamListLoader, "spamListLoader must not be null");
     }
 
     @Override
@@ -97,7 +93,7 @@ public class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueComm
 
         // Spam users are completely blocked from beginner issues
         final String spamListPath = repoConfig.paths().spamList();
-        final boolean isSpam = spamListLoader.isSpamUser(gitHub, repoFullName, commenter, spamListPath);
+        final boolean isSpam = SpamListLoader.isSpamUser(gitHub, repoFullName, commenter, spamListPath);
         if (isSpam) {
             issue.comment("Hi @" + commenter + ", this is the Assignment Bot.\n\n" +
                     "Your account currently has limited assignment privileges. " +
