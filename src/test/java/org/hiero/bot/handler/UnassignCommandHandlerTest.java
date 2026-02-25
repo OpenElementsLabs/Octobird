@@ -37,6 +37,7 @@ class UnassignCommandHandlerTest {
 
     private UnassignCommandHandler handler;
 
+    @Mock private ServiceRegistry registry;
     @Mock private GitHub gitHub;
     @Mock private GHRepository repo;
     @Mock private GHIssue issue;
@@ -45,6 +46,7 @@ class UnassignCommandHandlerTest {
     @BeforeEach
     void setUp() {
         handler = new UnassignCommandHandler();
+        lenient().when(registry.getGitHub()).thenReturn(gitHub);
     }
 
     @Test
@@ -61,28 +63,28 @@ class UnassignCommandHandlerTest {
     @Test
     void ignoresCommentWithoutUnassignCommand() throws IOException {
         IssueCommentEvent event = buildEvent("/assign", "alice", "open", false, "User");
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
         verifyNoInteractions(gitHub);
     }
 
     @Test
     void ignoresPullRequests() throws IOException {
         IssueCommentEvent event = buildEvent("/unassign", "alice", "open", true, "User");
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
         verifyNoInteractions(gitHub);
     }
 
     @Test
     void ignoresClosedIssues() throws IOException {
         IssueCommentEvent event = buildEvent("/unassign", "alice", "closed", false, "User");
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
         verifyNoInteractions(gitHub);
     }
 
     @Test
     void ignoresBotComments() throws IOException {
         IssueCommentEvent event = buildEvent("/unassign", "bot-user", "open", false, "Bot");
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
         verifyNoInteractions(gitHub);
     }
 
@@ -94,7 +96,7 @@ class UnassignCommandHandlerTest {
         when(repo.getIssue(42)).thenReturn(issue);
         when(issue.getAssignees()).thenReturn(List.of());
 
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
 
         verify(issue, never()).removeAssignees(any(GHUser.class));
     }
@@ -119,7 +121,7 @@ class UnassignCommandHandlerTest {
 
         when(gitHub.getUser("alice")).thenReturn(user);
 
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
 
         verify(issue).removeAssignees(user);
         verify(issue).comment(argThat(msg -> msg.contains("<!-- unassign-requested:alice -->")
@@ -150,7 +152,7 @@ class UnassignCommandHandlerTest {
         }));
         when(issue.listComments()).thenReturn(pagedIterable);
 
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
 
         verify(issue, never()).removeAssignees(any(GHUser.class));
     }
@@ -176,7 +178,7 @@ class UnassignCommandHandlerTest {
 
         when(gitHub.getUser("alice")).thenReturn(user);
 
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
 
         verify(issue).removeAssignees(user);
     }

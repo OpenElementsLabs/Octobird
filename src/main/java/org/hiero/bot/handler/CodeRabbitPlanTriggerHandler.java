@@ -30,8 +30,9 @@ public class CodeRabbitPlanTriggerHandler extends AbstractEventHandler<IssuesEve
     }
 
     @Override
-    public void handle(final IssuesEvent issuesEvent, final GitHub gitHub,
+    public void handle(final IssuesEvent issuesEvent, final ServiceRegistry registry,
                        final RepoConfig repoConfig) throws IOException {
+        final GitHub gitHub = registry.getGitHub();
 
         final var label = issuesEvent.label();
         if (label == null) {

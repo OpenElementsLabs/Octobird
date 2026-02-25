@@ -31,8 +31,9 @@ public class UnassignCommandHandler extends AbstractEventHandler<IssueCommentEve
     }
 
     @Override
-    public void handle(final IssueCommentEvent commentEvent, final GitHub gitHub,
+    public void handle(final IssueCommentEvent commentEvent, final ServiceRegistry registry,
                        final RepoConfig repoConfig) throws IOException {
+        final GitHub gitHub = registry.getGitHub();
 
         // Skip PRs
         if (commentEvent.issue().hasPullRequest()) {

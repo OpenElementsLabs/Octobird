@@ -41,6 +41,7 @@ class BeginnerAssignCommandHandlerTest {
 
     private BeginnerAssignCommandHandler handler;
 
+    @Mock private ServiceRegistry registry;
     @Mock private GitHub gitHub;
     @Mock private GHRepository repo;
     @Mock private GHIssue issue;
@@ -49,6 +50,7 @@ class BeginnerAssignCommandHandlerTest {
     @BeforeEach
     void setUp() {
         handler = new BeginnerAssignCommandHandler();
+        lenient().when(registry.getGitHub()).thenReturn(gitHub);
     }
 
     @Test
@@ -64,7 +66,7 @@ class BeginnerAssignCommandHandlerTest {
     @Test
     void skipsBotComments() throws IOException {
         final IssueCommentEvent event = buildEvent("/assign", "bot", "Bot");
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
         verifyNoInteractions(repo, issue);
     }
 
@@ -76,7 +78,7 @@ class BeginnerAssignCommandHandlerTest {
         when(repo.getIssue(42)).thenReturn(issue);
         when(issue.getLabels()).thenReturn(List.of());
 
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
 
         verify(issue, never()).comment(any());
         verify(issue, never()).addAssignees(any(GHUser.class));
@@ -100,7 +102,7 @@ class BeginnerAssignCommandHandlerTest {
             sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "Good First Issue")).thenReturn(0);
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), contains("@alice"))).thenReturn(false);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue).comment(argThat(msg -> msg.contains("Good First Issue")));
             verify(issue, never()).addAssignees(any(GHUser.class));
@@ -125,7 +127,7 @@ class BeginnerAssignCommandHandlerTest {
             sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "spammer", "Good First Issue")).thenReturn(1);
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue).comment(argThat(msg -> msg.contains("limited assignment privileges")));
             verify(issue, never()).addAssignees(any(GHUser.class));
@@ -153,7 +155,7 @@ class BeginnerAssignCommandHandlerTest {
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(0);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue).addAssignees(ghUser);
             verify(issue).comment(argThat(msg -> msg.contains("has been assigned")));
@@ -180,7 +182,7 @@ class BeginnerAssignCommandHandlerTest {
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(2);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue).comment(argThat(msg -> msg.contains("exceed the limit")));
             verify(issue, never()).addAssignees(any(GHUser.class));
@@ -204,7 +206,7 @@ class BeginnerAssignCommandHandlerTest {
             pc.when(() -> PermissionChecker.isCollaborator(repo, "alice")).thenReturn(false);
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- beginner assign reminder -->"))).thenReturn(false);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue).comment(argThat(msg ->
                     msg.contains("<!-- beginner assign reminder -->") && msg.contains("/assign")));
@@ -226,7 +228,7 @@ class BeginnerAssignCommandHandlerTest {
         try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class)) {
             pc.when(() -> PermissionChecker.isCollaborator(repo, "alice")).thenReturn(true);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue, never()).comment(any());
         }

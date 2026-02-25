@@ -4,14 +4,13 @@ import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.WebhookEvent;
-import org.kohsuke.github.GitHub;
 
 import java.io.IOException;
 
 /**
  * Handler for a specific type of GitHub webhook event. Implementations filter incoming events
  * via {@link #matches(GitHubEventType, GitHubAction)} and process matching events in
- * {@link #handle(WebhookEvent, GitHub, RepoConfig)}.
+ * {@link #handle(WebhookEvent, ServiceRegistry, RepoConfig)}.
  *
  * <p>Each handler is registered in {@link org.hiero.bot.Main} and invoked by the
  * {@link org.hiero.bot.webhook.EventRouter} when a matching webhook is received.
@@ -20,6 +19,7 @@ import java.io.IOException;
  * @see org.hiero.bot.webhook.EventRouter
  */
 public interface EventHandler<T extends WebhookEvent> {
+
 
     /**
      * Returns the concrete event class this handler expects, used for type-safe deserialization
@@ -49,13 +49,14 @@ public interface EventHandler<T extends WebhookEvent> {
     boolean isActive(RepoConfig repoConfig);
 
     /**
-     * Processes a matched webhook event. Implementations may interact with the GitHub API
-     * (e.g. posting comments, assigning users) and read per-repository configuration.
+     * Processes a matched webhook event. Implementations may interact with external services
+     * via the registry (e.g. posting GitHub comments, sending notifications) and read
+     * per-repository configuration.
      *
-     * @param event      the parsed webhook event payload
-     * @param gitHub     an authenticated GitHub API client for the receiving installation
+     * @param event    the parsed webhook event payload
+     * @param registry the service registry providing access to external service clients
      * @param repoConfig the per-repository configuration
-     * @throws IOException if a GitHub API call fails
+     * @throws IOException if a service call fails
      */
-    void handle(T event, GitHub gitHub, RepoConfig repoConfig) throws IOException;
+    void handle(T event, ServiceRegistry registry, RepoConfig repoConfig) throws IOException;
 }

@@ -38,6 +38,7 @@ class MentorAssignmentHandlerTest {
 
     private MentorAssignmentHandler handler;
 
+    @Mock private ServiceRegistry registry;
     @Mock private GitHub gitHub;
     @Mock private GHRepository repo;
     @Mock private GHIssue issue;
@@ -45,6 +46,7 @@ class MentorAssignmentHandlerTest {
     @BeforeEach
     void setUp() {
         handler = new MentorAssignmentHandler();
+        lenient().when(registry.getGitHub()).thenReturn(gitHub);
     }
 
     @Test
@@ -61,7 +63,7 @@ class MentorAssignmentHandlerTest {
     @Test
     void skipsBotAssignees() throws IOException {
         final IssuesEvent event = buildEvent("bot-user", "Bot");
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
         verifyNoInteractions(repo, issue);
     }
 
@@ -73,7 +75,7 @@ class MentorAssignmentHandlerTest {
         when(repo.getIssue(42)).thenReturn(issue);
         when(issue.getLabels()).thenReturn(List.of());
 
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
 
         verify(issue, never()).comment(any());
     }
@@ -92,7 +94,7 @@ class MentorAssignmentHandlerTest {
         try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- Mentor Assignment Bot -->"))).thenReturn(true);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue, never()).comment(any());
         }
@@ -114,7 +116,7 @@ class MentorAssignmentHandlerTest {
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- Mentor Assignment Bot -->"))).thenReturn(false);
             sh.when(() -> IssueSearchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice")).thenReturn(false);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue, never()).comment(any());
         }
@@ -139,7 +141,7 @@ class MentorAssignmentHandlerTest {
             rl.when(() -> MentorRosterLoader.loadRoster(gitHub, "owner/repo", ROSTER_PATH)).thenReturn(List.of("mentor1", "mentor2"));
             rl.when(() -> MentorRosterLoader.selectMentor(List.of("mentor1", "mentor2"))).thenReturn("mentor1");
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue).comment(argThat(msg ->
                     msg.contains("<!-- Mentor Assignment Bot -->")
@@ -167,7 +169,7 @@ class MentorAssignmentHandlerTest {
             rl.when(() -> MentorRosterLoader.loadRoster(gitHub, "owner/repo", ROSTER_PATH)).thenReturn(List.of());
             rl.when(() -> MentorRosterLoader.selectMentor(List.of())).thenReturn(null);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue, never()).comment(any());
         }

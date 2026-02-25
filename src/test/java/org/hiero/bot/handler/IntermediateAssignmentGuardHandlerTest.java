@@ -32,6 +32,7 @@ class IntermediateAssignmentGuardHandlerTest {
 
     private IntermediateAssignmentGuardHandler handler;
 
+    @Mock private ServiceRegistry registry;
     @Mock private GitHub gitHub;
     @Mock private GHRepository repo;
     @Mock private GHIssue issue;
@@ -39,6 +40,7 @@ class IntermediateAssignmentGuardHandlerTest {
     @BeforeEach
     void setUp() {
         handler = new IntermediateAssignmentGuardHandler();
+        lenient().when(registry.getGitHub()).thenReturn(gitHub);
     }
 
     @Test
@@ -57,10 +59,10 @@ class IntermediateAssignmentGuardHandlerTest {
         // Default guards config has requiredBeginnerCountForIntermediate == 0, so guard is deactivated
         final IssuesEvent event = buildEvent("alice");
 
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
 
         // Should return immediately without any interactions
-        verifyNoInteractions(gitHub, repo, issue);
+        verifyNoInteractions(repo, issue);
     }
 
     private IssuesEvent buildEvent(final String assignee) {

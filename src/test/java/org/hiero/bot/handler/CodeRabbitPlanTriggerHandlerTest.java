@@ -36,6 +36,7 @@ class CodeRabbitPlanTriggerHandlerTest {
 
     private CodeRabbitPlanTriggerHandler handler;
 
+    @Mock private ServiceRegistry registry;
     @Mock private GitHub gitHub;
     @Mock private GHRepository repo;
     @Mock private GHIssue issue;
@@ -43,6 +44,7 @@ class CodeRabbitPlanTriggerHandlerTest {
     @BeforeEach
     void setUp() {
         handler = new CodeRabbitPlanTriggerHandler();
+        lenient().when(registry.getGitHub()).thenReturn(gitHub);
     }
 
     @Test
@@ -66,7 +68,7 @@ class CodeRabbitPlanTriggerHandlerTest {
         try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(false);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue).comment(argThat(msg -> msg.contains("@coderabbitai plan")));
         }
@@ -82,7 +84,7 @@ class CodeRabbitPlanTriggerHandlerTest {
         try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(false);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue).comment(argThat(msg -> msg.contains("@coderabbitai plan")));
         }
@@ -98,7 +100,7 @@ class CodeRabbitPlanTriggerHandlerTest {
         try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(false);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue).comment(argThat(msg -> msg.contains("@coderabbitai plan")));
         }
@@ -108,7 +110,7 @@ class CodeRabbitPlanTriggerHandlerTest {
     void skipsNonTriggerLabel() throws IOException {
         final IssuesEvent event = buildEvent("bug");
 
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
 
         verifyNoInteractions(repo, issue);
     }
@@ -123,7 +125,7 @@ class CodeRabbitPlanTriggerHandlerTest {
         try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(true);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue, never()).comment(any());
         }

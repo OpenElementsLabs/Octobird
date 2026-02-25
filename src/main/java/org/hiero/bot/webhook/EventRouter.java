@@ -6,6 +6,7 @@ import org.hiero.bot.config.DefaultRepoConfig;
 import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.config.RepoConfigLoader;
 import org.hiero.bot.handler.EventHandler;
+import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.WebhookEvent;
 import org.hiero.bot.model.parse.WebhookParser;
@@ -63,6 +64,12 @@ public class EventRouter {
         }
 
         final GitHub gitHub = auth.getInstallationClient(installationId);
+        final ServiceRegistry registry = new ServiceRegistry() {
+            @Override
+            public GitHub getGitHub() {
+                return gitHub;
+            }
+        };
 
         @Nullable final String repoFullName = webhookEvent.repository() != null
                 ? webhookEvent.repository().fullName()
@@ -74,14 +81,14 @@ public class EventRouter {
 
         for (final EventHandler<?> handler : handlers) {
             if (handler.matches(eventType, webhookEvent.action())) {
-                invokeHandler(handler, webhookEvent, gitHub, repoConfig);
+                invokeHandler(handler, webhookEvent, registry, repoConfig);
             }
         }
     }
 
     private <T extends WebhookEvent> void invokeHandler(
             final EventHandler<T> handler, final WebhookEvent event,
-            final GitHub gitHub, final RepoConfig repoConfig) throws IOException {
+            final ServiceRegistry registry, final RepoConfig repoConfig) throws IOException {
         if (!handler.isActive(repoConfig)) {
             LOG.debug("Handler {} is inactive for this repo config, skipping",
                     handler.getClass().getSimpleName());
@@ -93,6 +100,6 @@ public class EventRouter {
                     type.getSimpleName(), event.getClass().getSimpleName());
             return;
         }
-        handler.handle(type.cast(event), gitHub, repoConfig);
+        handler.handle(type.cast(event), registry, repoConfig);
     }
 }

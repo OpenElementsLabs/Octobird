@@ -40,6 +40,7 @@ class AssignmentLimitHandlerTest {
 
     private AssignmentLimitHandler handler;
 
+    @Mock private ServiceRegistry registry;
     @Mock private GitHub gitHub;
     @Mock private GHRepository repo;
     @Mock private GHIssue issue;
@@ -48,6 +49,7 @@ class AssignmentLimitHandlerTest {
     @BeforeEach
     void setUp() {
         handler = new AssignmentLimitHandler();
+        lenient().when(registry.getGitHub()).thenReturn(gitHub);
     }
 
     @Test
@@ -71,7 +73,7 @@ class AssignmentLimitHandlerTest {
         try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class)) {
             pc.when(() -> PermissionChecker.isMaintainer(repo, "alice")).thenReturn(true);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue, never()).removeAssignees(any(GHUser.class));
         }
@@ -91,7 +93,7 @@ class AssignmentLimitHandlerTest {
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(2);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue, never()).removeAssignees(any(GHUser.class));
         }
@@ -112,7 +114,7 @@ class AssignmentLimitHandlerTest {
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(3);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue).removeAssignees(assigneeUser);
             verify(issue).comment(argThat(msg -> msg.contains("exceed the limit of 2")));
@@ -133,7 +135,7 @@ class AssignmentLimitHandlerTest {
             pc.when(() -> PermissionChecker.isMaintainer(repo, "spammer")).thenReturn(false);
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue).removeAssignees(assigneeUser);
             verify(issue).comment(argThat(msg -> msg.contains("limited assignment privileges")));
@@ -158,7 +160,7 @@ class AssignmentLimitHandlerTest {
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "spammer")).thenReturn(1);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue, never()).removeAssignees(any(GHUser.class));
         }
@@ -183,7 +185,7 @@ class AssignmentLimitHandlerTest {
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "spammer")).thenReturn(2);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue).removeAssignees(assigneeUser);
             verify(issue).comment(argThat(msg -> msg.contains("limited assignment privileges")

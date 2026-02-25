@@ -33,8 +33,9 @@ public class WorkingCommandHandler extends AbstractEventHandler<IssueCommentEven
     }
 
     @Override
-    public void handle(final IssueCommentEvent commentEvent, final GitHub gitHub,
+    public void handle(final IssueCommentEvent commentEvent, final ServiceRegistry registry,
                        final RepoConfig repoConfig) throws IOException {
+        final GitHub gitHub = registry.getGitHub();
 
         // Skip bots
         if ("Bot".equals(commentEvent.comment().user().type())) {

@@ -33,8 +33,9 @@ public class AssignmentLimitHandler extends AbstractEventHandler<IssuesEvent> {
     }
 
     @Override
-    public void handle(final IssuesEvent issuesEvent, final GitHub gitHub,
+    public void handle(final IssuesEvent issuesEvent, final ServiceRegistry registry,
                        final RepoConfig repoConfig) throws IOException {
+        final GitHub gitHub = registry.getGitHub();
 
         final String assignee = issuesEvent.assignee() != null ? issuesEvent.assignee().login() : "";
         if (assignee.isEmpty()) {

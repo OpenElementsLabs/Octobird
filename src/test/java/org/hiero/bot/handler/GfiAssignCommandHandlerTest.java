@@ -41,6 +41,7 @@ class GfiAssignCommandHandlerTest {
 
     private GfiAssignCommandHandler handler;
 
+    @Mock private ServiceRegistry registry;
     @Mock private GitHub gitHub;
     @Mock private GHRepository repo;
     @Mock private GHIssue issue;
@@ -49,6 +50,7 @@ class GfiAssignCommandHandlerTest {
     @BeforeEach
     void setUp() {
         handler = new GfiAssignCommandHandler();
+        lenient().when(registry.getGitHub()).thenReturn(gitHub);
     }
 
     @Test
@@ -64,7 +66,7 @@ class GfiAssignCommandHandlerTest {
     @Test
     void skipsBotComments() throws IOException {
         final IssueCommentEvent event = buildEvent("/assign", "bot", "Bot");
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
         verifyNoInteractions(repo, issue);
     }
 
@@ -76,7 +78,7 @@ class GfiAssignCommandHandlerTest {
         when(repo.getIssue(42)).thenReturn(issue);
         when(issue.getLabels()).thenReturn(List.of());
 
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
 
         verify(issue, never()).comment(any());
         verify(issue, never()).addAssignees(any(GHUser.class));
@@ -100,7 +102,7 @@ class GfiAssignCommandHandlerTest {
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(0);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue).addAssignees(ghUser);
             verify(issue).comment(argThat(msg -> msg.contains("has been assigned")));
@@ -122,7 +124,7 @@ class GfiAssignCommandHandlerTest {
         when(assignee.getLogin()).thenReturn("alice");
         when(issue.getAssignees()).thenReturn(List.of(assignee));
 
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
 
         verify(issue).comment(argThat(msg -> msg.contains("already assigned")));
         verify(issue, never()).addAssignees(any(GHUser.class));
@@ -145,7 +147,7 @@ class GfiAssignCommandHandlerTest {
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "spammer")).thenReturn(1);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue).comment(argThat(msg -> msg.contains("limited assignment privileges")));
             verify(issue, never()).addAssignees(any(GHUser.class));
@@ -169,7 +171,7 @@ class GfiAssignCommandHandlerTest {
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(2);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue).comment(argThat(msg -> msg.contains("exceed the limit")));
             verify(issue, never()).addAssignees(any(GHUser.class));
@@ -193,7 +195,7 @@ class GfiAssignCommandHandlerTest {
             pc.when(() -> PermissionChecker.isCollaborator(repo, "alice")).thenReturn(false);
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- GFI assign reminder -->"))).thenReturn(false);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue).comment(argThat(msg ->
                     msg.contains("<!-- GFI assign reminder -->") && msg.contains("/assign")));
@@ -215,7 +217,7 @@ class GfiAssignCommandHandlerTest {
         try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class)) {
             pc.when(() -> PermissionChecker.isCollaborator(repo, "alice")).thenReturn(true);
 
-            handler.handle(event, gitHub, CONFIG);
+            handler.handle(event, registry, CONFIG);
 
             verify(issue, never()).comment(any());
         }
@@ -235,7 +237,7 @@ class GfiAssignCommandHandlerTest {
         final GHUser assignee = mock(GHUser.class);
         when(issue.getAssignees()).thenReturn(List.of(assignee));
 
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
 
         verify(issue, never()).comment(any());
     }

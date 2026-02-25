@@ -35,6 +35,7 @@ class WorkingCommandHandlerTest {
 
     private WorkingCommandHandler handler;
 
+    @Mock private ServiceRegistry registry;
     @Mock private GitHub gitHub;
     @Mock private GHRepository repo;
     @Mock private GHIssue issue;
@@ -42,6 +43,7 @@ class WorkingCommandHandlerTest {
     @BeforeEach
     void setUp() {
         handler = new WorkingCommandHandler();
+        lenient().when(registry.getGitHub()).thenReturn(gitHub);
     }
 
     @Test
@@ -58,14 +60,14 @@ class WorkingCommandHandlerTest {
     @Test
     void ignoresCommentWithoutWorkingCommand() throws IOException {
         IssueCommentEvent event = buildIssueEvent("just a regular comment", "alice");
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
         verifyNoInteractions(gitHub);
     }
 
     @Test
     void ignoresBotComments() throws IOException {
         IssueCommentEvent event = buildBotEvent("/working", "bot-user");
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
         verifyNoInteractions(gitHub);
     }
 
@@ -77,7 +79,7 @@ class WorkingCommandHandlerTest {
         when(repo.getIssue(42)).thenReturn(issue);
         when(issue.getAssignees()).thenReturn(List.of());
 
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
 
         verify(issue, never()).getComments();
     }
@@ -97,7 +99,7 @@ class WorkingCommandHandlerTest {
         when(ghComment.getBody()).thenReturn("/working");
         when(issue.getComments()).thenReturn(List.of(ghComment));
 
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
 
         verify(ghComment).createReaction(ReactionContent.EYES);
     }
@@ -113,7 +115,7 @@ class WorkingCommandHandlerTest {
         when(ghComment.getBody()).thenReturn("/working");
         when(issue.getComments()).thenReturn(List.of(ghComment));
 
-        handler.handle(event, gitHub, CONFIG);
+        handler.handle(event, registry, CONFIG);
 
         verify(ghComment).createReaction(ReactionContent.EYES);
     }
