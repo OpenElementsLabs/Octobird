@@ -77,11 +77,12 @@ public class AssignmentLimitHandler extends AbstractEventHandler<IssuesEvent> {
         if (!hasGfiLabel) {
             LOG.info("Spam user {} attempted non-GFI issue #{}", assignee, issueNumber);
             issue.removeAssignees(gitHub.getUser(assignee));
-            issue.comment("Hi @" + assignee + ", this is the Assignment Bot.\n\n" +
+            issue.comment(MessageFormatter.format(
+                    "Hi @{}, this is the Assignment Bot.\n\n" +
                     "Your account currently has limited assignment privileges. " +
                     "You may only be assigned to issues labeled **Good First Issue**.\n\n" +
                     "Please complete and merge your assigned Good First Issue " +
-                    "to have restrictions lifted.");
+                    "to have restrictions lifted.", assignee));
             return;
         }
 
@@ -92,11 +93,12 @@ public class AssignmentLimitHandler extends AbstractEventHandler<IssuesEvent> {
         if (count > spamMax) {
             LOG.info("Spam user {} exceeds limit: {} assignments", assignee, count);
             issue.removeAssignees(gitHub.getUser(assignee));
-            issue.comment("Hi @" + assignee + ", this is the Assignment Bot.\n\n" +
-                    "Your account currently has limited assignment privileges with a maximum of **" +
-                    spamMax + " open assignment** at a time.\n\n" +
-                    "You currently have " + count + " open issue(s) assigned. " +
-                    "Please complete and merge your existing assignment before requesting a new one.");
+            issue.comment(MessageFormatter.format(
+                    "Hi @{}, this is the Assignment Bot.\n\n" +
+                    "Your account currently has limited assignment privileges with a maximum of **{} open assignment** at a time.\n\n" +
+                    "You currently have {} open issue(s) assigned. " +
+                    "Please complete and merge your existing assignment before requesting a new one.",
+                    assignee, spamMax, count));
         }
     }
 
@@ -108,10 +110,11 @@ public class AssignmentLimitHandler extends AbstractEventHandler<IssuesEvent> {
         if (count > normalMax) {
             LOG.info("User {} exceeds limit: {} assignments", assignee, count);
             issue.removeAssignees(gitHub.getUser(assignee));
-            issue.comment("Hi @" + assignee + ", this is the Assignment Bot.\n\n" +
-                    "Assigning you to this issue would exceed the limit of " +
-                    normalMax + " open assignments.\n\n" +
-                    "Please resolve and merge your existing assigned issues before requesting new ones.");
+            issue.comment(MessageFormatter.format(
+                    "Hi @{}, this is the Assignment Bot.\n\n" +
+                    "Assigning you to this issue would exceed the limit of {} open assignments.\n\n" +
+                    "Please resolve and merge your existing assigned issues before requesting new ones.",
+                    assignee, normalMax));
         }
     }
 }

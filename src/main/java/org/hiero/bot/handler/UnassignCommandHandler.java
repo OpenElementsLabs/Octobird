@@ -84,11 +84,11 @@ public class UnassignCommandHandler extends AbstractEventHandler<IssueCommentEve
         ghIssue.removeAssignees(gitHub.getUser(username));
 
         // Post confirmation with marker
-        final String confirmation = marker + "\n\n" +
-                "@" + username + ", you've been unassigned from this issue.\n\n" +
+        ghIssue.comment(MessageFormatter.format(
+                "{}\n\n@{}, you've been unassigned from this issue.\n\n" +
                 "Thanks for letting us know! If you'd like to work on something else, " +
-                "feel free to browse our open issues.";
-        ghIssue.comment(confirmation);
+                "feel free to browse our open issues.",
+                marker, username));
 
         LOG.info("Unassigned {} from {}#{}", username, repoFullName, issueNumber);
     }

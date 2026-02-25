@@ -56,7 +56,7 @@ public class CodeRabbitPlanTriggerHandler extends AbstractEventHandler<IssuesEve
             return;
         }
 
-        issue.comment(marker + "\n@coderabbitai plan");
+        issue.comment(MessageFormatter.format("{}\n@coderabbitai plan", marker));
         LOG.info("Triggered CodeRabbit plan for {}#{} (label: {})", repoFullName, issueNumber, label.name());
     }
 }

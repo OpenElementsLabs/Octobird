@@ -87,12 +87,12 @@ public class MentorAssignmentHandler extends AbstractEventHandler<IssuesEvent> {
             return;
         }
 
-        final String comment = marker + "\n\n" +
-                "Welcome @" + assigneeLogin + "! \uD83D\uDC4B This is your first contribution — exciting!\n\n" +
-                "@" + mentor + " has been assigned as your mentor for this issue. " +
+        issue.comment(MessageFormatter.format(
+                "{}\n\nWelcome @{}! \uD83D\uDC4B This is your first contribution \u2014 exciting!\n\n" +
+                "@{} has been assigned as your mentor for this issue. " +
                 "Feel free to ask them any questions as you work through it.\n\n" +
-                "Good luck and happy coding!";
-        issue.comment(comment);
+                "Good luck and happy coding!",
+                marker, assigneeLogin, mentor));
         LOG.info("Assigned mentor {} to newcomer {} on {}#{}", mentor, assigneeLogin, repoFullName, issueNumber);
     }
 }

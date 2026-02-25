@@ -78,7 +78,7 @@ public class GfiAssignCommandHandler extends AbstractEventHandler<IssueCommentEv
         final boolean alreadyAssigned = issue.getAssignees().stream()
                 .anyMatch(u -> u.getLogin().equals(commenter));
         if (alreadyAssigned) {
-            issue.comment("@" + commenter + " you are already assigned to this issue.");
+            issue.comment(MessageFormatter.format("@{} you are already assigned to this issue.", commenter));
             return;
         }
 
@@ -90,26 +90,28 @@ public class GfiAssignCommandHandler extends AbstractEventHandler<IssueCommentEv
         if (isSpam) {
             final int count = IssueSearchHelper.countOpenAssignments(gitHub, repoFullName, commenter);
             if (count >= spamMax) {
-                issue.comment("Hi @" + commenter + ", this is the Assignment Bot.\n\n" +
-                        "Your account currently has limited assignment privileges with a maximum of **" +
-                        spamMax + " open assignment** at a time.\n\n" +
-                        "You currently have " + count + " open issue(s) assigned. " +
-                        "Please complete and merge your existing assignment before requesting a new one.");
+                issue.comment(MessageFormatter.format(
+                        "Hi @{}, this is the Assignment Bot.\n\n" +
+                        "Your account currently has limited assignment privileges with a maximum of **{} open assignment** at a time.\n\n" +
+                        "You currently have {} open issue(s) assigned. " +
+                        "Please complete and merge your existing assignment before requesting a new one.",
+                        commenter, spamMax, count));
                 return;
             }
         } else {
             final int count = IssueSearchHelper.countOpenAssignments(gitHub, repoFullName, commenter);
             if (count >= normalMax) {
-                issue.comment("Hi @" + commenter + ", this is the Assignment Bot.\n\n" +
-                        "Assigning you to this issue would exceed the limit of " +
-                        normalMax + " open assignments.\n\n" +
-                        "Please resolve and merge your existing assigned issues before requesting new ones.");
+                issue.comment(MessageFormatter.format(
+                        "Hi @{}, this is the Assignment Bot.\n\n" +
+                        "Assigning you to this issue would exceed the limit of {} open assignments.\n\n" +
+                        "Please resolve and merge your existing assigned issues before requesting new ones.",
+                        commenter, normalMax));
                 return;
             }
         }
 
         issue.addAssignees(gitHub.getUser(commenter));
-        issue.comment("@" + commenter + " has been assigned to this issue.");
+        issue.comment(MessageFormatter.format("@{} has been assigned to this issue.", commenter));
         LOG.info("Assigned {} to GFI {}#{}", commenter, repoFullName, issueNumber);
     }
 
@@ -133,10 +135,11 @@ public class GfiAssignCommandHandler extends AbstractEventHandler<IssueCommentEv
             return;
         }
 
-        issue.comment(reminderMarker + "\n\n" +
-                "Hi @" + commenter + ", thanks for your interest in this issue!\n\n" +
+        issue.comment(MessageFormatter.format(
+                "{}\n\nHi @{}, thanks for your interest in this issue!\n\n" +
                 "This is a **Good First Issue** \u2014 if you'd like to work on it, " +
-                "please comment `/assign` to get assigned.");
+                "please comment `/assign` to get assigned.",
+                reminderMarker, commenter));
         LOG.info("Posted GFI assign reminder on {}#{}", repoFullName, issueNumber);
     }
 }

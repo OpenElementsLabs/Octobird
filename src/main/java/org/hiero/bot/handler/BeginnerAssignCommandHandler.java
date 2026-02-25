@@ -85,12 +85,12 @@ public class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueComm
             if (closedGfi < requiredGfiCount) {
                 final String userMarker = gfiGuardMarker + " @" + commenter;
                 if (!CommentMarkerChecker.hasMarker(issue, userMarker)) {
-                    issue.comment(userMarker + "\n\n" +
-                            "Hi @" + commenter + ", this is the Assignment Bot.\n\n" +
-                            "This is a **beginner** issue that requires at least **" +
-                            requiredGfiCount + "** completed Good First Issue(s).\n\n" +
-                            "You currently have **" + closedGfi + "** completed Good First Issue(s). " +
-                            "Please complete a Good First Issue before requesting a beginner issue.");
+                    issue.comment(MessageFormatter.format(
+                            "{}\n\nHi @{}, this is the Assignment Bot.\n\n" +
+                            "This is a **beginner** issue that requires at least **{}** completed Good First Issue(s).\n\n" +
+                            "You currently have **{}** completed Good First Issue(s). " +
+                            "Please complete a Good First Issue before requesting a beginner issue.",
+                            userMarker, commenter, requiredGfiCount, closedGfi));
                 }
                 return;
             }
@@ -100,11 +100,12 @@ public class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueComm
         final String spamListPath = repoConfig.paths().spamList();
         final boolean isSpam = SpamListLoader.isSpamUser(gitHub, repoFullName, commenter, spamListPath);
         if (isSpam) {
-            issue.comment("Hi @" + commenter + ", this is the Assignment Bot.\n\n" +
+            issue.comment(MessageFormatter.format(
+                    "Hi @{}, this is the Assignment Bot.\n\n" +
                     "Your account currently has limited assignment privileges. " +
                     "You may only be assigned to issues labeled **Good First Issue**.\n\n" +
                     "Please complete and merge your assigned Good First Issue " +
-                    "to have restrictions lifted.");
+                    "to have restrictions lifted.", commenter));
             return;
         }
 
@@ -112,7 +113,7 @@ public class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueComm
         final boolean alreadyAssigned = issue.getAssignees().stream()
                 .anyMatch(u -> u.getLogin().equals(commenter));
         if (alreadyAssigned) {
-            issue.comment("@" + commenter + " you are already assigned to this issue.");
+            issue.comment(MessageFormatter.format("@{} you are already assigned to this issue.", commenter));
             return;
         }
 
@@ -120,15 +121,16 @@ public class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueComm
         final int normalMax = repoConfig.assignmentLimits().normalUserMax();
         final int count = IssueSearchHelper.countOpenAssignments(gitHub, repoFullName, commenter);
         if (count >= normalMax) {
-            issue.comment("Hi @" + commenter + ", this is the Assignment Bot.\n\n" +
-                    "Assigning you to this issue would exceed the limit of " +
-                    normalMax + " open assignments.\n\n" +
-                    "Please resolve and merge your existing assigned issues before requesting new ones.");
+            issue.comment(MessageFormatter.format(
+                    "Hi @{}, this is the Assignment Bot.\n\n" +
+                    "Assigning you to this issue would exceed the limit of {} open assignments.\n\n" +
+                    "Please resolve and merge your existing assigned issues before requesting new ones.",
+                    commenter, normalMax));
             return;
         }
 
         issue.addAssignees(gitHub.getUser(commenter));
-        issue.comment("@" + commenter + " has been assigned to this issue.");
+        issue.comment(MessageFormatter.format("@{} has been assigned to this issue.", commenter));
         LOG.info("Assigned {} to beginner issue {}#{}", commenter, repoFullName, issueNumber);
     }
 
@@ -152,10 +154,11 @@ public class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueComm
             return;
         }
 
-        issue.comment(reminderMarker + "\n\n" +
-                "Hi @" + commenter + ", thanks for your interest in this issue!\n\n" +
+        issue.comment(MessageFormatter.format(
+                "{}\n\nHi @{}, thanks for your interest in this issue!\n\n" +
                 "This is a **beginner** issue \u2014 if you'd like to work on it, " +
-                "please comment `/assign` to get assigned.");
+                "please comment `/assign` to get assigned.",
+                reminderMarker, commenter));
         LOG.info("Posted beginner assign reminder on {}#{}", repoFullName, issueNumber);
     }
 }

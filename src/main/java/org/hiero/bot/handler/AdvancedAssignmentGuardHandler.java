@@ -116,12 +116,12 @@ public class AdvancedAssignmentGuardHandler extends AbstractEventHandler<IssuesE
 
         if (closedIntermediate < requiredIntermediateCount) {
             issue.removeAssignees(gitHub.getUser(username));
-            issue.comment(userMarker + "\n\n" +
-                    "Hi @" + username + ", this is the Assignment Bot.\n\n" +
-                    "This is an **advanced** issue that requires at least **" +
-                    requiredIntermediateCount + "** completed intermediate issue(s).\n\n" +
-                    "You currently have **" + closedIntermediate + "** completed intermediate issue(s). " +
-                    "Please complete the required intermediate issues first.");
+            issue.comment(MessageFormatter.format(
+                    "{}\n\nHi @{}, this is the Assignment Bot.\n\n" +
+                    "This is an **advanced** issue that requires at least **{}** completed intermediate issue(s).\n\n" +
+                    "You currently have **{}** completed intermediate issue(s). " +
+                    "Please complete the required intermediate issues first.",
+                    userMarker, username, requiredIntermediateCount, closedIntermediate));
             LOG.info("Removed unqualified user {} from advanced issue {}#{}", username, repoFullName, issueNumber);
         }
     }
