@@ -1,9 +1,13 @@
 package org.hiero.bot.handler.impl;
 
-import org.hiero.bot.config.*;
+import org.hiero.bot.config.DefaultRepoConfig;
+import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.*;
 import org.hiero.bot.model.event.IssuesEvent;
+import org.hiero.bot.util.CommentMarkerChecker;
+import org.hiero.bot.util.IssueSearchHelper;
+import org.hiero.bot.util.PermissionChecker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

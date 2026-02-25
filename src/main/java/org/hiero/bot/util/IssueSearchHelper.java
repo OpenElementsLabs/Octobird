@@ -1,4 +1,4 @@
-package org.hiero.bot.config;
+package org.hiero.bot.util;
 
 import org.kohsuke.github.GitHub;
 
@@ -11,7 +11,7 @@ public final class IssueSearchHelper {
     }
 
     public static int countOpenAssignments(final GitHub gitHub, final String repoFullName,
-                                    final String username) throws IOException {
+                                           final String username) throws IOException {
         Objects.requireNonNull(gitHub, "gitHub must not be null");
         Objects.requireNonNull(repoFullName, "repoFullName must not be null");
         Objects.requireNonNull(username, "username must not be null");
@@ -23,7 +23,7 @@ public final class IssueSearchHelper {
     }
 
     public static int countClosedIssuesByLabel(final GitHub gitHub, final String repoFullName,
-                                        final String username, final String label) throws IOException {
+                                               final String username, final String label) throws IOException {
         Objects.requireNonNull(gitHub, "gitHub must not be null");
         Objects.requireNonNull(repoFullName, "repoFullName must not be null");
         Objects.requireNonNull(username, "username must not be null");
@@ -37,7 +37,7 @@ public final class IssueSearchHelper {
     }
 
     public static boolean hasNoMergedPullRequests(final GitHub gitHub, final String repoFullName,
-                                           final String username) throws IOException {
+                                                  final String username) throws IOException {
         Objects.requireNonNull(gitHub, "gitHub must not be null");
         Objects.requireNonNull(repoFullName, "repoFullName must not be null");
         Objects.requireNonNull(username, "username must not be null");

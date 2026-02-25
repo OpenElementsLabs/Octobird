@@ -1,15 +1,15 @@
 package org.hiero.bot.handler.impl;
 
-import org.hiero.bot.config.IssueSearchHelper;
-import org.hiero.bot.config.PermissionChecker;
 import org.hiero.bot.config.RepoConfig;
-import org.hiero.bot.config.SpamListLoader;
 import org.hiero.bot.handler.AbstractEventHandler;
-import org.hiero.bot.handler.MessageFormatter;
 import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssuesEvent;
+import org.hiero.bot.util.IssueSearchHelper;
+import org.hiero.bot.util.MessageFormatter;
+import org.hiero.bot.util.PermissionChecker;
+import org.hiero.bot.util.SpamListLoader;
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHLabel;
 import org.kohsuke.github.GHRepository;

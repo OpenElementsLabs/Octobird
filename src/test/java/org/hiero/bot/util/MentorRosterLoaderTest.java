@@ -1,5 +1,6 @@
-package org.hiero.bot.config;
+package org.hiero.bot.util;
 
+import org.hiero.bot.util.MentorRosterLoader;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,9 +23,12 @@ class MentorRosterLoaderTest {
 
     private static final String ROSTER_PATH = ".github/mentor_roster.json";
 
-    @Mock private GitHub gitHub;
-    @Mock private GHRepository repo;
-    @Mock private GHContent content;
+    @Mock
+    private GitHub gitHub;
+    @Mock
+    private GHRepository repo;
+    @Mock
+    private GHContent content;
 
     @AfterEach
     void tearDown() {

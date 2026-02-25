@@ -1,5 +1,6 @@
-package org.hiero.bot.config;
+package org.hiero.bot.util;
 
+import org.hiero.bot.util.IssueSearchHelper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kohsuke.github.GHIssue;
@@ -14,14 +15,18 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class IssueSearchHelperTest {
 
-    @Mock private GitHub gitHub;
-    @Mock private GHIssueSearchBuilder searchBuilder;
-    @Mock private PagedSearchIterable<GHIssue> searchResult;
+    @Mock
+    private GitHub gitHub;
+    @Mock
+    private GHIssueSearchBuilder searchBuilder;
+    @Mock
+    private PagedSearchIterable<GHIssue> searchResult;
 
     @Test
     @SuppressWarnings("unchecked")

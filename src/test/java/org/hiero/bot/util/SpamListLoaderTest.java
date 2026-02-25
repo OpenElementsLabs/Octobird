@@ -1,5 +1,6 @@
-package org.hiero.bot.config;
+package org.hiero.bot.util;
 
+import org.hiero.bot.util.SpamListLoader;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,7 +14,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -21,9 +23,12 @@ class SpamListLoaderTest {
 
     private static final String SPAM_LIST_PATH = ".github/spam-list.txt";
 
-    @Mock private GitHub gitHub;
-    @Mock private GHRepository repo;
-    @Mock private GHContent content;
+    @Mock
+    private GitHub gitHub;
+    @Mock
+    private GHRepository repo;
+    @Mock
+    private GHContent content;
 
     @AfterEach
     void tearDown() {

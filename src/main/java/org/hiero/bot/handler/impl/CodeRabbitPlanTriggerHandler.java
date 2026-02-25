@@ -1,13 +1,13 @@
 package org.hiero.bot.handler.impl;
 
-import org.hiero.bot.config.CommentMarkerChecker;
 import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.handler.AbstractEventHandler;
-import org.hiero.bot.handler.MessageFormatter;
 import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssuesEvent;
+import org.hiero.bot.util.CommentMarkerChecker;
+import org.hiero.bot.util.MessageFormatter;
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;

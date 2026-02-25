@@ -1,4 +1,4 @@
-package org.hiero.bot.config;
+package org.hiero.bot.util;
 
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHIssueComment;

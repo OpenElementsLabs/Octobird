@@ -1,4 +1,4 @@
-package org.hiero.bot.handler;
+package org.hiero.bot.util;
 
 /**
  * Utility for formatting bot comment messages using SLF4J-style {@code {}} placeholders.

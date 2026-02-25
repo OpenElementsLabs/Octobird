@@ -1,5 +1,6 @@
-package org.hiero.bot.config;
+package org.hiero.bot.util;
 
+import org.hiero.bot.util.CommentMarkerChecker;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kohsuke.github.GHIssue;
@@ -12,13 +13,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.IOException;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CommentMarkerCheckerTest {
 
-    @Mock private GHIssue issue;
+    @Mock
+    private GHIssue issue;
 
     @Test
     void returnsTrueWhenMarkerPresent() throws IOException {

@@ -2,11 +2,11 @@ package org.hiero.bot.handler.impl;
 
 import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.handler.AbstractEventHandler;
-import org.hiero.bot.handler.MessageFormatter;
 import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssueCommentEvent;
+import org.hiero.bot.util.MessageFormatter;
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHIssueComment;
 import org.kohsuke.github.GHRepository;

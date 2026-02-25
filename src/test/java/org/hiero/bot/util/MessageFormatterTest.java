@@ -1,8 +1,9 @@
-package org.hiero.bot.handler;
+package org.hiero.bot.util;
 
+import org.hiero.bot.util.MessageFormatter;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class MessageFormatterTest {
 

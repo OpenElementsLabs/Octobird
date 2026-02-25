@@ -1,4 +1,4 @@
-package org.hiero.bot.config;
+package org.hiero.bot.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
