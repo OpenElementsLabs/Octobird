@@ -15,15 +15,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 
 public class AssignmentLimitHandler extends AbstractEventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(AssignmentLimitHandler.class);
 
+    private static final BiPredicate<GitHubEventType, GitHubAction> MATCHER =
+            (event, action) -> event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED;
+
+    private static final Predicate<RepoConfig> FEATURE_CHECK =
+            repoConfig -> repoConfig.features().assignmentLimit();
+
     public AssignmentLimitHandler() {
-        super(IssuesEvent.class,
-                (event, action) -> event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED,
-                repoConfig -> repoConfig.features().assignmentLimit());
+        super(IssuesEvent.class, MATCHER, FEATURE_CHECK);
     }
 
     @Override

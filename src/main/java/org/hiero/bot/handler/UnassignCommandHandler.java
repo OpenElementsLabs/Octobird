@@ -12,16 +12,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 public class UnassignCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(UnassignCommandHandler.class);
 
+    private static final BiPredicate<GitHubEventType, GitHubAction> MATCHER =
+            (event, action) -> event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED;
+
+    private static final Predicate<RepoConfig> FEATURE_CHECK =
+            repoConfig -> repoConfig.features().unassignCommand();
+
     public UnassignCommandHandler() {
-        super(IssueCommentEvent.class,
-                (event, action) -> event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED,
-                repoConfig -> repoConfig.features().unassignCommand());
+        super(IssueCommentEvent.class, MATCHER, FEATURE_CHECK);
     }
 
     @Override

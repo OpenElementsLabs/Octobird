@@ -12,16 +12,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 
 public class AdvancedAssignmentGuardHandler extends AbstractEventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(AdvancedAssignmentGuardHandler.class);
 
+    private static final BiPredicate<GitHubEventType, GitHubAction> MATCHER =
+            (event, action) -> event == GitHubEventType.ISSUES
+                    && (action == GitHubAction.ASSIGNED || action == GitHubAction.LABELED);
+
+    private static final Predicate<RepoConfig> FEATURE_CHECK =
+            repoConfig -> repoConfig.features().advancedGuard();
+
     public AdvancedAssignmentGuardHandler() {
-        super(IssuesEvent.class,
-                (event, action) -> event == GitHubEventType.ISSUES
-                        && (action == GitHubAction.ASSIGNED || action == GitHubAction.LABELED),
-                repoConfig -> repoConfig.features().advancedGuard());
+        super(IssuesEvent.class, MATCHER, FEATURE_CHECK);
     }
 
     @Override

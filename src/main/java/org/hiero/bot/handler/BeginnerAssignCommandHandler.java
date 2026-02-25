@@ -16,16 +16,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 public class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(BeginnerAssignCommandHandler.class);
 
+    private static final BiPredicate<GitHubEventType, GitHubAction> MATCHER =
+            (event, action) -> event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED;
+
+    private static final Predicate<RepoConfig> FEATURE_CHECK =
+            repoConfig -> repoConfig.features().beginnerAssignCommand();
+
     public BeginnerAssignCommandHandler() {
-        super(IssueCommentEvent.class,
-                (event, action) -> event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED,
-                repoConfig -> repoConfig.features().beginnerAssignCommand());
+        super(IssueCommentEvent.class, MATCHER, FEATURE_CHECK);
     }
 
     @Override

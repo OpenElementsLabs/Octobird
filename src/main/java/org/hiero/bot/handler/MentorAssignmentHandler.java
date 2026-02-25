@@ -16,15 +16,21 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 
 public class MentorAssignmentHandler extends AbstractEventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(MentorAssignmentHandler.class);
 
+    private static final BiPredicate<GitHubEventType, GitHubAction> MATCHER =
+            (event, action) -> event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED;
+
+    private static final Predicate<RepoConfig> FEATURE_CHECK =
+            repoConfig -> repoConfig.features().mentorAssignment();
+
     public MentorAssignmentHandler() {
-        super(IssuesEvent.class,
-                (event, action) -> event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED,
-                repoConfig -> repoConfig.features().mentorAssignment());
+        super(IssuesEvent.class, MATCHER, FEATURE_CHECK);
     }
 
     @Override
