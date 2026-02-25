@@ -1,16 +1,8 @@
-package org.hiero.bot.handler;
+package org.hiero.bot.handler.impl;
 
-import org.hiero.bot.config.CommentMarkerChecker;
-import org.hiero.bot.config.DefaultRepoConfig;
-import org.hiero.bot.config.IssueSearchHelper;
-import org.hiero.bot.config.MentorRosterLoader;
-import org.hiero.bot.config.RepoConfig;
-import org.hiero.bot.model.GitHubAction;
-import org.hiero.bot.model.GitHubEventType;
-import org.hiero.bot.model.Installation;
-import org.hiero.bot.model.Issue;
-import org.hiero.bot.model.Repository;
-import org.hiero.bot.model.User;
+import org.hiero.bot.config.*;
+import org.hiero.bot.handler.ServiceRegistry;
+import org.hiero.bot.model.*;
 import org.hiero.bot.model.event.IssuesEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +18,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.IOException;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -38,10 +31,14 @@ class MentorAssignmentHandlerTest {
 
     private MentorAssignmentHandler handler;
 
-    @Mock private ServiceRegistry registry;
-    @Mock private GitHub gitHub;
-    @Mock private GHRepository repo;
-    @Mock private GHIssue issue;
+    @Mock
+    private ServiceRegistry registry;
+    @Mock
+    private GitHub gitHub;
+    @Mock
+    private GHRepository repo;
+    @Mock
+    private GHIssue issue;
 
     @BeforeEach
     void setUp() {

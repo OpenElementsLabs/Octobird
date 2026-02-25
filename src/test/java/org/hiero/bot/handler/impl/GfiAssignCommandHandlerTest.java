@@ -1,27 +1,13 @@
-package org.hiero.bot.handler;
+package org.hiero.bot.handler.impl;
 
-import org.hiero.bot.config.CommentMarkerChecker;
-import org.hiero.bot.config.DefaultRepoConfig;
-import org.hiero.bot.config.IssueSearchHelper;
-import org.hiero.bot.config.PermissionChecker;
-import org.hiero.bot.config.RepoConfig;
-import org.hiero.bot.config.SpamListLoader;
-import org.hiero.bot.model.Comment;
-import org.hiero.bot.model.GitHubAction;
-import org.hiero.bot.model.GitHubEventType;
-import org.hiero.bot.model.Installation;
-import org.hiero.bot.model.Issue;
-import org.hiero.bot.model.Repository;
-import org.hiero.bot.model.User;
+import org.hiero.bot.config.*;
+import org.hiero.bot.handler.ServiceRegistry;
+import org.hiero.bot.model.*;
 import org.hiero.bot.model.event.IssueCommentEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.kohsuke.github.GHIssue;
-import org.kohsuke.github.GHLabel;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GHUser;
-import org.kohsuke.github.GitHub;
+import org.kohsuke.github.*;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -29,7 +15,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.IOException;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -41,11 +28,16 @@ class GfiAssignCommandHandlerTest {
 
     private GfiAssignCommandHandler handler;
 
-    @Mock private ServiceRegistry registry;
-    @Mock private GitHub gitHub;
-    @Mock private GHRepository repo;
-    @Mock private GHIssue issue;
-    @Mock private GHUser ghUser;
+    @Mock
+    private ServiceRegistry registry;
+    @Mock
+    private GitHub gitHub;
+    @Mock
+    private GHRepository repo;
+    @Mock
+    private GHIssue issue;
+    @Mock
+    private GHUser ghUser;
 
     @BeforeEach
     void setUp() {

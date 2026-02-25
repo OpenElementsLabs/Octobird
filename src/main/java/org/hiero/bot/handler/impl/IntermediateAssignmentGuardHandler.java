@@ -1,9 +1,12 @@
-package org.hiero.bot.handler;
+package org.hiero.bot.handler.impl;
 
 import org.hiero.bot.config.CommentMarkerChecker;
 import org.hiero.bot.config.IssueSearchHelper;
 import org.hiero.bot.config.PermissionChecker;
 import org.hiero.bot.config.RepoConfig;
+import org.hiero.bot.handler.AbstractEventHandler;
+import org.hiero.bot.handler.MessageFormatter;
+import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssuesEvent;
@@ -18,7 +21,7 @@ import java.io.IOException;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-public class IntermediateAssignmentGuardHandler extends AbstractEventHandler<IssuesEvent> {
+public final class IntermediateAssignmentGuardHandler extends AbstractEventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(IntermediateAssignmentGuardHandler.class);
 
@@ -94,9 +97,9 @@ public class IntermediateAssignmentGuardHandler extends AbstractEventHandler<Iss
             issue.removeAssignees(gitHub.getUser(assigneeLogin));
             issue.comment(MessageFormatter.format(
                     "{}\n\nHi @{}, this is the Assignment Bot.\n\n" +
-                    "This is an **intermediate** issue that requires at least **{}** completed beginner issue(s).\n\n" +
-                    "You currently have **{}** completed beginner issue(s). " +
-                    "Please complete the required beginner issues first.",
+                            "This is an **intermediate** issue that requires at least **{}** completed beginner issue(s).\n\n" +
+                            "You currently have **{}** completed beginner issue(s). " +
+                            "Please complete the required beginner issues first.",
                     userMarker, assigneeLogin, requiredBeginnerCount, closedBeginner));
             LOG.info("Removed unqualified user {} from intermediate issue {}#{}", assigneeLogin, repoFullName, issueNumber);
         }

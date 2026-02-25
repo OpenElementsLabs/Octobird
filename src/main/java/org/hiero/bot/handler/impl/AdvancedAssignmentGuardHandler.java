@@ -1,9 +1,12 @@
-package org.hiero.bot.handler;
+package org.hiero.bot.handler.impl;
 
 import org.hiero.bot.config.CommentMarkerChecker;
 import org.hiero.bot.config.IssueSearchHelper;
 import org.hiero.bot.config.PermissionChecker;
 import org.hiero.bot.config.RepoConfig;
+import org.hiero.bot.handler.AbstractEventHandler;
+import org.hiero.bot.handler.MessageFormatter;
+import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssuesEvent;
@@ -15,7 +18,7 @@ import java.io.IOException;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-public class AdvancedAssignmentGuardHandler extends AbstractEventHandler<IssuesEvent> {
+public final class AdvancedAssignmentGuardHandler extends AbstractEventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(AdvancedAssignmentGuardHandler.class);
 
@@ -118,9 +121,9 @@ public class AdvancedAssignmentGuardHandler extends AbstractEventHandler<IssuesE
             issue.removeAssignees(gitHub.getUser(username));
             issue.comment(MessageFormatter.format(
                     "{}\n\nHi @{}, this is the Assignment Bot.\n\n" +
-                    "This is an **advanced** issue that requires at least **{}** completed intermediate issue(s).\n\n" +
-                    "You currently have **{}** completed intermediate issue(s). " +
-                    "Please complete the required intermediate issues first.",
+                            "This is an **advanced** issue that requires at least **{}** completed intermediate issue(s).\n\n" +
+                            "You currently have **{}** completed intermediate issue(s). " +
+                            "Please complete the required intermediate issues first.",
                     userMarker, username, requiredIntermediateCount, closedIntermediate));
             LOG.info("Removed unqualified user {} from advanced issue {}#{}", username, repoFullName, issueNumber);
         }

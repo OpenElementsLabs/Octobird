@@ -1,20 +1,15 @@
-package org.hiero.bot.handler;
+package org.hiero.bot.handler.impl;
 
 import org.hiero.bot.config.DefaultRepoConfig;
 import org.hiero.bot.config.RepoConfig;
-import org.hiero.bot.model.GitHubAction;
-import org.hiero.bot.model.GitHubEventType;
-import org.hiero.bot.model.Installation;
-import org.hiero.bot.model.Issue;
-import org.hiero.bot.model.Repository;
-import org.hiero.bot.model.User;
+import org.hiero.bot.handler.ServiceRegistry;
+import org.hiero.bot.model.*;
 import org.hiero.bot.model.event.IssuesEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -22,8 +17,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.IOException;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class IntermediateAssignmentGuardHandlerTest {
@@ -32,10 +29,14 @@ class IntermediateAssignmentGuardHandlerTest {
 
     private IntermediateAssignmentGuardHandler handler;
 
-    @Mock private ServiceRegistry registry;
-    @Mock private GitHub gitHub;
-    @Mock private GHRepository repo;
-    @Mock private GHIssue issue;
+    @Mock
+    private ServiceRegistry registry;
+    @Mock
+    private GitHub gitHub;
+    @Mock
+    private GHRepository repo;
+    @Mock
+    private GHIssue issue;
 
     @BeforeEach
     void setUp() {

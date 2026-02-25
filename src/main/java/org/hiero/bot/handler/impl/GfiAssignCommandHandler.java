@@ -1,10 +1,9 @@
-package org.hiero.bot.handler;
+package org.hiero.bot.handler.impl;
 
-import org.hiero.bot.config.CommentMarkerChecker;
-import org.hiero.bot.config.IssueSearchHelper;
-import org.hiero.bot.config.PermissionChecker;
-import org.hiero.bot.config.RepoConfig;
-import org.hiero.bot.config.SpamListLoader;
+import org.hiero.bot.config.*;
+import org.hiero.bot.handler.AbstractEventHandler;
+import org.hiero.bot.handler.MessageFormatter;
+import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssueCommentEvent;
@@ -20,7 +19,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-public class GfiAssignCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
+public final class GfiAssignCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(GfiAssignCommandHandler.class);
 
@@ -92,9 +91,9 @@ public class GfiAssignCommandHandler extends AbstractEventHandler<IssueCommentEv
             if (count >= spamMax) {
                 issue.comment(MessageFormatter.format(
                         "Hi @{}, this is the Assignment Bot.\n\n" +
-                        "Your account currently has limited assignment privileges with a maximum of **{} open assignment** at a time.\n\n" +
-                        "You currently have {} open issue(s) assigned. " +
-                        "Please complete and merge your existing assignment before requesting a new one.",
+                                "Your account currently has limited assignment privileges with a maximum of **{} open assignment** at a time.\n\n" +
+                                "You currently have {} open issue(s) assigned. " +
+                                "Please complete and merge your existing assignment before requesting a new one.",
                         commenter, spamMax, count));
                 return;
             }
@@ -103,8 +102,8 @@ public class GfiAssignCommandHandler extends AbstractEventHandler<IssueCommentEv
             if (count >= normalMax) {
                 issue.comment(MessageFormatter.format(
                         "Hi @{}, this is the Assignment Bot.\n\n" +
-                        "Assigning you to this issue would exceed the limit of {} open assignments.\n\n" +
-                        "Please resolve and merge your existing assigned issues before requesting new ones.",
+                                "Assigning you to this issue would exceed the limit of {} open assignments.\n\n" +
+                                "Please resolve and merge your existing assigned issues before requesting new ones.",
                         commenter, normalMax));
                 return;
             }
@@ -137,8 +136,8 @@ public class GfiAssignCommandHandler extends AbstractEventHandler<IssueCommentEv
 
         issue.comment(MessageFormatter.format(
                 "{}\n\nHi @{}, thanks for your interest in this issue!\n\n" +
-                "This is a **Good First Issue** \u2014 if you'd like to work on it, " +
-                "please comment `/assign` to get assigned.",
+                        "This is a **Good First Issue** \u2014 if you'd like to work on it, " +
+                        "please comment `/assign` to get assigned.",
                 reminderMarker, commenter));
         LOG.info("Posted GFI assign reminder on {}#{}", repoFullName, issueNumber);
     }

@@ -1,14 +1,12 @@
-package org.hiero.bot.handler;
+package org.hiero.bot.handler.impl;
 
 import org.hiero.bot.config.RepoConfig;
+import org.hiero.bot.handler.AbstractEventHandler;
+import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssueCommentEvent;
-import org.kohsuke.github.GHIssue;
-import org.kohsuke.github.GHIssueComment;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GitHub;
-import org.kohsuke.github.ReactionContent;
+import org.kohsuke.github.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +16,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-public class WorkingCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
+public final class WorkingCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkingCommandHandler.class);
 

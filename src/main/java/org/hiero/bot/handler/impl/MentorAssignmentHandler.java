@@ -1,9 +1,12 @@
-package org.hiero.bot.handler;
+package org.hiero.bot.handler.impl;
 
 import org.hiero.bot.config.CommentMarkerChecker;
 import org.hiero.bot.config.IssueSearchHelper;
 import org.hiero.bot.config.MentorRosterLoader;
 import org.hiero.bot.config.RepoConfig;
+import org.hiero.bot.handler.AbstractEventHandler;
+import org.hiero.bot.handler.MessageFormatter;
+import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssuesEvent;
@@ -19,7 +22,7 @@ import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-public class MentorAssignmentHandler extends AbstractEventHandler<IssuesEvent> {
+public final class MentorAssignmentHandler extends AbstractEventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(MentorAssignmentHandler.class);
 
@@ -89,9 +92,9 @@ public class MentorAssignmentHandler extends AbstractEventHandler<IssuesEvent> {
 
         issue.comment(MessageFormatter.format(
                 "{}\n\nWelcome @{}! \uD83D\uDC4B This is your first contribution \u2014 exciting!\n\n" +
-                "@{} has been assigned as your mentor for this issue. " +
-                "Feel free to ask them any questions as you work through it.\n\n" +
-                "Good luck and happy coding!",
+                        "@{} has been assigned as your mentor for this issue. " +
+                        "Feel free to ask them any questions as you work through it.\n\n" +
+                        "Good luck and happy coding!",
                 marker, assigneeLogin, mentor));
         LOG.info("Assigned mentor {} to newcomer {} on {}#{}", mentor, assigneeLogin, repoFullName, issueNumber);
     }

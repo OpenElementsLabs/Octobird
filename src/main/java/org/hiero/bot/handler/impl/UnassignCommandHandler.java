@@ -1,6 +1,9 @@
-package org.hiero.bot.handler;
+package org.hiero.bot.handler.impl;
 
 import org.hiero.bot.config.RepoConfig;
+import org.hiero.bot.handler.AbstractEventHandler;
+import org.hiero.bot.handler.MessageFormatter;
+import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssueCommentEvent;
@@ -16,7 +19,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-public class UnassignCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
+public final class UnassignCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(UnassignCommandHandler.class);
 
@@ -86,8 +89,8 @@ public class UnassignCommandHandler extends AbstractEventHandler<IssueCommentEve
         // Post confirmation with marker
         ghIssue.comment(MessageFormatter.format(
                 "{}\n\n@{}, you've been unassigned from this issue.\n\n" +
-                "Thanks for letting us know! If you'd like to work on something else, " +
-                "feel free to browse our open issues.",
+                        "Thanks for letting us know! If you'd like to work on something else, " +
+                        "feel free to browse our open issues.",
                 marker, username));
 
         LOG.info("Unassigned {} from {}#{}", username, repoFullName, issueNumber);

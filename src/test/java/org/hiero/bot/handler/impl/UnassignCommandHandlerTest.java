@@ -1,25 +1,14 @@
-package org.hiero.bot.handler;
+package org.hiero.bot.handler.impl;
 
 import org.hiero.bot.config.DefaultRepoConfig;
 import org.hiero.bot.config.RepoConfig;
-import org.hiero.bot.model.Comment;
-import org.hiero.bot.model.GitHubAction;
-import org.hiero.bot.model.GitHubEventType;
-import org.hiero.bot.model.Installation;
-import org.hiero.bot.model.Issue;
-import org.hiero.bot.model.Repository;
-import org.hiero.bot.model.User;
+import org.hiero.bot.handler.ServiceRegistry;
+import org.hiero.bot.model.*;
 import org.hiero.bot.model.event.IssueCommentEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.kohsuke.github.GHIssue;
-import org.kohsuke.github.GHIssueComment;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GHUser;
-import org.kohsuke.github.GitHub;
-import org.kohsuke.github.PagedIterable;
-import org.kohsuke.github.PagedIterator;
+import org.kohsuke.github.*;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -27,7 +16,8 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,11 +27,16 @@ class UnassignCommandHandlerTest {
 
     private UnassignCommandHandler handler;
 
-    @Mock private ServiceRegistry registry;
-    @Mock private GitHub gitHub;
-    @Mock private GHRepository repo;
-    @Mock private GHIssue issue;
-    @Mock private GHUser user;
+    @Mock
+    private ServiceRegistry registry;
+    @Mock
+    private GitHub gitHub;
+    @Mock
+    private GHRepository repo;
+    @Mock
+    private GHIssue issue;
+    @Mock
+    private GHUser user;
 
     @BeforeEach
     void setUp() {
@@ -184,7 +179,7 @@ class UnassignCommandHandlerTest {
     }
 
     private IssueCommentEvent buildEvent(String commentBody, String username, String state,
-                                          boolean hasPr, String userType) {
+                                         boolean hasPr, String userType) {
         User commentUser = new User(1, username, userType, null, null, false);
         Comment comment = new Comment(100, commentBody, commentUser, null, null, null, null);
         Issue modelIssue = new Issue(1, 42, "Test", null, state, null,

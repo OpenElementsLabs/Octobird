@@ -1,10 +1,9 @@
-package org.hiero.bot.handler;
+package org.hiero.bot.handler.impl;
 
-import org.hiero.bot.config.CommentMarkerChecker;
-import org.hiero.bot.config.IssueSearchHelper;
-import org.hiero.bot.config.PermissionChecker;
-import org.hiero.bot.config.RepoConfig;
-import org.hiero.bot.config.SpamListLoader;
+import org.hiero.bot.config.*;
+import org.hiero.bot.handler.AbstractEventHandler;
+import org.hiero.bot.handler.MessageFormatter;
+import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssueCommentEvent;
@@ -20,7 +19,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-public class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
+public final class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(BeginnerAssignCommandHandler.class);
 
@@ -72,8 +71,8 @@ public class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueComm
     }
 
     private void handleAssignCommand(final GitHub gitHub, final GHRepository repo, final GHIssue issue,
-                                      final String commenter, final String repoFullName,
-                                      final int issueNumber, final RepoConfig repoConfig) throws IOException {
+                                     final String commenter, final String repoFullName,
+                                     final int issueNumber, final RepoConfig repoConfig) throws IOException {
         final String gfiLabel = repoConfig.labels().goodFirstIssue();
         final int requiredGfiCount = repoConfig.guards().requiredGfiCountForBeginner();
         final String gfiGuardMarker = repoConfig.markers().beginnerGfiGuard();
@@ -87,9 +86,9 @@ public class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueComm
                 if (!CommentMarkerChecker.hasMarker(issue, userMarker)) {
                     issue.comment(MessageFormatter.format(
                             "{}\n\nHi @{}, this is the Assignment Bot.\n\n" +
-                            "This is a **beginner** issue that requires at least **{}** completed Good First Issue(s).\n\n" +
-                            "You currently have **{}** completed Good First Issue(s). " +
-                            "Please complete a Good First Issue before requesting a beginner issue.",
+                                    "This is a **beginner** issue that requires at least **{}** completed Good First Issue(s).\n\n" +
+                                    "You currently have **{}** completed Good First Issue(s). " +
+                                    "Please complete a Good First Issue before requesting a beginner issue.",
                             userMarker, commenter, requiredGfiCount, closedGfi));
                 }
                 return;
@@ -102,10 +101,10 @@ public class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueComm
         if (isSpam) {
             issue.comment(MessageFormatter.format(
                     "Hi @{}, this is the Assignment Bot.\n\n" +
-                    "Your account currently has limited assignment privileges. " +
-                    "You may only be assigned to issues labeled **Good First Issue**.\n\n" +
-                    "Please complete and merge your assigned Good First Issue " +
-                    "to have restrictions lifted.", commenter));
+                            "Your account currently has limited assignment privileges. " +
+                            "You may only be assigned to issues labeled **Good First Issue**.\n\n" +
+                            "Please complete and merge your assigned Good First Issue " +
+                            "to have restrictions lifted.", commenter));
             return;
         }
 
@@ -123,8 +122,8 @@ public class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueComm
         if (count >= normalMax) {
             issue.comment(MessageFormatter.format(
                     "Hi @{}, this is the Assignment Bot.\n\n" +
-                    "Assigning you to this issue would exceed the limit of {} open assignments.\n\n" +
-                    "Please resolve and merge your existing assigned issues before requesting new ones.",
+                            "Assigning you to this issue would exceed the limit of {} open assignments.\n\n" +
+                            "Please resolve and merge your existing assigned issues before requesting new ones.",
                     commenter, normalMax));
             return;
         }
@@ -135,8 +134,8 @@ public class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueComm
     }
 
     private void handleReminder(final GHRepository repo, final GHIssue issue, final String commenter,
-                                 final String repoFullName, final int issueNumber,
-                                 final RepoConfig repoConfig) throws IOException {
+                                final String repoFullName, final int issueNumber,
+                                final RepoConfig repoConfig) throws IOException {
         // Only post reminder if issue is unassigned
         if (!issue.getAssignees().isEmpty()) {
             return;
@@ -156,8 +155,8 @@ public class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueComm
 
         issue.comment(MessageFormatter.format(
                 "{}\n\nHi @{}, thanks for your interest in this issue!\n\n" +
-                "This is a **beginner** issue \u2014 if you'd like to work on it, " +
-                "please comment `/assign` to get assigned.",
+                        "This is a **beginner** issue \u2014 if you'd like to work on it, " +
+                        "please comment `/assign` to get assigned.",
                 reminderMarker, commenter));
         LOG.info("Posted beginner assign reminder on {}#{}", repoFullName, issueNumber);
     }
