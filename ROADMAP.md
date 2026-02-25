@@ -8,80 +8,73 @@ nach Abhängigkeiten, Nutzen und technischer Machbarkeit.
 
 ---
 
-## Phase 1: Kern-Infrastruktur & Basis-Commands
+## ✅ Phase 1: Kern-Infrastruktur & Basis-Commands — ABGESCHLOSSEN
 
 > Grundlage für alle weiteren Features. Erweitert die bestehende Handler-Architektur.
 
-### 1.1 Spam-Liste & Berechtigungssystem
-- Laden einer Spam-Liste (`.github/spam-list.txt`) pro Repository
-- Abfrage der Collaborator-Permissions via GitHub API (admin, write, triage, etc.)
-- Wird von fast allen Assignment-Handlern benötigt
-
-### 1.2 `/unassign`-Command Handler
-- **Migriert:** `unassign-on-comment.yml`
-- **Event:** `issue_comment.created`
-- Erkennt `/unassign` im Kommentar, prüft ob Commenter assigned ist, entfernt Assignment
-- Duplikat-Prävention per Marker-Kommentar
-
-### 1.3 `/working`-Command Handler
-- **Migriert:** `working-on-comment.yml`
-- **Event:** `issue_comment.created`
-- Erkennt `/working` im Kommentar, reagiert mit Emoji
-- Dient als Signal an Inaktivitäts-Bots (Timer-Reset)
-
-### 1.4 Assignment-Limit-Check
-- **Migriert:** `bot-assignment-check.yml`
-- **Event:** `issues.assigned`
-- Prüft: Spam-User max 1 (nur GFI), normale User max 2, Maintainer unbegrenzt
-- Entfernt Assignment + Kommentar bei Überschreitung
+- ✅ **1.1 Spam-Liste & Berechtigungssystem** — `SpamListLoader`, `PermissionChecker` in `util/`
+- ✅ **1.2 `/unassign`-Command Handler** — `UnassignCommandHandler`
+- ✅ **1.3 `/working`-Command Handler** — `WorkingCommandHandler`
+- ✅ **1.4 Assignment-Limit-Check** — `AssignmentLimitHandler`
 
 ---
 
-## Phase 2: Issue-Assignment-Pipeline
+## ✅ Phase 2: Issue-Assignment-Pipeline — ABGESCHLOSSEN
 
 > Kernfeature: Contributor weisen sich selbst Issues zu. Aufbauend auf Phase 1.
 
-### 2.1 GFI `/assign`-Command Handler
-- **Migriert:** `bot-gfi-assign-on-comment.yml`
-- **Event:** `issue_comment.created`
-- Erkennt `/assign` auf Issues mit "Good First Issue"-Label
-- Prüft: Assignment-Limit, Spam-Liste, bereits assigned
-- Weist User zu + Post Bestätigungskommentar
-- Triggert Mentor-Assignment und CodeRabbit (siehe 2.3, 2.4)
+- ✅ **2.1 GFI `/assign`-Command Handler** — `GfiAssignCommandHandler`
+- ✅ **2.2 Beginner `/assign`-Command Handler** — `BeginnerAssignCommandHandler`
+- ✅ **2.3 Mentor-Assignment** — `MentorAssignmentHandler`, `MentorRosterLoader`
+- ✅ **2.4 CodeRabbit Plan Trigger** — `CodeRabbitPlanTriggerHandler`
+- ✅ **2.5 Intermediate Assignment Guard** — `IntermediateAssignmentGuardHandler`
+- ✅ **2.6 Advanced Requirement Check** — `AdvancedAssignmentGuardHandler`
 
-### 2.2 Beginner `/assign`-Command Handler
-- **Migriert:** `bot-beginner-assign-on-comment.yml`
-- **Event:** `issue_comment.created`
-- Wie GFI, aber für "Beginner"-Label
-- Zusätzliche Voraussetzung: mindestens 1 abgeschlossenes GFI (GraphQL-Suche)
-- Erinnerungskommentar für externe Contributors auf nicht-zugewiesenen Issues
+---
 
-### 2.3 Mentor-Assignment
-- **Migriert:** `bot-mentor-assignment.yml`
-- **Event:** `issues.assigned` (auf GFI-Issues) + intern aufrufbar
-- Lädt `.github/mentor_roster.json`
-- Rotiert Mentor täglich: `dayNumber % roster.length`
-- Nur für neue Contributors (keine gemergten PRs)
-- Duplikat-Prävention
+## 🚀 Nächster Schritt: Test-Deployment in Coolify
 
-### 2.4 CodeRabbit Plan Trigger
-- **Migriert:** `bot-coderabbit-plan-trigger.yml`
-- **Event:** `issues.labeled` (beginner/intermediate/advanced)
-- Postet `@coderabbitai plan` als Kommentar
-- Duplikat-Prävention
+> Bevor weitere Features gebaut werden, soll die App mit einem echten GitHub Repository
+> getestet werden. Deployment-Ziel: [Coolify](https://coolify.io) (self-hosted PaaS).
 
-### 2.5 Intermediate Assignment Guard
-- **Migriert:** `bot-intermediate-assignment.yml`
-- **Event:** `issues.assigned`
-- Prüft Qualifikation: mindestens 1 abgeschlossenes Beginner-Issue (GraphQL)
-- Core-Team ist ausgenommen
-- Entfernt Assignment + Kommentar bei fehlender Qualifikation
+### Was bereits vorbereitet ist
 
-### 2.6 Advanced Requirement Check
-- **Migriert:** `bot-advanced-check.yml`
-- **Event:** `issues.assigned` + `issues.labeled`
-- Prüft: mindestens 1 abgeschlossenes Intermediate-Issue
-- Entfernt Assignment + Kommentar bei fehlender Qualifikation
+- `nixpacks.toml` im Repository-Root für Coolify-kompatibles Build (Maven + Java 21)
+- App startet auf Port 8080, `GET /health` liefert `"OK"`
+
+### Schritte zum Deployment
+
+1. **GitHub App registrieren** unter [github.com/settings/apps/new](https://github.com/settings/apps/new):
+   - Webhook URL: `https://<coolify-domain>/webhook`
+   - Webhook Secret: beliebiger Zufallswert
+   - Private Key: RSA-Schlüssel generieren und herunterladen
+   - Permissions: Issues (Read & Write), Pull Requests (Read & Write), Repository Contents (Read)
+   - Events abonnieren: `Issues`, `Issue comment`, `Pull request`, `Workflow run`
+
+2. **App in Coolify anlegen:**
+   - Quelle: dieses Git-Repository
+   - Build-Pack: Nixpacks (erkennt `nixpacks.toml` automatisch)
+   - Port: `8080`
+   - Health-Check: `GET /health`
+
+3. **Umgebungsvariablen in Coolify setzen:**
+
+   | Variable | Inhalt |
+   |---|---|
+   | `BOT_APP_ID` | App-ID aus den GitHub App Settings |
+   | `BOT_PRIVATE_KEY` | Inhalt der `.pem`-Datei (einzeilig mit `\n`) |
+   | `BOT_WEBHOOK_SECRET` | Das beim Registrieren gewählte Webhook Secret |
+
+4. **App installieren:** GitHub App auf dem Test-Repository installieren
+
+5. **Smoketest:** Webhook-Delivery in den GitHub App Settings prüfen, Health-Endpoint aufrufen
+
+### Konfiguration des Test-Repositories
+
+Das Test-Repository benötigt:
+- `.github/hiero-bot.yml` — Haupt-Konfiguration (Features, Labels, Limits)
+- `.github/spam-list.txt` — Spam-User-Liste (kann leer sein)
+- `.github/mentor_roster.json` — Mentor-Rotation, z.B. `{"order": ["username1"]}`
 
 ---
 
@@ -248,15 +241,15 @@ nach Abhängigkeiten, Nutzen und technischer Machbarkeit.
 ## Abhängigkeiten zwischen Phasen
 
 ```
-Phase 1 (Infrastruktur)
-  ├──▶ Phase 2 (Assignment-Pipeline) ──▶ Phase 5 (Scheduled Tasks)
+Phase 1+2 (✅ Abgeschlossen)
+  ├──▶ Test-Deployment (🚀 Nächster Schritt)
   ├──▶ Phase 3 (PR-Checks)
   ├──▶ Phase 4 (Benachrichtigungen)
+  ├──▶ Phase 5 (Scheduled Tasks)
   └──▶ Phase 6 (Persistenz & API) ──▶ Phase 7 (Frontend)
 ```
 
-- Phase 1 ist Voraussetzung für alle anderen Phasen
-- Phase 2, 3, 4 und 6 können parallel entwickelt werden
+- Phase 3, 4, 5 und 6 können nach dem Test-Deployment parallel entwickelt werden
 - Phase 5 baut auf Phase 1+2 auf (nutzt `/working`-Logik und Assignment-Status)
 - Phase 7 baut auf Phase 6 auf (API muss stehen, bevor das Frontend darauf zugreift)
 - **Designprinzip:** Alle Handler sollten Konfiguration über ein abstraktes Interface

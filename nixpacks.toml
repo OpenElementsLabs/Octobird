@@ -1,0 +1,11 @@
+[phases.build]
+cmds = ["./mvnw clean package -DskipTests"]
+
+[phases.setup]
+nixPkgs = ["jdk21"]
+
+[start]
+cmd = "java -jar target/github-app-0.1.0-SNAPSHOT.jar"
+
+[variables]
+PORT = "8080"

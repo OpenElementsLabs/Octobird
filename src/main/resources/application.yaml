@@ -1,7 +1,7 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 bot:
-  app-id: 0
-  private-key: ""
-  webhook-secret: ""
+  app-id: ${BOT_APP_ID:0}
+  private-key: ${BOT_PRIVATE_KEY:}
+  webhook-secret: ${BOT_WEBHOOK_SECRET:}

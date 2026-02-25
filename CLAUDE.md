@@ -150,6 +150,33 @@ features, keep the following in mind:
 - Keep handlers focused: one handler per bot command/event type
 - Follow the rules in [JAVA-BEST-PRACTICES.md](JAVA-BEST-PRACTICES.md)
 
+## Test Conventions
+
+Every test method — unit or integration — **must** follow the Given-When-Then structure,
+marked with inline comments:
+
+```java
+@Test
+void removesUnqualifiedUser() throws IOException {
+    // Given
+    final IssuesEvent event = buildAssignedEvent("alice");
+    when(repo.getIssue(42)).thenReturn(issue);
+
+    // When
+    handler.handle(event, registry, CONFIG);
+
+    // Then
+    verify(issue).removeAssignees(assigneeUser);
+}
+```
+
+- `// Given` — test setup: create objects, configure mocks, define preconditions
+- `// When` — the single action under test (one call)
+- `// Then` — assertions and verifications
+
+This applies to all tests regardless of whether they use Mockito, plain JUnit assertions,
+or integration-level setup. Do not omit any of the three sections, even if one is trivial.
+
 ## Configuration
 
 Application config in `src/main/resources/application.yaml`:
