@@ -52,39 +52,57 @@ class GfiAssignCommandHandlerTest {
 
     @Test
     void matchesIssueCommentCreated() {
-        assertTrue(handler.matches(GitHubEventType.ISSUE_COMMENT, GitHubAction.CREATED));
+        // Given
+        // handler initialized in setUp
+
+        // When
+        final boolean result = handler.matches(GitHubEventType.ISSUE_COMMENT, GitHubAction.CREATED);
+
+        // Then
+        assertTrue(result);
     }
 
     @Test
     void doesNotMatchOtherEvents() {
+        // Given
+        // handler initialized in setUp
+
+        // When / Then
         assertFalse(handler.matches(GitHubEventType.ISSUES, GitHubAction.ASSIGNED));
     }
 
     @Test
     void skipsBotComments() throws IOException {
+        // Given
         final IssueCommentEvent event = buildEvent("/assign", "bot", "Bot");
+
+        // When
         handler.handle(event, registry, CONFIG);
+
+        // Then
         verifyNoInteractions(repo, issue);
     }
 
     @Test
     void skipsNonGfiIssues() throws IOException {
+        // Given
         final IssueCommentEvent event = buildEvent("/assign", "alice", "User");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
         when(issue.getLabels()).thenReturn(List.of());
 
+        // When
         handler.handle(event, registry, CONFIG);
 
+        // Then
         verify(issue, never()).comment(any());
         verify(issue, never()).addAssignees(any(GHUser.class));
     }
 
     @Test
     void assignsUserOnGfiWithAssignCommand() throws IOException {
+        // Given
         final IssueCommentEvent event = buildEvent("/assign", "alice", "User");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
@@ -99,8 +117,10 @@ class GfiAssignCommandHandlerTest {
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(0);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue).addAssignees(ghUser);
             verify(issue).comment(argThat(msg -> msg.contains("has been assigned")));
         }
@@ -108,8 +128,8 @@ class GfiAssignCommandHandlerTest {
 
     @Test
     void rejectsAlreadyAssignedUser() throws IOException {
+        // Given
         final IssueCommentEvent event = buildEvent("/assign", "alice", "User");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
@@ -121,16 +141,18 @@ class GfiAssignCommandHandlerTest {
         when(assignee.getLogin()).thenReturn("alice");
         when(issue.getAssignees()).thenReturn(List.of(assignee));
 
+        // When
         handler.handle(event, registry, CONFIG);
 
+        // Then
         verify(issue).comment(argThat(msg -> msg.contains("already assigned")));
         verify(issue, never()).addAssignees(any(GHUser.class));
     }
 
     @Test
     void rejectsSpamUserExceedingLimit() throws IOException {
+        // Given
         final IssueCommentEvent event = buildEvent("/assign", "spammer", "User");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
@@ -144,8 +166,10 @@ class GfiAssignCommandHandlerTest {
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "spammer")).thenReturn(1);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue).comment(argThat(msg -> msg.contains("limited assignment privileges")));
             verify(issue, never()).addAssignees(any(GHUser.class));
         }
@@ -153,8 +177,8 @@ class GfiAssignCommandHandlerTest {
 
     @Test
     void rejectsNormalUserExceedingLimit() throws IOException {
+        // Given
         final IssueCommentEvent event = buildEvent("/assign", "alice", "User");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
@@ -168,8 +192,10 @@ class GfiAssignCommandHandlerTest {
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(2);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue).comment(argThat(msg -> msg.contains("exceed the limit")));
             verify(issue, never()).addAssignees(any(GHUser.class));
         }
@@ -177,8 +203,8 @@ class GfiAssignCommandHandlerTest {
 
     @Test
     void postsReminderOnUnassignedGfi() throws IOException {
+        // Given
         final IssueCommentEvent event = buildEvent("Thanks for this issue!", "alice", "User");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
@@ -192,8 +218,10 @@ class GfiAssignCommandHandlerTest {
             pc.when(() -> PermissionChecker.isCollaborator(repo, "alice")).thenReturn(false);
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- GFI assign reminder -->"))).thenReturn(false);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue).comment(argThat(msg ->
                     msg.contains("<!-- GFI assign reminder -->") && msg.contains("/assign")));
         }
@@ -201,8 +229,8 @@ class GfiAssignCommandHandlerTest {
 
     @Test
     void skipsReminderForCollaborator() throws IOException {
+        // Given
         final IssueCommentEvent event = buildEvent("Some comment", "alice", "User");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
@@ -214,16 +242,18 @@ class GfiAssignCommandHandlerTest {
         try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class)) {
             pc.when(() -> PermissionChecker.isCollaborator(repo, "alice")).thenReturn(true);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue, never()).comment(any());
         }
     }
 
     @Test
     void skipsReminderWhenAlreadyAssigned() throws IOException {
+        // Given
         final IssueCommentEvent event = buildEvent("Some comment", "alice", "User");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
@@ -234,8 +264,10 @@ class GfiAssignCommandHandlerTest {
         final GHUser assignee = mock(GHUser.class);
         when(issue.getAssignees()).thenReturn(List.of(assignee));
 
+        // When
         handler.handle(event, registry, CONFIG);
 
+        // Then
         verify(issue, never()).comment(any());
     }
 

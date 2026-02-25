@@ -46,22 +46,36 @@ class IntermediateAssignmentGuardHandlerTest {
 
     @Test
     void matchesIssuesAssigned() {
-        assertTrue(handler.matches(GitHubEventType.ISSUES, GitHubAction.ASSIGNED));
+        // Given
+        // handler initialized in setUp
+
+        // When
+        final boolean result = handler.matches(GitHubEventType.ISSUES, GitHubAction.ASSIGNED);
+
+        // Then
+        assertTrue(result);
     }
 
     @Test
     void doesNotMatchOtherEvents() {
+        // Given
+        // handler initialized in setUp
+
+        // When / Then
         assertFalse(handler.matches(GitHubEventType.ISSUES, GitHubAction.LABELED));
         assertFalse(handler.matches(GitHubEventType.ISSUE_COMMENT, GitHubAction.CREATED));
     }
 
     @Test
     void guardIsDeactivatedWhenRequiredCountIsZero() throws IOException {
+        // Given
         // Default guards config has requiredBeginnerCountForIntermediate == 0, so guard is deactivated
         final IssuesEvent event = buildEvent("alice");
 
+        // When
         handler.handle(event, registry, CONFIG);
 
+        // Then
         // Should return immediately without any interactions
         verifyNoInteractions(repo, issue);
     }

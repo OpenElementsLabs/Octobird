@@ -52,35 +52,48 @@ class AssignmentLimitHandlerTest {
 
     @Test
     void matchesIssuesAssigned() {
-        assertTrue(handler.matches(GitHubEventType.ISSUES, GitHubAction.ASSIGNED));
+        // Given
+        // handler initialized in setUp
+
+        // When
+        final boolean result = handler.matches(GitHubEventType.ISSUES, GitHubAction.ASSIGNED);
+
+        // Then
+        assertTrue(result);
     }
 
     @Test
     void doesNotMatchOtherEvents() {
+        // Given
+        // handler initialized in setUp
+
+        // When / Then
         assertFalse(handler.matches(GitHubEventType.ISSUES, GitHubAction.OPENED));
         assertFalse(handler.matches(GitHubEventType.ISSUE_COMMENT, GitHubAction.CREATED));
     }
 
     @Test
     void maintainerHasNoLimit() throws IOException {
+        // Given
         final IssuesEvent event = buildEvent("alice");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
         try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class)) {
             pc.when(() -> PermissionChecker.isMaintainer(repo, "alice")).thenReturn(true);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue, never()).removeAssignees(any(GHUser.class));
         }
     }
 
     @Test
     void normalUserWithinLimitIsAllowed() throws IOException {
+        // Given
         final IssuesEvent event = buildEvent("alice");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
@@ -91,16 +104,18 @@ class AssignmentLimitHandlerTest {
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(2);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue, never()).removeAssignees(any(GHUser.class));
         }
     }
 
     @Test
     void normalUserExceedingLimitIsRemoved() throws IOException {
+        // Given
         final IssuesEvent event = buildEvent("alice");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
         when(gitHub.getUser("alice")).thenReturn(assigneeUser);
@@ -112,8 +127,10 @@ class AssignmentLimitHandlerTest {
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(3);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue).removeAssignees(assigneeUser);
             verify(issue).comment(argThat(msg -> msg.contains("exceed the limit of 2")));
         }
@@ -121,8 +138,8 @@ class AssignmentLimitHandlerTest {
 
     @Test
     void spamUserOnNonGfiIsRemoved() throws IOException {
+        // Given
         final IssuesEvent event = buildEvent("spammer");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
         when(issue.getLabels()).thenReturn(List.of());
@@ -133,8 +150,10 @@ class AssignmentLimitHandlerTest {
             pc.when(() -> PermissionChecker.isMaintainer(repo, "spammer")).thenReturn(false);
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue).removeAssignees(assigneeUser);
             verify(issue).comment(argThat(msg -> msg.contains("limited assignment privileges")));
         }
@@ -142,8 +161,8 @@ class AssignmentLimitHandlerTest {
 
     @Test
     void spamUserOnGfiWithinLimitIsAllowed() throws IOException {
+        // Given
         final IssuesEvent event = buildEvent("spammer");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
@@ -158,16 +177,18 @@ class AssignmentLimitHandlerTest {
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "spammer")).thenReturn(1);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue, never()).removeAssignees(any(GHUser.class));
         }
     }
 
     @Test
     void spamUserOnGfiExceedingLimitIsRemoved() throws IOException {
+        // Given
         final IssuesEvent event = buildEvent("spammer");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
@@ -183,8 +204,10 @@ class AssignmentLimitHandlerTest {
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "spammer")).thenReturn(2);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue).removeAssignees(assigneeUser);
             verify(issue).comment(argThat(msg -> msg.contains("limited assignment privileges")
                     && msg.contains("1 open assignment")));

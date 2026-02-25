@@ -25,36 +25,56 @@ class CommentMarkerCheckerTest {
 
     @Test
     void returnsTrueWhenMarkerPresent() throws IOException {
+        // Given
         final GHIssueComment comment = mock(GHIssueComment.class);
         when(comment.getBody()).thenReturn("<!-- test-marker -->\nSome text");
         mockCommentList(List.of(comment));
 
-        assertTrue(CommentMarkerChecker.hasMarker(issue, "<!-- test-marker -->"));
+        // When
+        final boolean result = CommentMarkerChecker.hasMarker(issue, "<!-- test-marker -->");
+
+        // Then
+        assertTrue(result);
     }
 
     @Test
     void returnsFalseWhenNoMarker() throws IOException {
+        // Given
         final GHIssueComment comment = mock(GHIssueComment.class);
         when(comment.getBody()).thenReturn("Some regular comment");
         mockCommentList(List.of(comment));
 
-        assertFalse(CommentMarkerChecker.hasMarker(issue, "<!-- test-marker -->"));
+        // When
+        final boolean result = CommentMarkerChecker.hasMarker(issue, "<!-- test-marker -->");
+
+        // Then
+        assertFalse(result);
     }
 
     @Test
     void returnsFalseWhenNoComments() throws IOException {
+        // Given
         mockCommentList(List.of());
 
-        assertFalse(CommentMarkerChecker.hasMarker(issue, "<!-- test-marker -->"));
+        // When
+        final boolean result = CommentMarkerChecker.hasMarker(issue, "<!-- test-marker -->");
+
+        // Then
+        assertFalse(result);
     }
 
     @Test
     void handlesNullCommentBody() throws IOException {
+        // Given
         final GHIssueComment comment = mock(GHIssueComment.class);
         when(comment.getBody()).thenReturn(null);
         mockCommentList(List.of(comment));
 
-        assertFalse(CommentMarkerChecker.hasMarker(issue, "<!-- test-marker -->"));
+        // When
+        final boolean result = CommentMarkerChecker.hasMarker(issue, "<!-- test-marker -->");
+
+        // Then
+        assertFalse(result);
     }
 
     @SuppressWarnings("unchecked")

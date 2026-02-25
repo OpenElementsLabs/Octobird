@@ -49,84 +49,106 @@ class CodeRabbitPlanTriggerHandlerTest {
 
     @Test
     void matchesIssuesLabeled() {
-        assertTrue(handler.matches(GitHubEventType.ISSUES, GitHubAction.LABELED));
+        // Given
+        // handler initialized in setUp
+
+        // When
+        final boolean result = handler.matches(GitHubEventType.ISSUES, GitHubAction.LABELED);
+
+        // Then
+        assertTrue(result);
     }
 
     @Test
     void doesNotMatchOtherEvents() {
+        // Given
+        // handler initialized in setUp
+
+        // When / Then
         assertFalse(handler.matches(GitHubEventType.ISSUES, GitHubAction.ASSIGNED));
         assertFalse(handler.matches(GitHubEventType.ISSUE_COMMENT, GitHubAction.CREATED));
     }
 
     @Test
     void triggersOnBeginnerLabel() throws IOException {
+        // Given
         final IssuesEvent event = buildEvent("beginner");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
         try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(false);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue).comment(argThat(msg -> msg.contains("@coderabbitai plan")));
         }
     }
 
     @Test
     void triggersOnIntermediateLabel() throws IOException {
+        // Given
         final IssuesEvent event = buildEvent("intermediate");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
         try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(false);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue).comment(argThat(msg -> msg.contains("@coderabbitai plan")));
         }
     }
 
     @Test
     void triggersOnAdvancedLabel() throws IOException {
+        // Given
         final IssuesEvent event = buildEvent("advanced");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
         try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(false);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue).comment(argThat(msg -> msg.contains("@coderabbitai plan")));
         }
     }
 
     @Test
     void skipsNonTriggerLabel() throws IOException {
+        // Given
         final IssuesEvent event = buildEvent("bug");
 
+        // When
         handler.handle(event, registry, CONFIG);
 
+        // Then
         verifyNoInteractions(repo, issue);
     }
 
     @Test
     void skipsDuplicateTrigger() throws IOException {
+        // Given
         final IssuesEvent event = buildEvent("beginner");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
         try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- CodeRabbit Plan Trigger -->"))).thenReturn(true);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue, never()).comment(any());
         }
     }

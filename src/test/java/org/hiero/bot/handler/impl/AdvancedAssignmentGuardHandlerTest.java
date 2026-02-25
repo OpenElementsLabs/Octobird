@@ -50,38 +50,58 @@ class AdvancedAssignmentGuardHandlerTest {
 
     @Test
     void matchesIssuesAssigned() {
-        assertTrue(handler.matches(GitHubEventType.ISSUES, GitHubAction.ASSIGNED));
+        // Given
+        // handler initialized in setUp
+
+        // When
+        final boolean result = handler.matches(GitHubEventType.ISSUES, GitHubAction.ASSIGNED);
+
+        // Then
+        assertTrue(result);
     }
 
     @Test
     void matchesIssuesLabeled() {
-        assertTrue(handler.matches(GitHubEventType.ISSUES, GitHubAction.LABELED));
+        // Given
+        // handler initialized in setUp
+
+        // When
+        final boolean result = handler.matches(GitHubEventType.ISSUES, GitHubAction.LABELED);
+
+        // Then
+        assertTrue(result);
     }
 
     @Test
     void doesNotMatchOtherEvents() {
+        // Given
+        // handler initialized in setUp
+
+        // When / Then
         assertFalse(handler.matches(GitHubEventType.ISSUES, GitHubAction.OPENED));
         assertFalse(handler.matches(GitHubEventType.ISSUE_COMMENT, GitHubAction.CREATED));
     }
 
     @Test
     void skipsNonAdvancedIssuesOnAssigned() throws IOException {
+        // Given
         final IssuesEvent event = buildAssignedEvent("alice");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
         when(issue.getLabels()).thenReturn(List.of());
 
+        // When
         handler.handle(event, registry, CONFIG);
 
+        // Then
         verify(issue, never()).comment(any());
         verify(issue, never()).removeAssignees(any(GHUser.class));
     }
 
     @Test
     void skipsExemptUsersOnAssigned() throws IOException {
+        // Given
         final IssuesEvent event = buildAssignedEvent("admin-user");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
@@ -92,8 +112,10 @@ class AdvancedAssignmentGuardHandlerTest {
         try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class)) {
             pc.when(() -> PermissionChecker.isExemptFromGuard(repo, "admin-user")).thenReturn(true);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue, never()).comment(any());
             verify(issue, never()).removeAssignees(any(GHUser.class));
         }
@@ -101,8 +123,8 @@ class AdvancedAssignmentGuardHandlerTest {
 
     @Test
     void removesUnqualifiedUserOnAssigned() throws IOException {
+        // Given
         final IssuesEvent event = buildAssignedEvent("alice");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
@@ -118,8 +140,10 @@ class AdvancedAssignmentGuardHandlerTest {
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), contains("@alice"))).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "intermediate")).thenReturn(0);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue).removeAssignees(assigneeUser);
             verify(issue).comment(argThat(msg -> msg.contains("advanced") && msg.contains("@alice")));
         }
@@ -127,8 +151,8 @@ class AdvancedAssignmentGuardHandlerTest {
 
     @Test
     void allowsQualifiedUserOnAssigned() throws IOException {
+        // Given
         final IssuesEvent event = buildAssignedEvent("alice");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
@@ -143,8 +167,10 @@ class AdvancedAssignmentGuardHandlerTest {
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), contains("@alice"))).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "intermediate")).thenReturn(1);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue, never()).removeAssignees(any(GHUser.class));
             verify(issue, never()).comment(any());
         }
@@ -152,8 +178,8 @@ class AdvancedAssignmentGuardHandlerTest {
 
     @Test
     void checksAllAssigneesOnLabeled() throws IOException {
+        // Given
         final IssuesEvent event = buildLabeledEvent("advanced");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
@@ -169,21 +195,25 @@ class AdvancedAssignmentGuardHandlerTest {
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), contains("@alice"))).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "intermediate")).thenReturn(0);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue).removeAssignees(assigneeUser);
         }
     }
 
     @Test
     void skipsNonAdvancedLabelOnLabeled() throws IOException {
+        // Given
         final IssuesEvent event = buildLabeledEvent("beginner");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
+        // When
         handler.handle(event, registry, CONFIG);
 
+        // Then
         verify(issue, never()).comment(any());
         verify(issue, never()).removeAssignees(any(GHUser.class));
     }

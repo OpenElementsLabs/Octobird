@@ -43,44 +43,68 @@ class WorkingCommandHandlerTest {
 
     @Test
     void matchesIssueCommentCreated() {
-        assertTrue(handler.matches(GitHubEventType.ISSUE_COMMENT, GitHubAction.CREATED));
+        // Given
+        // handler initialized in setUp
+
+        // When
+        final boolean result = handler.matches(GitHubEventType.ISSUE_COMMENT, GitHubAction.CREATED);
+
+        // Then
+        assertTrue(result);
     }
 
     @Test
     void doesNotMatchOtherEvents() {
+        // Given
+        // handler initialized in setUp
+
+        // When / Then
         assertFalse(handler.matches(GitHubEventType.ISSUES, GitHubAction.ASSIGNED));
         assertFalse(handler.matches(GitHubEventType.ISSUE_COMMENT, GitHubAction.EDITED));
     }
 
     @Test
     void ignoresCommentWithoutWorkingCommand() throws IOException {
+        // Given
         IssueCommentEvent event = buildIssueEvent("just a regular comment", "alice");
+
+        // When
         handler.handle(event, registry, CONFIG);
+
+        // Then
         verifyNoInteractions(gitHub);
     }
 
     @Test
     void ignoresBotComments() throws IOException {
+        // Given
         IssueCommentEvent event = buildBotEvent("/working", "bot-user");
+
+        // When
         handler.handle(event, registry, CONFIG);
+
+        // Then
         verifyNoInteractions(gitHub);
     }
 
     @Test
     void ignoresNonAssigneeOnIssue() throws IOException {
+        // Given
         IssueCommentEvent event = buildIssueEvent("/working", "alice");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
         when(issue.getAssignees()).thenReturn(List.of());
 
+        // When
         handler.handle(event, registry, CONFIG);
 
+        // Then
         verify(issue, never()).getComments();
     }
 
     @Test
     void reactsWhenAssigneeUsesWorking() throws IOException {
+        // Given
         IssueCommentEvent event = buildIssueEvent("/working", "alice");
 
         GHUser assignee = mock(GHUser.class);
@@ -94,13 +118,16 @@ class WorkingCommandHandlerTest {
         when(ghComment.getBody()).thenReturn("/working");
         when(issue.getComments()).thenReturn(List.of(ghComment));
 
+        // When
         handler.handle(event, registry, CONFIG);
 
+        // Then
         verify(ghComment).createReaction(ReactionContent.EYES);
     }
 
     @Test
     void reactsWhenPrAuthorUsesWorking() throws IOException {
+        // Given
         IssueCommentEvent event = buildPrEvent("/working", "alice");
 
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
@@ -110,8 +137,10 @@ class WorkingCommandHandlerTest {
         when(ghComment.getBody()).thenReturn("/working");
         when(issue.getComments()).thenReturn(List.of(ghComment));
 
+        // When
         handler.handle(event, registry, CONFIG);
 
+        // Then
         verify(ghComment).createReaction(ReactionContent.EYES);
     }
 

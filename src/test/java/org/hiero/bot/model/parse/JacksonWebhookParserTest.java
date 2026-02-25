@@ -22,6 +22,7 @@ class JacksonWebhookParserTest {
 
     @Test
     void parsesIssueCommentEvent() {
+        // Given
         String json = """
                 {
                   "action": "created",
@@ -84,8 +85,10 @@ class JacksonWebhookParserTest {
                 }
                 """;
 
+        // When
         WebhookEvent event = parser.parse(GitHubEventType.ISSUE_COMMENT, json);
 
+        // Then
         assertInstanceOf(IssueCommentEvent.class, event);
         IssueCommentEvent ice = (IssueCommentEvent) event;
 
@@ -115,6 +118,7 @@ class JacksonWebhookParserTest {
 
     @Test
     void parsesIssueCommentWithPullRequest() {
+        // Given
         String json = """
                 {
                   "action": "created",
@@ -137,12 +141,16 @@ class JacksonWebhookParserTest {
                 }
                 """;
 
+        // When
         IssueCommentEvent event = (IssueCommentEvent) parser.parse(GitHubEventType.ISSUE_COMMENT, json);
+
+        // Then
         assertTrue(event.issue().hasPullRequest());
     }
 
     @Test
     void parsesIssuesAssignedEvent() {
+        // Given
         String json = """
                 {
                   "action": "assigned",
@@ -168,8 +176,10 @@ class JacksonWebhookParserTest {
                 }
                 """;
 
+        // When
         WebhookEvent event = parser.parse(GitHubEventType.ISSUES, json);
 
+        // Then
         assertInstanceOf(IssuesEvent.class, event);
         IssuesEvent ie = (IssuesEvent) event;
 
@@ -182,6 +192,7 @@ class JacksonWebhookParserTest {
 
     @Test
     void parsesIssuesLabeledEvent() {
+        // Given
         String json = """
                 {
                   "action": "labeled",
@@ -206,8 +217,10 @@ class JacksonWebhookParserTest {
                 }
                 """;
 
+        // When
         IssuesEvent event = (IssuesEvent) parser.parse(GitHubEventType.ISSUES, json);
 
+        // Then
         assertEquals(GitHubAction.LABELED, event.action());
         assertNotNull(event.label());
         assertEquals("enhancement", event.label().name());
@@ -216,6 +229,7 @@ class JacksonWebhookParserTest {
 
     @Test
     void parsesPullRequestEvent() {
+        // Given
         String json = """
                 {
                   "action": "opened",
@@ -260,8 +274,10 @@ class JacksonWebhookParserTest {
                 }
                 """;
 
+        // When
         WebhookEvent event = parser.parse(GitHubEventType.PULL_REQUEST, json);
 
+        // Then
         assertInstanceOf(PullRequestEvent.class, event);
         PullRequestEvent pre = (PullRequestEvent) event;
 
@@ -287,18 +303,27 @@ class JacksonWebhookParserTest {
 
     @Test
     void throwsOnUnsupportedEventType() {
+        // Given
+        final String unsupportedEvent = "push";
+
+        // When / Then
         assertThrows(IllegalArgumentException.class,
-                () -> GitHubEventType.fromWebhookName("push"));
+                () -> GitHubEventType.fromWebhookName(unsupportedEvent));
     }
 
     @Test
     void throwsOnInvalidJson() {
+        // Given
+        final String invalidJson = "not json";
+
+        // When / Then
         assertThrows(IllegalArgumentException.class,
-                () -> parser.parse(GitHubEventType.ISSUE_COMMENT, "not json"));
+                () -> parser.parse(GitHubEventType.ISSUE_COMMENT, invalidJson));
     }
 
     @Test
     void handlesNullableFieldsGracefully() {
+        // Given
         String json = """
                 {
                   "action": "opened",
@@ -315,8 +340,10 @@ class JacksonWebhookParserTest {
                 }
                 """;
 
+        // When
         IssuesEvent event = (IssuesEvent) parser.parse(GitHubEventType.ISSUES, json);
 
+        // Then
         assertNull(event.assignee());
         assertNull(event.label());
         assertNull(event.issue().body());

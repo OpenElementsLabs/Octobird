@@ -12,8 +12,13 @@ class RepoConfigMapperTest {
 
     @Test
     void emptyMapReturnsAllDefaults() {
-        final RepoConfig config = RepoConfigMapper.fromMap(Map.of());
+        // Given
+        final Map<String, Object> raw = Map.of();
 
+        // When
+        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+
+        // Then
         assertEquals(LabelsConfig.defaults(), config.labels());
         assertEquals(AssignmentLimitsConfig.defaults(), config.assignmentLimits());
         assertEquals(GuardsConfig.defaults(), config.guards());
@@ -26,12 +31,15 @@ class RepoConfigMapperTest {
 
     @Test
     void partialLabelsConfigMergesWithDefaults() {
+        // Given
         final Map<String, Object> raw = Map.of(
                 "labels", Map.of("beginner", "Beginner Task")
         );
 
+        // When
         final RepoConfig config = RepoConfigMapper.fromMap(raw);
 
+        // Then
         assertEquals("Good First Issue", config.labels().goodFirstIssue());
         assertEquals("Beginner Task", config.labels().beginner());
         assertEquals("intermediate", config.labels().intermediate());
@@ -40,6 +48,7 @@ class RepoConfigMapperTest {
 
     @Test
     void customAssignmentLimits() {
+        // Given
         final Map<String, Object> raw = Map.of(
                 "assignment-limits", Map.of(
                         "normal-user-max", 5,
@@ -47,14 +56,17 @@ class RepoConfigMapperTest {
                 )
         );
 
+        // When
         final RepoConfig config = RepoConfigMapper.fromMap(raw);
 
+        // Then
         assertEquals(5, config.assignmentLimits().normalUserMax());
         assertEquals(2, config.assignmentLimits().spamUserMax());
     }
 
     @Test
     void customGuards() {
+        // Given
         final Map<String, Object> raw = Map.of(
                 "guards", Map.of(
                         "required-gfi-count-for-beginner", 3,
@@ -62,8 +74,10 @@ class RepoConfigMapperTest {
                 )
         );
 
+        // When
         final RepoConfig config = RepoConfigMapper.fromMap(raw);
 
+        // Then
         assertEquals(3, config.guards().requiredGfiCountForBeginner());
         assertEquals(0, config.guards().requiredBeginnerCountForIntermediate());
         assertEquals(2, config.guards().requiredIntermediateCountForAdvanced());
@@ -71,6 +85,7 @@ class RepoConfigMapperTest {
 
     @Test
     void disableFeatures() {
+        // Given
         final Map<String, Object> raw = Map.of(
                 "features", Map.of(
                         "unassign-command", false,
@@ -78,8 +93,10 @@ class RepoConfigMapperTest {
                 )
         );
 
+        // When
         final RepoConfig config = RepoConfigMapper.fromMap(raw);
 
+        // Then
         assertFalse(config.features().unassignCommand());
         assertTrue(config.features().workingCommand());
         assertTrue(config.features().assignmentLimit());
@@ -88,6 +105,7 @@ class RepoConfigMapperTest {
 
     @Test
     void customPaths() {
+        // Given
         final Map<String, Object> raw = Map.of(
                 "paths", Map.of(
                         "spam-list", "custom/spam.txt",
@@ -95,54 +113,66 @@ class RepoConfigMapperTest {
                 )
         );
 
+        // When
         final RepoConfig config = RepoConfigMapper.fromMap(raw);
 
+        // Then
         assertEquals("custom/spam.txt", config.paths().spamList());
         assertEquals("custom/mentors.json", config.paths().mentorRoster());
     }
 
     @Test
     void customCodeRabbitTriggerLabels() {
+        // Given
         final Map<String, Object> raw = Map.of(
                 "coderabbit", Map.of(
                         "trigger-labels", List.of("beginner", "expert")
                 )
         );
 
+        // When
         final RepoConfig config = RepoConfigMapper.fromMap(raw);
 
+        // Then
         assertEquals(Set.of("beginner", "expert"), config.codeRabbit().triggerLabels());
     }
 
     @Test
     void nonMapValuesAreIgnored() {
+        // Given
         final Map<String, Object> raw = Map.of(
                 "labels", "not-a-map",
                 "assignment-limits", 42
         );
 
+        // When
         final RepoConfig config = RepoConfigMapper.fromMap(raw);
 
+        // Then
         assertEquals(LabelsConfig.defaults(), config.labels());
         assertEquals(AssignmentLimitsConfig.defaults(), config.assignmentLimits());
     }
 
     @Test
     void customCommands() {
+        // Given
         final Map<String, Object> raw = Map.of(
                 "commands", Map.of(
                         "assign-pattern", "/grab\\b"
                 )
         );
 
+        // When
         final RepoConfig config = RepoConfigMapper.fromMap(raw);
 
+        // Then
         assertEquals("/grab\\b", config.commands().assignPattern());
         assertEquals("(^|\\s)/unassign(\\s|$)", config.commands().unassignPattern());
     }
 
     @Test
     void fullCustomConfig() {
+        // Given
         final Map<String, Object> raw = Map.of(
                 "labels", Map.of(
                         "good-first-issue", "GFI",
@@ -159,8 +189,10 @@ class RepoConfigMapperTest {
                 )
         );
 
+        // When
         final RepoConfig config = RepoConfigMapper.fromMap(raw);
 
+        // Then
         assertEquals("GFI", config.labels().goodFirstIssue());
         assertEquals("starter", config.labels().beginner());
         assertEquals(3, config.assignmentLimits().normalUserMax());

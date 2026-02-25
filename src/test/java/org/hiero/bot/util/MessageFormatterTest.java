@@ -9,48 +9,109 @@ class MessageFormatterTest {
 
     @Test
     void noPlaceholders() {
-        assertEquals("Hello world", MessageFormatter.format("Hello world"));
+        // Given
+        final String template = "Hello world";
+
+        // When
+        final String result = MessageFormatter.format(template);
+
+        // Then
+        assertEquals("Hello world", result);
     }
 
     @Test
     void singlePlaceholder() {
-        assertEquals("Hi @alice", MessageFormatter.format("Hi @{}", "alice"));
+        // Given
+        final String template = "Hi @{}";
+
+        // When
+        final String result = MessageFormatter.format(template, "alice");
+
+        // Then
+        assertEquals("Hi @alice", result);
     }
 
     @Test
     void multiplePlaceholders() {
-        assertEquals("Hi @alice, you have 3 open issues.",
-                MessageFormatter.format("Hi @{}, you have {} open issues.", "alice", 3));
+        // Given
+        final String template = "Hi @{}, you have {} open issues.";
+
+        // When
+        final String result = MessageFormatter.format(template, "alice", 3);
+
+        // Then
+        assertEquals("Hi @alice, you have 3 open issues.", result);
     }
 
     @Test
     void fewerParamsThanPlaceholders() {
-        assertEquals("Hi @alice, limit {}",
-                MessageFormatter.format("Hi @{}, limit {}", "alice"));
+        // Given
+        final String template = "Hi @{}, limit {}";
+
+        // When
+        final String result = MessageFormatter.format(template, "alice");
+
+        // Then
+        assertEquals("Hi @alice, limit {}", result);
     }
 
     @Test
     void noParams() {
-        assertEquals("Hi @{}", MessageFormatter.format("Hi @{}"));
+        // Given
+        final String template = "Hi @{}";
+
+        // When
+        final String result = MessageFormatter.format(template);
+
+        // Then
+        assertEquals("Hi @{}", result);
     }
 
     @Test
     void nullParams() {
-        assertEquals("Hi @{}", MessageFormatter.format("Hi @{}", (Object[]) null));
+        // Given
+        final String template = "Hi @{}";
+
+        // When
+        final String result = MessageFormatter.format(template, (Object[]) null);
+
+        // Then
+        assertEquals("Hi @{}", result);
     }
 
     @Test
     void placeholderAtStart() {
-        assertEquals("alice is here", MessageFormatter.format("{} is here", "alice"));
+        // Given
+        final String template = "{} is here";
+
+        // When
+        final String result = MessageFormatter.format(template, "alice");
+
+        // Then
+        assertEquals("alice is here", result);
     }
 
     @Test
     void placeholderAtEnd() {
-        assertEquals("Hello alice", MessageFormatter.format("Hello {}", "alice"));
+        // Given
+        final String template = "Hello {}";
+
+        // When
+        final String result = MessageFormatter.format(template, "alice");
+
+        // Then
+        assertEquals("Hello alice", result);
     }
 
     @Test
     void integerParam() {
-        assertEquals("limit: 5", MessageFormatter.format("limit: {}", 5));
+        // Given
+        final String template = "limit: {}";
+
+        // When
+        final String result = MessageFormatter.format(template, 5);
+
+        // Then
+        assertEquals("limit: 5", result);
     }
 }

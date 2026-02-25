@@ -31,48 +31,64 @@ class IssueSearchHelperTest {
     @Test
     @SuppressWarnings("unchecked")
     void countOpenAssignmentsReturnsCorrectCount() throws IOException {
+        // Given
         when(gitHub.searchIssues()).thenReturn(searchBuilder);
         when(searchBuilder.q(any())).thenReturn(searchBuilder);
         when(searchBuilder.list()).thenReturn(searchResult);
         when(searchResult.toList()).thenReturn(List.of(mock(GHIssue.class), mock(GHIssue.class)));
 
+        // When
         final int count = IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice");
 
+        // Then
         assertEquals(2, count);
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void countClosedIssuesByLabelReturnsCorrectCount() throws IOException {
+        // Given
         when(gitHub.searchIssues()).thenReturn(searchBuilder);
         when(searchBuilder.q(any())).thenReturn(searchBuilder);
         when(searchBuilder.list()).thenReturn(searchResult);
         when(searchResult.toList()).thenReturn(List.of(mock(GHIssue.class)));
 
+        // When
         final int count = IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "beginner");
 
+        // Then
         assertEquals(1, count);
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void hasNoMergedPullRequestsReturnsTrueWhenNone() throws IOException {
+        // Given
         when(gitHub.searchIssues()).thenReturn(searchBuilder);
         when(searchBuilder.q(any())).thenReturn(searchBuilder);
         when(searchBuilder.list()).thenReturn(searchResult);
         when(searchResult.toList()).thenReturn(List.of());
 
-        assertTrue(IssueSearchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice"));
+        // When
+        final boolean result = IssueSearchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice");
+
+        // Then
+        assertTrue(result);
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void hasNoMergedPullRequestsReturnsFalseWhenSomeExist() throws IOException {
+        // Given
         when(gitHub.searchIssues()).thenReturn(searchBuilder);
         when(searchBuilder.q(any())).thenReturn(searchBuilder);
         when(searchBuilder.list()).thenReturn(searchResult);
         when(searchResult.toList()).thenReturn(List.of(mock(GHIssue.class)));
 
-        assertFalse(IssueSearchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice"));
+        // When
+        final boolean result = IssueSearchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice");
+
+        // Then
+        assertFalse(result);
     }
 }

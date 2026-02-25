@@ -46,59 +46,93 @@ class UnassignCommandHandlerTest {
 
     @Test
     void matchesIssueCommentCreated() {
-        assertTrue(handler.matches(GitHubEventType.ISSUE_COMMENT, GitHubAction.CREATED));
+        // Given
+        // handler initialized in setUp
+
+        // When
+        final boolean result = handler.matches(GitHubEventType.ISSUE_COMMENT, GitHubAction.CREATED);
+
+        // Then
+        assertTrue(result);
     }
 
     @Test
     void doesNotMatchOtherEvents() {
+        // Given
+        // handler initialized in setUp
+
+        // When / Then
         assertFalse(handler.matches(GitHubEventType.ISSUES, GitHubAction.OPENED));
         assertFalse(handler.matches(GitHubEventType.ISSUE_COMMENT, GitHubAction.DELETED));
     }
 
     @Test
     void ignoresCommentWithoutUnassignCommand() throws IOException {
+        // Given
         IssueCommentEvent event = buildEvent("/assign", "alice", "open", false, "User");
+
+        // When
         handler.handle(event, registry, CONFIG);
+
+        // Then
         verifyNoInteractions(gitHub);
     }
 
     @Test
     void ignoresPullRequests() throws IOException {
+        // Given
         IssueCommentEvent event = buildEvent("/unassign", "alice", "open", true, "User");
+
+        // When
         handler.handle(event, registry, CONFIG);
+
+        // Then
         verifyNoInteractions(gitHub);
     }
 
     @Test
     void ignoresClosedIssues() throws IOException {
+        // Given
         IssueCommentEvent event = buildEvent("/unassign", "alice", "closed", false, "User");
+
+        // When
         handler.handle(event, registry, CONFIG);
+
+        // Then
         verifyNoInteractions(gitHub);
     }
 
     @Test
     void ignoresBotComments() throws IOException {
+        // Given
         IssueCommentEvent event = buildEvent("/unassign", "bot-user", "open", false, "Bot");
+
+        // When
         handler.handle(event, registry, CONFIG);
+
+        // Then
         verifyNoInteractions(gitHub);
     }
 
     @Test
     void ignoresNonAssigneeUnassign() throws IOException {
+        // Given
         IssueCommentEvent event = buildEvent("/unassign", "alice", "open", false, "User");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
         when(issue.getAssignees()).thenReturn(List.of());
 
+        // When
         handler.handle(event, registry, CONFIG);
 
+        // Then
         verify(issue, never()).removeAssignees(any(GHUser.class));
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void unassignsCurrentAssignee() throws IOException {
+        // Given
         IssueCommentEvent event = buildEvent("/unassign", "alice", "open", false, "User");
 
         GHUser assignee = mock(GHUser.class);
@@ -116,8 +150,10 @@ class UnassignCommandHandlerTest {
 
         when(gitHub.getUser("alice")).thenReturn(user);
 
+        // When
         handler.handle(event, registry, CONFIG);
 
+        // Then
         verify(issue).removeAssignees(user);
         verify(issue).comment(argThat(msg -> msg.contains("<!-- unassign-requested:alice -->")
                 && msg.contains("you've been unassigned")));
@@ -126,6 +162,7 @@ class UnassignCommandHandlerTest {
     @Test
     @SuppressWarnings("unchecked")
     void skipsDuplicateUnassign() throws IOException {
+        // Given
         IssueCommentEvent event = buildEvent("/unassign", "alice", "open", false, "User");
 
         GHUser assignee = mock(GHUser.class);
@@ -147,13 +184,16 @@ class UnassignCommandHandlerTest {
         }));
         when(issue.listComments()).thenReturn(pagedIterable);
 
+        // When
         handler.handle(event, registry, CONFIG);
 
+        // Then
         verify(issue, never()).removeAssignees(any(GHUser.class));
     }
 
     @Test
     void recognizesUnassignInMiddleOfText() throws IOException {
+        // Given
         IssueCommentEvent event = buildEvent("I want to /unassign from this", "alice", "open", false, "User");
 
         GHUser assignee = mock(GHUser.class);
@@ -173,8 +213,10 @@ class UnassignCommandHandlerTest {
 
         when(gitHub.getUser("alice")).thenReturn(user);
 
+        // When
         handler.handle(event, registry, CONFIG);
 
+        // Then
         verify(issue).removeAssignees(user);
     }
 

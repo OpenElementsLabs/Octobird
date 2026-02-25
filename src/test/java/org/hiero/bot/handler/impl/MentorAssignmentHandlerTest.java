@@ -52,39 +52,57 @@ class MentorAssignmentHandlerTest {
 
     @Test
     void matchesIssuesAssigned() {
-        assertTrue(handler.matches(GitHubEventType.ISSUES, GitHubAction.ASSIGNED));
+        // Given
+        // handler initialized in setUp
+
+        // When
+        final boolean result = handler.matches(GitHubEventType.ISSUES, GitHubAction.ASSIGNED);
+
+        // Then
+        assertTrue(result);
     }
 
     @Test
     void doesNotMatchOtherEvents() {
+        // Given
+        // handler initialized in setUp
+
+        // When / Then
         assertFalse(handler.matches(GitHubEventType.ISSUES, GitHubAction.LABELED));
         assertFalse(handler.matches(GitHubEventType.ISSUE_COMMENT, GitHubAction.CREATED));
     }
 
     @Test
     void skipsBotAssignees() throws IOException {
+        // Given
         final IssuesEvent event = buildEvent("bot-user", "Bot");
+
+        // When
         handler.handle(event, registry, CONFIG);
+
+        // Then
         verifyNoInteractions(repo, issue);
     }
 
     @Test
     void skipsNonGfiIssues() throws IOException {
+        // Given
         final IssuesEvent event = buildEvent("alice", "User");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
         when(issue.getLabels()).thenReturn(List.of());
 
+        // When
         handler.handle(event, registry, CONFIG);
 
+        // Then
         verify(issue, never()).comment(any());
     }
 
     @Test
     void skipsWhenMarkerAlreadyExists() throws IOException {
+        // Given
         final IssuesEvent event = buildEvent("alice", "User");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
@@ -95,16 +113,18 @@ class MentorAssignmentHandlerTest {
         try (final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- Mentor Assignment Bot -->"))).thenReturn(true);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue, never()).comment(any());
         }
     }
 
     @Test
     void skipsExperiencedContributors() throws IOException {
+        // Given
         final IssuesEvent event = buildEvent("alice", "User");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
@@ -117,16 +137,18 @@ class MentorAssignmentHandlerTest {
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- Mentor Assignment Bot -->"))).thenReturn(false);
             sh.when(() -> IssueSearchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "alice")).thenReturn(false);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue, never()).comment(any());
         }
     }
 
     @Test
     void postsMentorCommentForNewContributor() throws IOException {
+        // Given
         final IssuesEvent event = buildEvent("alice", "User");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
@@ -142,8 +164,10 @@ class MentorAssignmentHandlerTest {
             rl.when(() -> MentorRosterLoader.loadRoster(gitHub, "owner/repo", ROSTER_PATH)).thenReturn(List.of("mentor1", "mentor2"));
             rl.when(() -> MentorRosterLoader.selectMentor(List.of("mentor1", "mentor2"))).thenReturn("mentor1");
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue).comment(argThat(msg ->
                     msg.contains("<!-- Mentor Assignment Bot -->")
                             && msg.contains("@alice")
@@ -153,8 +177,8 @@ class MentorAssignmentHandlerTest {
 
     @Test
     void skipsWhenNoMentorsAvailable() throws IOException {
+        // Given
         final IssuesEvent event = buildEvent("alice", "User");
-
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
         when(repo.getIssue(42)).thenReturn(issue);
 
@@ -170,8 +194,10 @@ class MentorAssignmentHandlerTest {
             rl.when(() -> MentorRosterLoader.loadRoster(gitHub, "owner/repo", ROSTER_PATH)).thenReturn(List.of());
             rl.when(() -> MentorRosterLoader.selectMentor(List.of())).thenReturn(null);
 
+            // When
             handler.handle(event, registry, CONFIG);
 
+            // Then
             verify(issue, never()).comment(any());
         }
     }

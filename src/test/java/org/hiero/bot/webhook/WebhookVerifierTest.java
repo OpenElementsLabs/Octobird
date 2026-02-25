@@ -12,56 +12,84 @@ class WebhookVerifierTest {
 
     @Test
     void validSignatureIsAccepted() {
-        WebhookVerifier verifier = new WebhookVerifier(SECRET);
-        byte[] payload = "{\"action\":\"opened\"}".getBytes(StandardCharsets.UTF_8);
-        String signature = verifier.computeSignature(payload);
+        // Given
+        final WebhookVerifier verifier = new WebhookVerifier(SECRET);
+        final byte[] payload = "{\"action\":\"opened\"}".getBytes(StandardCharsets.UTF_8);
+        final String signature = verifier.computeSignature(payload);
 
-        assertTrue(verifier.verify(signature, payload));
+        // When
+        final boolean result = verifier.verify(signature, payload);
+
+        // Then
+        assertTrue(result);
     }
 
     @Test
     void invalidSignatureIsRejected() {
-        WebhookVerifier verifier = new WebhookVerifier(SECRET);
-        byte[] payload = "{\"action\":\"opened\"}".getBytes(StandardCharsets.UTF_8);
+        // Given
+        final WebhookVerifier verifier = new WebhookVerifier(SECRET);
+        final byte[] payload = "{\"action\":\"opened\"}".getBytes(StandardCharsets.UTF_8);
 
-        assertFalse(verifier.verify("sha256=deadbeef", payload));
+        // When
+        final boolean result = verifier.verify("sha256=deadbeef", payload);
+
+        // Then
+        assertFalse(result);
     }
 
     @Test
     void nullSignatureIsRejected() {
-        WebhookVerifier verifier = new WebhookVerifier(SECRET);
-        byte[] payload = "{}".getBytes(StandardCharsets.UTF_8);
+        // Given
+        final WebhookVerifier verifier = new WebhookVerifier(SECRET);
+        final byte[] payload = "{}".getBytes(StandardCharsets.UTF_8);
 
-        assertFalse(verifier.verify(null, payload));
+        // When
+        final boolean result = verifier.verify(null, payload);
+
+        // Then
+        assertFalse(result);
     }
 
     @Test
     void missingPrefixIsRejected() {
-        WebhookVerifier verifier = new WebhookVerifier(SECRET);
-        byte[] payload = "{}".getBytes(StandardCharsets.UTF_8);
+        // Given
+        final WebhookVerifier verifier = new WebhookVerifier(SECRET);
+        final byte[] payload = "{}".getBytes(StandardCharsets.UTF_8);
 
-        assertFalse(verifier.verify("deadbeef", payload));
+        // When
+        final boolean result = verifier.verify("deadbeef", payload);
+
+        // Then
+        assertFalse(result);
     }
 
     @Test
     void tamperedPayloadIsRejected() {
-        WebhookVerifier verifier = new WebhookVerifier(SECRET);
-        byte[] original = "{\"action\":\"opened\"}".getBytes(StandardCharsets.UTF_8);
-        String signature = verifier.computeSignature(original);
+        // Given
+        final WebhookVerifier verifier = new WebhookVerifier(SECRET);
+        final byte[] original = "{\"action\":\"opened\"}".getBytes(StandardCharsets.UTF_8);
+        final String signature = verifier.computeSignature(original);
+        final byte[] tampered = "{\"action\":\"closed\"}".getBytes(StandardCharsets.UTF_8);
 
-        byte[] tampered = "{\"action\":\"closed\"}".getBytes(StandardCharsets.UTF_8);
-        assertFalse(verifier.verify(signature, tampered));
+        // When
+        final boolean result = verifier.verify(signature, tampered);
+
+        // Then
+        assertFalse(result);
     }
 
     @Test
     void differentSecretProducesDifferentSignature() {
-        WebhookVerifier verifier1 = new WebhookVerifier("secret-1");
-        WebhookVerifier verifier2 = new WebhookVerifier("secret-2");
-        byte[] payload = "{}".getBytes(StandardCharsets.UTF_8);
+        // Given
+        final WebhookVerifier verifier1 = new WebhookVerifier("secret-1");
+        final WebhookVerifier verifier2 = new WebhookVerifier("secret-2");
+        final byte[] payload = "{}".getBytes(StandardCharsets.UTF_8);
 
-        String sig1 = verifier1.computeSignature(payload);
-        String sig2 = verifier2.computeSignature(payload);
+        // When
+        final String sig1 = verifier1.computeSignature(payload);
+        final String sig2 = verifier2.computeSignature(payload);
 
+        // Then
         assertNotEquals(sig1, sig2);
     }
 }
