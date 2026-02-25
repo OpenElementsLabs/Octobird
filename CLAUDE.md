@@ -22,7 +22,7 @@ The `actions/` folder serves as a **reference for features to implement** as nat
 - **Build:** Apache Maven
 - **GitHub API:** Kohsuke github-api 1.330
 - **Serialization:** Jackson 2.18.3 (JSON + YAML)
-- **Testing:** JUnit 5 (Jupiter)
+- **Testing:** JUnit 5 (Jupiter) + Mockito
 - **License:** Apache 2.0
 
 ## Build & Run Commands
@@ -40,35 +40,78 @@ The project uses the Maven Wrapper (`mvnw`), so no local Maven installation is r
 
 ```
 src/main/java/org/hiero/bot/
-├── Main.java                          # Entry point, server setup
+├── Main.java                              # Entry point, server setup, handler registration
 ├── auth/
-│   ├── GitHubAppAuth.java            # GitHub App authentication + token caching
-│   └── JwtAuthProvider.java          # RS256 JWT generation
+│   ├── GitHubAppAuth.java                # GitHub App authentication + token caching
+│   └── JwtAuthProvider.java              # RS256 JWT generation
 ├── config/
-│   ├── BotConfig.java                # Configuration record
-│   └── RepoConfigLoader.java        # Loads .github/hiero-bot.yml per repo
+│   ├── BotConfig.java                    # Top-level bot configuration record
+│   ├── RepoConfig.java                   # Per-repo configuration interface
+│   ├── DefaultRepoConfig.java            # Default values for RepoConfig
+│   ├── RepoConfigLoader.java             # Loads .github/hiero-bot.yml per repo
+│   ├── RepoConfigMapper.java             # Maps YAML structure to config records
+│   ├── AssignmentLimitsConfig.java       # Assignment limit settings record
+│   ├── CodeRabbitConfig.java             # CodeRabbit integration settings record
+│   ├── CommandsConfig.java               # Bot command patterns record
+│   ├── FeaturesConfig.java               # Feature flags record
+│   ├── GuardsConfig.java                 # Guard thresholds record
+│   ├── LabelsConfig.java                 # Label name settings record
+│   ├── MarkersConfig.java                # Comment marker strings record
+│   └── PathsConfig.java                  # File path settings record
 ├── handler/
-│   ├── EventHandler.java            # Handler interface (matches + handle)
-│   └── AssignCommandHandler.java    # /assign command on issue comments
+│   ├── EventHandler.java                 # Handler interface (eventType, matches, isActive, handle)
+│   ├── AbstractEventHandler.java         # Base class with matcher + feature-check predicates
+│   ├── ServiceRegistry.java              # Service locator interface (getGitHub(), ...)
+│   └── impl/
+│       ├── AdvancedAssignmentGuardHandler.java    # Guards advanced issues
+│       ├── AssignmentLimitHandler.java            # Enforces open-assignment limits
+│       ├── BeginnerAssignCommandHandler.java      # /assign on beginner issues
+│       ├── CodeRabbitPlanTriggerHandler.java      # Triggers @coderabbitai plan
+│       ├── GfiAssignCommandHandler.java           # /assign on Good First Issues
+│       ├── IntermediateAssignmentGuardHandler.java# Guards intermediate issues
+│       ├── MentorAssignmentHandler.java           # Assigns mentor to newcomers
+│       ├── UnassignCommandHandler.java            # /unassign command
+│       └── WorkingCommandHandler.java             # /working command
+├── model/
+│   ├── GitHubAction.java                 # Enum for GitHub webhook action types
+│   ├── GitHubEventType.java              # Enum for GitHub webhook event types
+│   ├── Comment.java / Issue.java / ...   # Immutable records for GitHub domain objects
+│   ├── event/
+│   │   ├── WebhookEvent.java             # Marker interface for all webhook events
+│   │   ├── IssueCommentEvent.java        # issue_comment webhook payload
+│   │   ├── IssuesEvent.java              # issues webhook payload
+│   │   └── PullRequestEvent.java         # pull_request webhook payload
+│   └── parse/
+│       ├── WebhookParser.java            # Parser interface
+│       └── JacksonWebhookParser.java     # Jackson-based implementation
 ├── scheduled/
-│   └── ScheduledTaskManager.java    # Virtual thread task scheduler
+│   └── ScheduledTaskManager.java         # Virtual thread task scheduler
+├── util/
+│   ├── CommentMarkerChecker.java         # Checks for HTML marker comments on issues
+│   ├── IssueSearchHelper.java            # GitHub search queries (assignments, PRs)
+│   ├── MentorRosterLoader.java           # Loads + caches mentor roster from repo file
+│   ├── MessageFormatter.java             # SLF4J-style {} placeholder formatting
+│   ├── PermissionChecker.java            # Collaborator / exempt-from-guard checks
+│   └── SpamListLoader.java               # Loads + caches spam user list from repo file
 └── webhook/
-    ├── EventRouter.java             # Routes events to matching handlers
-    ├── WebhookService.java          # HTTP endpoint for GitHub webhooks
-    └── WebhookVerifier.java         # HMAC-SHA256 signature verification
+    ├── EventRouter.java                  # Routes events to matching handlers
+    ├── WebhookService.java               # HTTP endpoint for GitHub webhooks
+    └── WebhookVerifier.java              # HMAC-SHA256 signature verification
 
 src/main/resources/
-└── application.yaml                  # Server port + bot config (app-id, keys)
+└── application.yaml                      # Server port + bot config (app-id, keys)
 
-actions/                              # Reference workflows from Hiero (to be migrated into handlers)
+actions/                                  # Reference workflows from Hiero (to be migrated into handlers)
 ```
 
 ## Architecture
 
 - **Event-driven:** GitHub webhook → `WebhookService` → `EventRouter` → `EventHandler`
 - **Constructor-based DI:** No framework DI, dependencies wired manually in `Main.java`
-- **Handler pattern:** Implement `EventHandler` interface with `matches(event, action)` and `handle(...)` methods
-- **Per-repo config:** Currently loaded from `.github/hiero-bot.yml` via `RepoConfigLoader`
+- **Handler pattern:** Extend `AbstractEventHandler<T>`, pass a `BiPredicate<GitHubEventType, GitHubAction>` (event matcher) and a `Predicate<RepoConfig>` (feature flag check) to `super()`. The `EventRouter` calls `isActive(repoConfig)` before `handle()`.
+- **ServiceRegistry:** `handle()` receives a `ServiceRegistry` (not `GitHub` directly) to allow future services (Discord, Slack, etc.). Use `registry.getGitHub()` inside handlers.
+- **Utility classes:** All static helper utilities live in `org.hiero.bot.util`. Use `MessageFormatter.format("Hi @{}, limit is {}", user, n)` for comment strings (SLF4J-style `{}` placeholders).
+- **Per-repo config:** Loaded from `.github/hiero-bot.yml` via `RepoConfigLoader`, mapped to typed records via `RepoConfigMapper`.
 
 ### Design for future persistence
 
@@ -87,14 +130,19 @@ features, keep the following in mind:
 
 ## Adding a New Event Handler
 
-1. Create a class implementing `EventHandler` in `org.hiero.bot.handler`
-2. Implement `matches(String event, String action)` to filter relevant GitHub events
-3. Implement `handle(String event, String action, JsonNode payload, GitHub gitHub, Map<String, Object> repoConfig)`
-4. Register the handler in `Main.java` in the `handlers` list
+1. Create a class in `org.hiero.bot.handler.impl` extending `AbstractEventHandler<T extends WebhookEvent>`
+2. Declare `private static final BiPredicate<GitHubEventType, GitHubAction> MATCHER` for event filtering
+3. Declare `private static final Predicate<RepoConfig> FEATURE_CHECK` for the feature flag (e.g. `repoConfig -> repoConfig.features().myFeature()`)
+4. Call `super(MyEvent.class, MATCHER, FEATURE_CHECK)` in the constructor — no need to override `matches()` or `isActive()`
+5. Implement `handle(T event, ServiceRegistry registry, RepoConfig repoConfig)`:
+   - Get `final GitHub gitHub = registry.getGitHub();`
+   - Use `MessageFormatter.format("template with {} placeholders", args)` for `issue.comment(...)` strings
+6. Register the handler in `Main.java` in the `handlers` list
 
 ## Code Conventions
 
 - Standard Java naming: camelCase methods/fields, PascalCase classes
+- All fields and local variables declared `final` wherever possible
 - Use Java records for immutable data objects
 - Use virtual threads (Project Loom) for concurrent tasks
 - Package-private access where appropriate, public for interfaces
