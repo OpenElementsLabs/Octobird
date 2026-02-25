@@ -18,17 +18,15 @@ public class AdvancedAssignmentGuardHandler extends AbstractEventHandler<IssuesE
     private static final Logger LOG = LoggerFactory.getLogger(AdvancedAssignmentGuardHandler.class);
 
     public AdvancedAssignmentGuardHandler() {
-        super(IssuesEvent.class, (event, action) -> event == GitHubEventType.ISSUES
-                && (action == GitHubAction.ASSIGNED || action == GitHubAction.LABELED));
+        super(IssuesEvent.class,
+                (event, action) -> event == GitHubEventType.ISSUES
+                        && (action == GitHubAction.ASSIGNED || action == GitHubAction.LABELED),
+                repoConfig -> repoConfig.features().advancedGuard());
     }
 
     @Override
     public void handle(final IssuesEvent issuesEvent, final GitHub gitHub,
                        final RepoConfig repoConfig) throws IOException {
-
-        if (!repoConfig.features().advancedGuard()) {
-            return;
-        }
 
         final String repoFullName = issuesEvent.repository().fullName();
         final int issueNumber = issuesEvent.issue().number();

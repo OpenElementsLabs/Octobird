@@ -21,16 +21,14 @@ public class AssignmentLimitHandler extends AbstractEventHandler<IssuesEvent> {
     private static final Logger LOG = LoggerFactory.getLogger(AssignmentLimitHandler.class);
 
     public AssignmentLimitHandler() {
-        super(IssuesEvent.class, (event, action) -> event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED);
+        super(IssuesEvent.class,
+                (event, action) -> event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED,
+                repoConfig -> repoConfig.features().assignmentLimit());
     }
 
     @Override
     public void handle(final IssuesEvent issuesEvent, final GitHub gitHub,
                        final RepoConfig repoConfig) throws IOException {
-
-        if (!repoConfig.features().assignmentLimit()) {
-            return;
-        }
 
         final String assignee = issuesEvent.assignee() != null ? issuesEvent.assignee().login() : "";
         if (assignee.isEmpty()) {

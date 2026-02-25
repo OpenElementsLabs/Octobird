@@ -23,16 +23,14 @@ public class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueComm
     private static final Logger LOG = LoggerFactory.getLogger(BeginnerAssignCommandHandler.class);
 
     public BeginnerAssignCommandHandler() {
-        super(IssueCommentEvent.class, (event, action) -> event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED);
+        super(IssueCommentEvent.class,
+                (event, action) -> event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED,
+                repoConfig -> repoConfig.features().beginnerAssignCommand());
     }
 
     @Override
     public void handle(final IssueCommentEvent commentEvent, final GitHub gitHub,
                        final RepoConfig repoConfig) throws IOException {
-
-        if (!repoConfig.features().beginnerAssignCommand()) {
-            return;
-        }
 
         // Skip bots
         if ("Bot".equals(commentEvent.comment().user().type())) {

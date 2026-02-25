@@ -40,6 +40,15 @@ public interface EventHandler<T extends WebhookEvent> {
     boolean matches(GitHubEventType event, GitHubAction action);
 
     /**
+     * Determines whether this handler is active for the given repository configuration.
+     * Inactive handlers are skipped without calling {@link #handle}.
+     *
+     * @param repoConfig the per-repository configuration
+     * @return {@code true} if this handler is enabled for the repository
+     */
+    boolean isActive(RepoConfig repoConfig);
+
+    /**
      * Processes a matched webhook event. Implementations may interact with the GitHub API
      * (e.g. posting comments, assigning users) and read per-repository configuration.
      *

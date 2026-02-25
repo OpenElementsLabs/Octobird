@@ -21,16 +21,14 @@ public class IntermediateAssignmentGuardHandler extends AbstractEventHandler<Iss
     private static final Logger LOG = LoggerFactory.getLogger(IntermediateAssignmentGuardHandler.class);
 
     public IntermediateAssignmentGuardHandler() {
-        super(IssuesEvent.class, (event, action) -> event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED);
+        super(IssuesEvent.class,
+                (event, action) -> event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED,
+                repoConfig -> repoConfig.features().intermediateGuard());
     }
 
     @Override
     public void handle(final IssuesEvent issuesEvent, final GitHub gitHub,
                        final RepoConfig repoConfig) throws IOException {
-
-        if (!repoConfig.features().intermediateGuard()) {
-            return;
-        }
 
         final int requiredBeginnerCount = repoConfig.guards().requiredBeginnerCountForIntermediate();
 

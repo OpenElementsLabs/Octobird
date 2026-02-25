@@ -19,16 +19,14 @@ public class UnassignCommandHandler extends AbstractEventHandler<IssueCommentEve
     private static final Logger LOG = LoggerFactory.getLogger(UnassignCommandHandler.class);
 
     public UnassignCommandHandler() {
-        super(IssueCommentEvent.class, (event, action) -> event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED);
+        super(IssueCommentEvent.class,
+                (event, action) -> event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED,
+                repoConfig -> repoConfig.features().unassignCommand());
     }
 
     @Override
     public void handle(final IssueCommentEvent commentEvent, final GitHub gitHub,
                        final RepoConfig repoConfig) throws IOException {
-
-        if (!repoConfig.features().unassignCommand()) {
-            return;
-        }
 
         // Skip PRs
         if (commentEvent.issue().hasPullRequest()) {

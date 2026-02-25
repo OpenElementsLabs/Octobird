@@ -22,16 +22,14 @@ public class MentorAssignmentHandler extends AbstractEventHandler<IssuesEvent> {
     private static final Logger LOG = LoggerFactory.getLogger(MentorAssignmentHandler.class);
 
     public MentorAssignmentHandler() {
-        super(IssuesEvent.class, (event, action) -> event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED);
+        super(IssuesEvent.class,
+                (event, action) -> event == GitHubEventType.ISSUES && action == GitHubAction.ASSIGNED,
+                repoConfig -> repoConfig.features().mentorAssignment());
     }
 
     @Override
     public void handle(final IssuesEvent issuesEvent, final GitHub gitHub,
                        final RepoConfig repoConfig) throws IOException {
-
-        if (!repoConfig.features().mentorAssignment()) {
-            return;
-        }
 
         final var assignee = issuesEvent.assignee();
         if (assignee == null || assignee.login().isEmpty()) {

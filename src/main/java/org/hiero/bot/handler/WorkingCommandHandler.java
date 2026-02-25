@@ -21,16 +21,14 @@ public class WorkingCommandHandler extends AbstractEventHandler<IssueCommentEven
     private static final Logger LOG = LoggerFactory.getLogger(WorkingCommandHandler.class);
 
     public WorkingCommandHandler() {
-        super(IssueCommentEvent.class, (event, action) -> event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED);
+        super(IssueCommentEvent.class,
+                (event, action) -> event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED,
+                repoConfig -> repoConfig.features().workingCommand());
     }
 
     @Override
     public void handle(final IssueCommentEvent commentEvent, final GitHub gitHub,
                        final RepoConfig repoConfig) throws IOException {
-
-        if (!repoConfig.features().workingCommand()) {
-            return;
-        }
 
         // Skip bots
         if ("Bot".equals(commentEvent.comment().user().type())) {

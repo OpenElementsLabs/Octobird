@@ -82,6 +82,11 @@ public class EventRouter {
     private <T extends WebhookEvent> void invokeHandler(
             final EventHandler<T> handler, final WebhookEvent event,
             final GitHub gitHub, final RepoConfig repoConfig) throws IOException {
+        if (!handler.isActive(repoConfig)) {
+            LOG.debug("Handler {} is inactive for this repo config, skipping",
+                    handler.getClass().getSimpleName());
+            return;
+        }
         final Class<T> type = handler.eventType();
         if (!type.isInstance(event)) {
             LOG.warn("Event type mismatch: handler expects {} but got {}, skipping",

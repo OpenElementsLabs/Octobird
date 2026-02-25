@@ -18,16 +18,14 @@ public class CodeRabbitPlanTriggerHandler extends AbstractEventHandler<IssuesEve
     private static final Logger LOG = LoggerFactory.getLogger(CodeRabbitPlanTriggerHandler.class);
 
     public CodeRabbitPlanTriggerHandler() {
-        super(IssuesEvent.class, (event, action) -> event == GitHubEventType.ISSUES && action == GitHubAction.LABELED);
+        super(IssuesEvent.class,
+                (event, action) -> event == GitHubEventType.ISSUES && action == GitHubAction.LABELED,
+                repoConfig -> repoConfig.features().codeRabbitPlanTrigger());
     }
 
     @Override
     public void handle(final IssuesEvent issuesEvent, final GitHub gitHub,
                        final RepoConfig repoConfig) throws IOException {
-
-        if (!repoConfig.features().codeRabbitPlanTrigger()) {
-            return;
-        }
 
         final var label = issuesEvent.label();
         if (label == null) {
