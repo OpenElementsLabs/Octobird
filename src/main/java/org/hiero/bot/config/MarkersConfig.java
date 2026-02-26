@@ -16,6 +16,8 @@ package org.hiero.bot.config;
  * @param mergeConflict                  marker for merge conflict detection
  * @param nextIssueRecommendation        marker for next issue recommendation
  * @param workflowFailureNotification    marker for workflow failure notification
+ * @param p0IssueAlarm                   marker for P0 issue team alarm notification
+ * @param gfiCandidateNotification       marker for GFI candidate team notification
  */
 public record MarkersConfig(String unassignPrefix,
                             String gfiReminder,
@@ -29,7 +31,9 @@ public record MarkersConfig(String unassignPrefix,
                             String verifiedCommits,
                             String mergeConflict,
                             String nextIssueRecommendation,
-                            String workflowFailureNotification) {
+                            String workflowFailureNotification,
+                            String p0IssueAlarm,
+                            String gfiCandidateNotification) {
 
     /**
      * Returns the default marker configuration.
@@ -50,7 +54,9 @@ public record MarkersConfig(String unassignPrefix,
                 "<!-- commit-verification-bot -->",
                 "<!-- MergeConflictBotSignature-v1 -->",
                 "<!-- next-issue-bot-marker -->",
-                "<!-- workflowbot:workflow-failure-notifier -->"
+                "<!-- workflowbot:workflow-failure-notifier -->",
+                "<!-- P0 Issue Notification -->",
+                "<!-- GFI Candidate Notification -->"
         );
     }
 }

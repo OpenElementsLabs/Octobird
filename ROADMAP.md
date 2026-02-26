@@ -90,21 +90,12 @@ Das Test-Repository benötigt:
 
 ---
 
-## Phase 4: Label-basierte Benachrichtigungen
+## ✅ Phase 4: Label-basierte Benachrichtigungen — ABGESCHLOSSEN
 
 > Einfache, aber wichtige Automatisierungen für Team-Kommunikation.
 
-### 4.1 P0-Issue-Alarm
-- **Migriert:** `bot-p0-issues-notify-team.yml`
-- **Event:** `issues.labeled`
-- Erkennt "p0"/"P0"-Label
-- Benachrichtigt Maintainer-/Committer-/Triage-Teams per @mention
-
-### 4.2 GFI-Kandidat-Benachrichtigung
-- **Migriert:** `bot-gfi-candidate-notification.yml`
-- **Event:** `issues.labeled`
-- Erkennt "good first issue candidate"-Label
-- Benachrichtigt GFI-Support-Team zur Review
+- ✅ **4.1 P0-Issue-Alarm** — `P0IssueAlarmHandler`
+- ✅ **4.2 GFI-Kandidat-Benachrichtigung** — `GfiCandidateNotificationHandler`
 
 ---
 
@@ -214,9 +205,8 @@ Das Test-Repository benötigt:
 ## Abhängigkeiten zwischen Phasen
 
 ```
-Phase 1+2+3 (✅ Abgeschlossen)
+Phase 1+2+3+4 (✅ Abgeschlossen)
   ├──▶ Test-Deployment (🚀 Nächster Schritt)
-  ├──▶ Phase 4 (Benachrichtigungen)
   ├──▶ Phase 5 (Scheduled Tasks)
   └──▶ Phase 6 (Persistenz & API) ──▶ Phase 7 (Frontend)
 ```

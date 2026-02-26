@@ -27,6 +27,7 @@ class RepoConfigMapperTest {
         assertEquals(CommandsConfig.defaults(), config.commands());
         assertEquals(PathsConfig.defaults(), config.paths());
         assertEquals(CodeRabbitConfig.defaults(), config.codeRabbit());
+        assertEquals(TeamsConfig.defaults(), config.teams());
     }
 
     @Test
@@ -44,6 +45,8 @@ class RepoConfigMapperTest {
         assertEquals("Beginner Task", config.labels().beginner());
         assertEquals("intermediate", config.labels().intermediate());
         assertEquals("advanced", config.labels().advanced());
+        assertEquals("p0", config.labels().p0());
+        assertEquals("good first issue candidate", config.labels().gfiCandidate());
     }
 
     @Test
@@ -199,5 +202,76 @@ class RepoConfigMapperTest {
         assertEquals(0, config.assignmentLimits().spamUserMax());
         assertFalse(config.features().mentorAssignment());
         assertTrue(config.features().assignmentLimit());
+    }
+
+    @Test
+    void customP0AndGfiCandidateLabels() {
+        // Given
+        final Map<String, Object> raw = Map.of(
+                "labels", Map.of(
+                        "p0", "critical",
+                        "gfi-candidate", "gfi-review"
+                )
+        );
+
+        // When
+        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+
+        // Then
+        assertEquals("critical", config.labels().p0());
+        assertEquals("gfi-review", config.labels().gfiCandidate());
+        assertEquals("Good First Issue", config.labels().goodFirstIssue());
+    }
+
+    @Test
+    void customTeamsConfig() {
+        // Given
+        final Map<String, Object> raw = Map.of(
+                "teams", Map.of(
+                        "p0-teams", List.of("@org/maintainers", "@org/triage"),
+                        "gfi-candidate-team", "@org/gfi-support"
+                )
+        );
+
+        // When
+        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+
+        // Then
+        assertEquals(List.of("@org/maintainers", "@org/triage"), config.teams().p0Teams());
+        assertEquals("@org/gfi-support", config.teams().gfiCandidateTeam());
+    }
+
+    @Test
+    void emptyTeamsConfigReturnsDefaults() {
+        // Given
+        final Map<String, Object> raw = Map.of(
+                "teams", Map.of()
+        );
+
+        // When
+        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+
+        // Then
+        assertEquals(List.of(), config.teams().p0Teams());
+        assertEquals("", config.teams().gfiCandidateTeam());
+    }
+
+    @Test
+    void disablePhase4Features() {
+        // Given
+        final Map<String, Object> raw = Map.of(
+                "features", Map.of(
+                        "p0-issue-alarm", false,
+                        "gfi-candidate-notification", false
+                )
+        );
+
+        // When
+        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+
+        // Then
+        assertFalse(config.features().p0IssueAlarm());
+        assertFalse(config.features().gfiCandidateNotification());
+        assertTrue(config.features().workflowFailureNotification());
     }
 }

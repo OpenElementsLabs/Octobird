@@ -11,6 +11,7 @@ package org.hiero.bot.config;
  * @param commands         command pattern configuration
  * @param paths            file path configuration
  * @param codeRabbit       CodeRabbit trigger configuration
+ * @param teams            GitHub team mentions for label-based notifications
  */
 public record DefaultRepoConfig(LabelsConfig labels,
                                 AssignmentLimitsConfig assignmentLimits,
@@ -19,7 +20,8 @@ public record DefaultRepoConfig(LabelsConfig labels,
                                 MarkersConfig markers,
                                 CommandsConfig commands,
                                 PathsConfig paths,
-                                CodeRabbitConfig codeRabbit) implements RepoConfig {
+                                CodeRabbitConfig codeRabbit,
+                                TeamsConfig teams) implements RepoConfig {
 
     /**
      * Creates a {@code DefaultRepoConfig} with all default values.
@@ -35,7 +37,8 @@ public record DefaultRepoConfig(LabelsConfig labels,
                 MarkersConfig.defaults(),
                 CommandsConfig.defaults(),
                 PathsConfig.defaults(),
-                CodeRabbitConfig.defaults()
+                CodeRabbitConfig.defaults(),
+                TeamsConfig.defaults()
         );
     }
 }

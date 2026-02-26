@@ -17,6 +17,8 @@ package org.hiero.bot.config;
  * @param mergeConflict                 enable the merge conflict detection handler
  * @param nextIssueRecommendation       enable the next issue recommendation handler
  * @param workflowFailureNotification   enable the workflow failure notification handler
+ * @param p0IssueAlarm                  enable the P0 issue team alarm handler
+ * @param gfiCandidateNotification      enable the GFI candidate team notification handler
  */
 public record FeaturesConfig(boolean unassignCommand,
                              boolean workingCommand,
@@ -31,7 +33,9 @@ public record FeaturesConfig(boolean unassignCommand,
                              boolean verifiedCommits,
                              boolean mergeConflict,
                              boolean nextIssueRecommendation,
-                             boolean workflowFailureNotification) {
+                             boolean workflowFailureNotification,
+                             boolean p0IssueAlarm,
+                             boolean gfiCandidateNotification) {
 
     /**
      * Returns the default feature configuration with all handlers enabled.
@@ -40,6 +44,6 @@ public record FeaturesConfig(boolean unassignCommand,
      */
     public static FeaturesConfig defaults() {
         return new FeaturesConfig(true, true, true, true, true, true, true, true, true,
-                true, true, true, true, true);
+                true, true, true, true, true, true, true);
     }
 }

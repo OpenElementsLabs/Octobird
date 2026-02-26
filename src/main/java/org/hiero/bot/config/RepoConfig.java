@@ -34,4 +34,7 @@ public interface RepoConfig {
 
     /** CodeRabbit trigger configuration. */
     CodeRabbitConfig codeRabbit();
+
+    /** GitHub team mentions for label-based notifications. */
+    TeamsConfig teams();
 }

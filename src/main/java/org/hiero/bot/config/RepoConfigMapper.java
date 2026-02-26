@@ -1,5 +1,6 @@
 package org.hiero.bot.config;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -33,8 +34,9 @@ public final class RepoConfigMapper {
         final CommandsConfig commands = mapCommands(asMap(raw.get("commands")));
         final PathsConfig paths = mapPaths(asMap(raw.get("paths")));
         final CodeRabbitConfig codeRabbit = mapCodeRabbit(asMap(raw.get("coderabbit")));
+        final TeamsConfig teams = mapTeams(asMap(raw.get("teams")));
 
-        return new DefaultRepoConfig(labels, limits, guards, features, markers, commands, paths, codeRabbit);
+        return new DefaultRepoConfig(labels, limits, guards, features, markers, commands, paths, codeRabbit, teams);
     }
 
     private static LabelsConfig mapLabels(final Map<String, Object> m) {
@@ -46,7 +48,9 @@ public final class RepoConfigMapper {
                 stringOr(m.get("good-first-issue"), d.goodFirstIssue()),
                 stringOr(m.get("beginner"), d.beginner()),
                 stringOr(m.get("intermediate"), d.intermediate()),
-                stringOr(m.get("advanced"), d.advanced())
+                stringOr(m.get("advanced"), d.advanced()),
+                stringOr(m.get("p0"), d.p0()),
+                stringOr(m.get("gfi-candidate"), d.gfiCandidate())
         );
     }
 
@@ -92,7 +96,9 @@ public final class RepoConfigMapper {
                 boolOr(m.get("verified-commits"), d.verifiedCommits()),
                 boolOr(m.get("merge-conflict"), d.mergeConflict()),
                 boolOr(m.get("next-issue-recommendation"), d.nextIssueRecommendation()),
-                boolOr(m.get("workflow-failure-notification"), d.workflowFailureNotification())
+                boolOr(m.get("workflow-failure-notification"), d.workflowFailureNotification()),
+                boolOr(m.get("p0-issue-alarm"), d.p0IssueAlarm()),
+                boolOr(m.get("gfi-candidate-notification"), d.gfiCandidateNotification())
         );
     }
 
@@ -114,7 +120,9 @@ public final class RepoConfigMapper {
                 stringOr(m.get("verified-commits"), d.verifiedCommits()),
                 stringOr(m.get("merge-conflict"), d.mergeConflict()),
                 stringOr(m.get("next-issue-recommendation"), d.nextIssueRecommendation()),
-                stringOr(m.get("workflow-failure-notification"), d.workflowFailureNotification())
+                stringOr(m.get("workflow-failure-notification"), d.workflowFailureNotification()),
+                stringOr(m.get("p0-issue-alarm"), d.p0IssueAlarm()),
+                stringOr(m.get("gfi-candidate-notification"), d.gfiCandidateNotification())
         );
     }
 
@@ -139,6 +147,25 @@ public final class RepoConfigMapper {
                 stringOr(m.get("spam-list"), d.spamList()),
                 stringOr(m.get("mentor-roster"), d.mentorRoster())
         );
+    }
+
+    private static TeamsConfig mapTeams(final Map<String, Object> m) {
+        final TeamsConfig d = TeamsConfig.defaults();
+        if (m.isEmpty()) {
+            return d;
+        }
+        final Object p0TeamsObj = m.get("p0-teams");
+        final List<String> p0Teams;
+        if (p0TeamsObj instanceof Collection<?> collection) {
+            final List<String> teams = new ArrayList<>();
+            for (final Object item : collection) {
+                teams.add(String.valueOf(item));
+            }
+            p0Teams = List.copyOf(teams);
+        } else {
+            p0Teams = d.p0Teams();
+        }
+        return new TeamsConfig(p0Teams, stringOr(m.get("gfi-candidate-team"), d.gfiCandidateTeam()));
     }
 
     private static CodeRabbitConfig mapCodeRabbit(final Map<String, Object> m) {

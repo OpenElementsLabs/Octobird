@@ -63,7 +63,10 @@ public final class Main {
                 new VerifiedCommitsHandler(),
                 new MergeConflictHandler(),
                 new NextIssueRecommendationHandler(),
-                new WorkflowFailureNotificationHandler()
+                new WorkflowFailureNotificationHandler(),
+                // Phase 4 - Label-based Notifications:
+                new P0IssueAlarmHandler(),
+                new GfiCandidateNotificationHandler()
         );
         final WebhookParser webhookParser = new JacksonWebhookParser();
         final EventRouter router = new EventRouter(handlers, webhookParser);
