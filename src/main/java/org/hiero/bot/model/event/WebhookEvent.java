@@ -17,9 +17,10 @@ import org.jspecify.annotations.Nullable;
  * @see IssueCommentEvent
  * @see IssuesEvent
  * @see PullRequestEvent
+ * @see WorkflowRunEvent
  * @see <a href="https://docs.github.com/en/webhooks/webhook-events-and-payloads">GitHub Webhooks &ndash; Webhook events and payloads</a>
  */
-public sealed interface WebhookEvent permits IssueCommentEvent, IssuesEvent, PullRequestEvent {
+public sealed interface WebhookEvent permits IssueCommentEvent, IssuesEvent, PullRequestEvent, WorkflowRunEvent {
 
     /**
      * The action that was performed (e.g. {@code CREATED}, {@code OPENED}, {@code ASSIGNED}).

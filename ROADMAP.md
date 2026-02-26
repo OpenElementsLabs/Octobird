@@ -78,42 +78,15 @@ Das Test-Repository benötigt:
 
 ---
 
-## Phase 3: PR-Qualitätschecks (Webhook-basiert)
+## ✅ Phase 3: PR-Qualitätschecks (Webhook-basiert) — ABGESCHLOSSEN
 
 > Features die auf PR-Events reagieren und keine lokale Build-Umgebung benötigen.
 
-### 3.1 Fehlende Issue-Verlinkung
-- **Migriert:** `bot-pr-missing-linked-issue.yml`
-- **Event:** `pull_request.opened`, `pull_request.edited`, `pull_request.reopened`
-- Prüft PR-Body auf `Fixes #N` / `Closes #N` / `Resolves #N`
-- Erinnerungskommentar wenn Issue-Verlinkung fehlt
-
-### 3.2 Verified Commits Check
-- **Migriert:** `bot-verified-commits.yml`
-- **Event:** `pull_request.opened`, `pull_request.synchronize`
-- Prüft `commit.verification.verified` für alle Commits (paginiert)
-- Kommentar + Failure-Status bei unsignierten Commits
-- Sanitisiert Commit-Messages gegen Markdown-Injection
-
-### 3.3 Merge-Conflict-Erkennung
-- **Migriert:** `bot-merge-conflict.yml`
-- **Event:** `pull_request.opened`, `pull_request.synchronize`, `pull_request.reopened`
-- Prüft `mergeable_state` (mit Retry-Logik, da GitHub asynchron berechnet)
-- Kommentar + Failure-Status bei Konflikten
-- Zusätzlich: Bei Push auf Main alle offenen PRs prüfen
-
-### 3.4 Next-Issue-Empfehlung
-- **Migriert:** `bot-next-issue-recommendation.yml`
-- **Event:** `pull_request.closed` (nur bei Merge)
-- Parst verlinkte Issue-Nummer aus PR-Body
-- Sucht passende offene Issues (Beginner/GFI, unassigned)
-- Postet Empfehlungskommentar (max 5 Issues)
-
-### 3.5 Workflow-Failure-Benachrichtigung
-- **Migriert:** `bot-workflows.yml`
-- **Event:** `workflow_run.completed` (bei Failure)
-- Findet zugehörigen PR über Head-Branch
-- Postet Hilfekommentar mit Links zu Docs (Signing, Changelog, etc.)
+- ✅ **3.1 Fehlende Issue-Verlinkung** — `MissingLinkedIssueHandler`
+- ✅ **3.2 Verified Commits Check** — `VerifiedCommitsHandler`
+- ✅ **3.3 Merge-Conflict-Erkennung** — `MergeConflictHandler`
+- ✅ **3.4 Next-Issue-Empfehlung** — `NextIssueRecommendationHandler`
+- ✅ **3.5 Workflow-Failure-Benachrichtigung** — `WorkflowFailureNotificationHandler`
 
 ---
 
@@ -241,9 +214,8 @@ Das Test-Repository benötigt:
 ## Abhängigkeiten zwischen Phasen
 
 ```
-Phase 1+2 (✅ Abgeschlossen)
+Phase 1+2+3 (✅ Abgeschlossen)
   ├──▶ Test-Deployment (🚀 Nächster Schritt)
-  ├──▶ Phase 3 (PR-Checks)
   ├──▶ Phase 4 (Benachrichtigungen)
   ├──▶ Phase 5 (Scheduled Tasks)
   └──▶ Phase 6 (Persistenz & API) ──▶ Phase 7 (Frontend)

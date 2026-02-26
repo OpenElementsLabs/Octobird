@@ -87,7 +87,12 @@ public final class RepoConfigMapper {
                 boolOr(m.get("mentor-assignment"), d.mentorAssignment()),
                 boolOr(m.get("intermediate-guard"), d.intermediateGuard()),
                 boolOr(m.get("advanced-guard"), d.advancedGuard()),
-                boolOr(m.get("coderabbit-plan-trigger"), d.codeRabbitPlanTrigger())
+                boolOr(m.get("coderabbit-plan-trigger"), d.codeRabbitPlanTrigger()),
+                boolOr(m.get("missing-linked-issue"), d.missingLinkedIssue()),
+                boolOr(m.get("verified-commits"), d.verifiedCommits()),
+                boolOr(m.get("merge-conflict"), d.mergeConflict()),
+                boolOr(m.get("next-issue-recommendation"), d.nextIssueRecommendation()),
+                boolOr(m.get("workflow-failure-notification"), d.workflowFailureNotification())
         );
     }
 
@@ -104,7 +109,12 @@ public final class RepoConfigMapper {
                 stringOr(m.get("mentor-assignment"), d.mentorAssignment()),
                 stringOr(m.get("intermediate-guard"), d.intermediateGuard()),
                 stringOr(m.get("advanced-guard"), d.advancedGuard()),
-                stringOr(m.get("coderabbit-plan-trigger"), d.codeRabbitPlanTrigger())
+                stringOr(m.get("coderabbit-plan-trigger"), d.codeRabbitPlanTrigger()),
+                stringOr(m.get("missing-linked-issue"), d.missingLinkedIssue()),
+                stringOr(m.get("verified-commits"), d.verifiedCommits()),
+                stringOr(m.get("merge-conflict"), d.mergeConflict()),
+                stringOr(m.get("next-issue-recommendation"), d.nextIssueRecommendation()),
+                stringOr(m.get("workflow-failure-notification"), d.workflowFailureNotification())
         );
     }
 

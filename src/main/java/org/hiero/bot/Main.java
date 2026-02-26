@@ -57,7 +57,13 @@ public final class Main {
                 new IntermediateAssignmentGuardHandler(),
                 new AdvancedAssignmentGuardHandler(),
                 // Phase 2 - Label Trigger:
-                new CodeRabbitPlanTriggerHandler()
+                new CodeRabbitPlanTriggerHandler(),
+                // Phase 3 - PR Quality Checks:
+                new MissingLinkedIssueHandler(),
+                new VerifiedCommitsHandler(),
+                new MergeConflictHandler(),
+                new NextIssueRecommendationHandler(),
+                new WorkflowFailureNotificationHandler()
         );
         final WebhookParser webhookParser = new JacksonWebhookParser();
         final EventRouter router = new EventRouter(handlers, webhookParser);

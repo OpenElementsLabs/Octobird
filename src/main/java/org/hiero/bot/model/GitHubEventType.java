@@ -10,7 +10,8 @@ import java.util.Objects;
 public enum GitHubEventType {
     ISSUE_COMMENT("issue_comment"),
     ISSUES("issues"),
-    PULL_REQUEST("pull_request");
+    PULL_REQUEST("pull_request"),
+    WORKFLOW_RUN("workflow_run");
 
     private final String webhookName;
 

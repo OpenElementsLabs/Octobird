@@ -17,7 +17,9 @@ public enum GitHubAction {
     UNASSIGNED("unassigned"),
     LABELED("labeled"),
     UNLABELED("unlabeled"),
-    SYNCHRONIZE("synchronize");
+    SYNCHRONIZE("synchronize"),
+    REOPENED("reopened"),
+    COMPLETED("completed");
 
     private final String webhookName;
 

@@ -12,10 +12,12 @@ import org.hiero.bot.model.PullRequest;
 import org.hiero.bot.model.PullRequestRef;
 import org.hiero.bot.model.Repository;
 import org.hiero.bot.model.User;
+import org.hiero.bot.model.WorkflowRun;
 import org.hiero.bot.model.event.IssueCommentEvent;
 import org.hiero.bot.model.event.IssuesEvent;
 import org.hiero.bot.model.event.PullRequestEvent;
 import org.hiero.bot.model.event.WebhookEvent;
+import org.hiero.bot.model.event.WorkflowRunEvent;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -40,6 +42,7 @@ public class JacksonWebhookParser implements WebhookParser {
                 case ISSUE_COMMENT -> parseIssueCommentEvent(root, action);
                 case ISSUES -> parseIssuesEvent(root, action);
                 case PULL_REQUEST -> parsePullRequestEvent(root, action);
+                case WORKFLOW_RUN -> parseWorkflowRunEvent(root, action);
             };
         } catch (final IllegalArgumentException e) {
             throw e;
@@ -78,6 +81,30 @@ public class JacksonWebhookParser implements WebhookParser {
                 action,
                 root.path("number").asInt(),
                 parsePullRequest(root.path("pull_request")),
+                parseRepository(root.path("repository")),
+                parseUser(root.path("sender")),
+                parseInstallation(root.path("installation"))
+        );
+    }
+
+    private WorkflowRunEvent parseWorkflowRunEvent(final JsonNode root, final GitHubAction action) {
+        final JsonNode runNode = root.path("workflow_run");
+        final List<Integer> prNumbers = new ArrayList<>();
+        for (final JsonNode pr : runNode.path("pull_requests")) {
+            prNumbers.add(pr.path("number").asInt());
+        }
+        final WorkflowRun workflowRun = new WorkflowRun(
+                runNode.path("id").asLong(),
+                text(runNode, "name"),
+                text(runNode, "head_branch"),
+                text(runNode, "head_sha"),
+                text(runNode, "conclusion"),
+                text(runNode, "html_url"),
+                prNumbers
+        );
+        return new WorkflowRunEvent(
+                action,
+                workflowRun,
                 parseRepository(root.path("repository")),
                 parseUser(root.path("sender")),
                 parseInstallation(root.path("installation"))
