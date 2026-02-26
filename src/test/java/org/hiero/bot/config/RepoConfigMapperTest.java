@@ -16,7 +16,7 @@ class RepoConfigMapperTest {
         final Map<String, Object> raw = Map.of();
 
         // When
-        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
         assertEquals(LabelsConfig.defaults(), config.labels());
@@ -39,7 +39,7 @@ class RepoConfigMapperTest {
         );
 
         // When
-        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
         assertEquals("Good First Issue", config.labels().goodFirstIssue());
@@ -61,7 +61,7 @@ class RepoConfigMapperTest {
         );
 
         // When
-        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
         assertEquals(5, config.assignmentLimits().normalUserMax());
@@ -79,7 +79,7 @@ class RepoConfigMapperTest {
         );
 
         // When
-        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
         assertEquals(3, config.guards().requiredGfiCountForBeginner());
@@ -98,7 +98,7 @@ class RepoConfigMapperTest {
         );
 
         // When
-        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
         assertFalse(config.features().unassignCommand());
@@ -118,7 +118,7 @@ class RepoConfigMapperTest {
         );
 
         // When
-        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
         assertEquals("custom/spam.txt", config.paths().spamList());
@@ -135,7 +135,7 @@ class RepoConfigMapperTest {
         );
 
         // When
-        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
         assertEquals(Set.of("beginner", "expert"), config.codeRabbit().triggerLabels());
@@ -150,7 +150,7 @@ class RepoConfigMapperTest {
         );
 
         // When
-        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
         assertEquals(LabelsConfig.defaults(), config.labels());
@@ -167,7 +167,7 @@ class RepoConfigMapperTest {
         );
 
         // When
-        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
         assertEquals("/grab\\b", config.commands().assignPattern());
@@ -194,7 +194,7 @@ class RepoConfigMapperTest {
         );
 
         // When
-        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
         assertEquals("GFI", config.labels().goodFirstIssue());
@@ -216,7 +216,7 @@ class RepoConfigMapperTest {
         );
 
         // When
-        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
         assertEquals("critical", config.labels().p0());
@@ -235,7 +235,7 @@ class RepoConfigMapperTest {
         );
 
         // When
-        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
         assertEquals(List.of("@org/maintainers", "@org/triage"), config.teams().p0Teams());
@@ -250,7 +250,7 @@ class RepoConfigMapperTest {
         );
 
         // When
-        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
         assertEquals(List.of(), config.teams().p0Teams());
@@ -268,7 +268,7 @@ class RepoConfigMapperTest {
         );
 
         // When
-        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
         assertFalse(config.features().p0IssueAlarm());
@@ -290,7 +290,7 @@ class RepoConfigMapperTest {
         );
 
         // When
-        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
         assertEquals(30, config.scheduled().inactivityDays());
@@ -316,7 +316,7 @@ class RepoConfigMapperTest {
         );
 
         // When
-        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
         assertEquals("2024-01-03", config.scheduled().communityCall().anchorDate());
@@ -339,7 +339,7 @@ class RepoConfigMapperTest {
         );
 
         // When
-        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
         assertEquals("2024-01-10", config.scheduled().officeHours().anchorDate());
@@ -363,7 +363,7 @@ class RepoConfigMapperTest {
         );
 
         // When
-        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
         assertFalse(config.features().inactivityUnassign());

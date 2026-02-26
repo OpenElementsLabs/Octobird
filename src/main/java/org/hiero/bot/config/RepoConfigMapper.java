@@ -20,10 +20,12 @@ public final class RepoConfigMapper {
     /**
      * Creates a {@link RepoConfig} from a raw map parsed from YAML, merging with defaults.
      *
-     * @param raw the raw configuration map (may be empty)
+     * @param repoFullName full repository name in {@code owner/repo} format
+     * @param raw          the raw configuration map (may be empty)
      * @return a fully-populated {@link RepoConfig}
      */
-    public static RepoConfig fromMap(final Map<String, Object> raw) {
+    public static RepoConfig fromMap(final String repoFullName, final Map<String, Object> raw) {
+        Objects.requireNonNull(repoFullName, "repoFullName must not be null");
         Objects.requireNonNull(raw, "raw must not be null");
 
         final LabelsConfig labels = mapLabels(asMap(raw.get("labels")));
@@ -37,8 +39,8 @@ public final class RepoConfigMapper {
         final TeamsConfig teams = mapTeams(asMap(raw.get("teams")));
         final ScheduledConfig scheduled = mapScheduled(asMap(raw.get("scheduled")));
 
-        return new DefaultRepoConfig(labels, limits, guards, features, markers, commands, paths, codeRabbit, teams,
-                scheduled);
+        return new DefaultRepoConfig(repoFullName, labels, limits, guards, features, markers, commands, paths,
+                codeRabbit, teams, scheduled);
     }
 
     private static LabelsConfig mapLabels(final Map<String, Object> m) {

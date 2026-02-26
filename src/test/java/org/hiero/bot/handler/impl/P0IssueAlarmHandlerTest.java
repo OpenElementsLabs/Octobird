@@ -186,6 +186,7 @@ class P0IssueAlarmHandlerTest {
     private static RepoConfig configWithTeams(final List<String> teams) {
         final DefaultRepoConfig defaults = DefaultRepoConfig.allDefaults();
         return new DefaultRepoConfig(
+                "",
                 defaults.labels(),
                 defaults.assignmentLimits(),
                 defaults.guards(),
@@ -206,6 +207,7 @@ class P0IssueAlarmHandlerTest {
                 true, true, true, true, true, false, true,
                 true, true, true, true, true, true);
         return new DefaultRepoConfig(
+                "",
                 defaults.labels(),
                 defaults.assignmentLimits(),
                 defaults.guards(),

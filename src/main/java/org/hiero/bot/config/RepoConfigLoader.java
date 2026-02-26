@@ -48,11 +48,11 @@ public class RepoConfigLoader {
                 final GHContent content = repo.getFileContent(CONFIG_PATH);
                 try (final InputStream is = content.read()) {
                     final Map<String, Object> raw = YAML_MAPPER.readValue(is, Map.class);
-                    return RepoConfigMapper.fromMap(raw);
+                    return RepoConfigMapper.fromMap(name, raw);
                 }
             } catch (final IOException e) {
                 LOG.debug("No config found for {}, using defaults", name);
-                return DefaultRepoConfig.allDefaults();
+                return RepoConfigMapper.fromMap(name, Map.of());
             }
         });
     }

@@ -11,6 +11,9 @@ package org.hiero.bot.config;
  */
 public interface RepoConfig {
 
+    /** Full repository name in {@code owner/repo} format. */
+    String repoFullName();
+
     /** Label names for issue difficulty levels. */
     LabelsConfig labels();
 

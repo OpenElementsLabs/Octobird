@@ -186,6 +186,7 @@ class GfiCandidateNotificationHandlerTest {
     private static RepoConfig configWithTeam(final String teamMention) {
         final DefaultRepoConfig defaults = DefaultRepoConfig.allDefaults();
         return new DefaultRepoConfig(
+                "",
                 defaults.labels(),
                 defaults.assignmentLimits(),
                 defaults.guards(),
@@ -206,6 +207,7 @@ class GfiCandidateNotificationHandlerTest {
                 true, true, true, true, true, true, false,
                 true, true, true, true, true, true);
         return new DefaultRepoConfig(
+                "",
                 defaults.labels(),
                 defaults.assignmentLimits(),
                 defaults.guards(),
