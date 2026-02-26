@@ -9,7 +9,12 @@ import org.hiero.bot.handler.EventHandler;
 import org.hiero.bot.handler.impl.*;
 import org.hiero.bot.model.parse.JacksonWebhookParser;
 import org.hiero.bot.model.parse.WebhookParser;
+import org.hiero.bot.config.RepoConfigLoader;
+import org.hiero.bot.scheduled.RepoRegistry;
+import org.hiero.bot.scheduled.ScheduledTask;
 import org.hiero.bot.scheduled.ScheduledTaskManager;
+import org.hiero.bot.scheduled.ScheduledTaskRunner;
+import org.hiero.bot.scheduled.impl.*;
 import org.hiero.bot.webhook.EventRouter;
 import org.hiero.bot.webhook.WebhookService;
 import org.hiero.bot.webhook.WebhookVerifier;
@@ -69,10 +74,26 @@ public final class Main {
                 new GfiCandidateNotificationHandler()
         );
         final WebhookParser webhookParser = new JacksonWebhookParser();
-        final EventRouter router = new EventRouter(handlers, webhookParser);
+        final RepoRegistry repoRegistry = new RepoRegistry();
+        final EventRouter router = new EventRouter(handlers, webhookParser, repoRegistry);
         final WebhookService webhookService = new WebhookService(verifier, router, auth, botConfig);
 
+        final List<ScheduledTask> scheduledTasks = List.of(
+                new InactivityUnassignTask(),
+                new IssueReminderNoPrTask(),
+                new PrInactivityReminderTask(),
+                new LinkedIssueEnforcerTask(),
+                new CommunityCallReminderTask(),
+                new OfficeHoursReminderTask()
+        );
+        final RepoConfigLoader repoConfigLoader = new RepoConfigLoader();
+        final ScheduledTaskRunner taskRunner = new ScheduledTaskRunner(
+                scheduledTasks, repoRegistry, auth, repoConfigLoader);
+
         final ScheduledTaskManager scheduledTaskManager = new ScheduledTaskManager();
+        // Run all scheduled tasks daily (initial delay of 1 hour to allow repos to register)
+        scheduledTaskManager.scheduleAtFixedRate(taskRunner::runAll, 1,
+                24, java.util.concurrent.TimeUnit.HOURS);
 
         final WebServer server = WebServer.builder()
                 .config(config.get("server"))

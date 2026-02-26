@@ -19,6 +19,12 @@ package org.hiero.bot.config;
  * @param workflowFailureNotification   enable the workflow failure notification handler
  * @param p0IssueAlarm                  enable the P0 issue team alarm handler
  * @param gfiCandidateNotification      enable the GFI candidate team notification handler
+ * @param inactivityUnassign            enable the inactivity unassign scheduled task
+ * @param issueReminderNoPr             enable the issue reminder (no PR) scheduled task
+ * @param prInactivityReminder          enable the PR inactivity reminder scheduled task
+ * @param linkedIssueEnforcer           enable the linked-issue enforcer scheduled task
+ * @param communityCallReminder         enable the community-call reminder scheduled task
+ * @param officeHoursReminder           enable the office-hours reminder scheduled task
  */
 public record FeaturesConfig(boolean unassignCommand,
                              boolean workingCommand,
@@ -35,7 +41,13 @@ public record FeaturesConfig(boolean unassignCommand,
                              boolean nextIssueRecommendation,
                              boolean workflowFailureNotification,
                              boolean p0IssueAlarm,
-                             boolean gfiCandidateNotification) {
+                             boolean gfiCandidateNotification,
+                             boolean inactivityUnassign,
+                             boolean issueReminderNoPr,
+                             boolean prInactivityReminder,
+                             boolean linkedIssueEnforcer,
+                             boolean communityCallReminder,
+                             boolean officeHoursReminder) {
 
     /**
      * Returns the default feature configuration with all handlers enabled.
@@ -44,6 +56,7 @@ public record FeaturesConfig(boolean unassignCommand,
      */
     public static FeaturesConfig defaults() {
         return new FeaturesConfig(true, true, true, true, true, true, true, true, true,
-                true, true, true, true, true, true, true);
+                true, true, true, true, true, true, true,
+                true, true, true, true, true, true);
     }
 }

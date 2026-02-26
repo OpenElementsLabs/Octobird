@@ -18,6 +18,12 @@ package org.hiero.bot.config;
  * @param workflowFailureNotification    marker for workflow failure notification
  * @param p0IssueAlarm                   marker for P0 issue team alarm notification
  * @param gfiCandidateNotification       marker for GFI candidate team notification
+ * @param inactivityUnassign             marker for inactivity unassign comment
+ * @param issueReminderNoPr              marker for issue reminder (no PR) comment
+ * @param prInactivityReminder           marker for PR inactivity reminder comment
+ * @param linkedIssueEnforcer            marker for linked-issue enforcer close comment
+ * @param communityCallReminder          marker for community-call reminder comment
+ * @param officeHoursReminder            marker for office-hours reminder comment
  */
 public record MarkersConfig(String unassignPrefix,
                             String gfiReminder,
@@ -33,7 +39,13 @@ public record MarkersConfig(String unassignPrefix,
                             String nextIssueRecommendation,
                             String workflowFailureNotification,
                             String p0IssueAlarm,
-                            String gfiCandidateNotification) {
+                            String gfiCandidateNotification,
+                            String inactivityUnassign,
+                            String issueReminderNoPr,
+                            String prInactivityReminder,
+                            String linkedIssueEnforcer,
+                            String communityCallReminder,
+                            String officeHoursReminder) {
 
     /**
      * Returns the default marker configuration.
@@ -56,7 +68,13 @@ public record MarkersConfig(String unassignPrefix,
                 "<!-- next-issue-bot-marker -->",
                 "<!-- workflowbot:workflow-failure-notifier -->",
                 "<!-- P0 Issue Notification -->",
-                "<!-- GFI Candidate Notification -->"
+                "<!-- GFI Candidate Notification -->",
+                "<!-- inactivity-unassign-bot -->",
+                "<!-- issue-reminder-bot -->",
+                "<!-- pr-inactivity-bot-marker -->",
+                "<!-- linked-issue-enforcer -->",
+                "<!-- community-call-reminder -->",
+                "<!-- office-hours-reminder -->"
         );
     }
 }

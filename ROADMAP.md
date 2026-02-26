@@ -99,7 +99,7 @@ Das Test-Repository benötigt:
 
 ---
 
-## Phase 5: Scheduled Tasks (Cron-basiert)
+## Phase 5: Scheduled Tasks (Cron-basiert) ✅ Abgeschlossen
 
 > Erfordert den `ScheduledTaskManager`. Diese Features pollen den Repo-Status periodisch.
 
@@ -205,9 +205,8 @@ Das Test-Repository benötigt:
 ## Abhängigkeiten zwischen Phasen
 
 ```
-Phase 1+2+3+4 (✅ Abgeschlossen)
+Phase 1+2+3+4+5 (✅ Abgeschlossen)
   ├──▶ Test-Deployment (🚀 Nächster Schritt)
-  ├──▶ Phase 5 (Scheduled Tasks)
   └──▶ Phase 6 (Persistenz & API) ──▶ Phase 7 (Frontend)
 ```
 

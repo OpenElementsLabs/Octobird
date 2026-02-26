@@ -37,4 +37,7 @@ public interface RepoConfig {
 
     /** GitHub team mentions for label-based notifications. */
     TeamsConfig teams();
+
+    /** Thresholds and settings for scheduled (cron-style) tasks. */
+    ScheduledConfig scheduled();
 }

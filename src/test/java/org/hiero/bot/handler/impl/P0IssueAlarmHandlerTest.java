@@ -194,7 +194,8 @@ class P0IssueAlarmHandlerTest {
                 defaults.commands(),
                 defaults.paths(),
                 defaults.codeRabbit(),
-                new TeamsConfig(teams, defaults.teams().gfiCandidateTeam())
+                new TeamsConfig(teams, defaults.teams().gfiCandidateTeam()),
+                defaults.scheduled()
         );
     }
 
@@ -202,7 +203,8 @@ class P0IssueAlarmHandlerTest {
         final DefaultRepoConfig defaults = DefaultRepoConfig.allDefaults();
         final FeaturesConfig features = new FeaturesConfig(
                 true, true, true, true, true, true, true, true, true,
-                true, true, true, true, true, false, true);
+                true, true, true, true, true, false, true,
+                true, true, true, true, true, true);
         return new DefaultRepoConfig(
                 defaults.labels(),
                 defaults.assignmentLimits(),
@@ -212,7 +214,8 @@ class P0IssueAlarmHandlerTest {
                 defaults.commands(),
                 defaults.paths(),
                 defaults.codeRabbit(),
-                defaults.teams()
+                defaults.teams(),
+                defaults.scheduled()
         );
     }
 }

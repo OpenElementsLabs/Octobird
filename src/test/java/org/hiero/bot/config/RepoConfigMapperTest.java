@@ -28,6 +28,7 @@ class RepoConfigMapperTest {
         assertEquals(PathsConfig.defaults(), config.paths());
         assertEquals(CodeRabbitConfig.defaults(), config.codeRabbit());
         assertEquals(TeamsConfig.defaults(), config.teams());
+        assertEquals(ScheduledConfig.defaults(), config.scheduled());
     }
 
     @Test
@@ -273,5 +274,104 @@ class RepoConfigMapperTest {
         assertFalse(config.features().p0IssueAlarm());
         assertFalse(config.features().gfiCandidateNotification());
         assertTrue(config.features().workflowFailureNotification());
+    }
+
+    @Test
+    void customScheduledThresholds() {
+        // Given
+        final Map<String, Object> raw = Map.of(
+                "scheduled", Map.of(
+                        "inactivity-days", 30,
+                        "issue-reminder-days", 14,
+                        "pr-inactivity-days", 7,
+                        "linked-issue-enforcer-days", 5,
+                        "require-author-assigned", false
+                )
+        );
+
+        // When
+        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+
+        // Then
+        assertEquals(30, config.scheduled().inactivityDays());
+        assertEquals(14, config.scheduled().issueReminderDays());
+        assertEquals(7, config.scheduled().prInactivityDays());
+        assertEquals(5, config.scheduled().linkedIssueEnforcerDays());
+        assertFalse(config.scheduled().requireAuthorAssigned());
+    }
+
+    @Test
+    void customCommunityCallConfig() {
+        // Given
+        final Map<String, Object> raw = Map.of(
+                "scheduled", Map.of(
+                        "community-call", Map.of(
+                                "anchor-date", "2024-01-03",
+                                "meeting-link", "https://zoom.us/j/123",
+                                "calendar-link", "https://calendar.google.com/123",
+                                "cancelled-dates", List.of("2024-01-17"),
+                                "excluded-authors", List.of("bot-user", "admin")
+                        )
+                )
+        );
+
+        // When
+        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+
+        // Then
+        assertEquals("2024-01-03", config.scheduled().communityCall().anchorDate());
+        assertEquals("https://zoom.us/j/123", config.scheduled().communityCall().meetingLink());
+        assertEquals("https://calendar.google.com/123", config.scheduled().communityCall().calendarLink());
+        assertEquals(List.of("2024-01-17"), config.scheduled().communityCall().cancelledDates());
+        assertEquals(List.of("bot-user", "admin"), config.scheduled().communityCall().excludedAuthors());
+    }
+
+    @Test
+    void customOfficeHoursConfig() {
+        // Given
+        final Map<String, Object> raw = Map.of(
+                "scheduled", Map.of(
+                        "office-hours", Map.of(
+                                "anchor-date", "2024-01-10",
+                                "meeting-link", "https://zoom.us/j/456"
+                        )
+                )
+        );
+
+        // When
+        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+
+        // Then
+        assertEquals("2024-01-10", config.scheduled().officeHours().anchorDate());
+        assertEquals("https://zoom.us/j/456", config.scheduled().officeHours().meetingLink());
+        assertEquals("", config.scheduled().officeHours().calendarLink());
+        assertEquals(List.of(), config.scheduled().officeHours().cancelledDates());
+    }
+
+    @Test
+    void disablePhase5Features() {
+        // Given
+        final Map<String, Object> raw = Map.of(
+                "features", Map.of(
+                        "inactivity-unassign", false,
+                        "issue-reminder-no-pr", false,
+                        "pr-inactivity-reminder", false,
+                        "linked-issue-enforcer", false,
+                        "community-call-reminder", false,
+                        "office-hours-reminder", false
+                )
+        );
+
+        // When
+        final RepoConfig config = RepoConfigMapper.fromMap(raw);
+
+        // Then
+        assertFalse(config.features().inactivityUnassign());
+        assertFalse(config.features().issueReminderNoPr());
+        assertFalse(config.features().prInactivityReminder());
+        assertFalse(config.features().linkedIssueEnforcer());
+        assertFalse(config.features().communityCallReminder());
+        assertFalse(config.features().officeHoursReminder());
+        assertTrue(config.features().p0IssueAlarm());
     }
 }

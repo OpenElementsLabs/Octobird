@@ -10,6 +10,7 @@ import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.WebhookEvent;
 import org.hiero.bot.model.parse.WebhookParser;
+import org.hiero.bot.scheduled.RepoRegistry;
 import org.kohsuke.github.GitHub;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,19 +40,24 @@ public class EventRouter {
     private final List<EventHandler<?>> handlers;
     private final RepoConfigLoader configLoader;
     private final WebhookParser parser;
+    private final RepoRegistry repoRegistry;
 
     /**
-     * Creates an {@code EventRouter} with the given handlers and parser.
+     * Creates an {@code EventRouter} with the given handlers, parser, and repo registry.
      *
-     * @param handlers the list of event handlers to dispatch to
-     * @param parser   the parser used to deserialise raw JSON webhook payloads
+     * @param handlers     the list of event handlers to dispatch to
+     * @param parser       the parser used to deserialise raw JSON webhook payloads
+     * @param repoRegistry the registry updated with each successfully processed repo
      */
-    public EventRouter(final List<EventHandler<?>> handlers, final WebhookParser parser) {
+    public EventRouter(final List<EventHandler<?>> handlers, final WebhookParser parser,
+                       final RepoRegistry repoRegistry) {
         Objects.requireNonNull(handlers, "handlers must not be null");
         Objects.requireNonNull(parser, "parser must not be null");
+        Objects.requireNonNull(repoRegistry, "repoRegistry must not be null");
         this.handlers = List.copyOf(handlers);
         this.configLoader = new RepoConfigLoader();
         this.parser = parser;
+        this.repoRegistry = repoRegistry;
     }
 
     /**
@@ -102,6 +108,10 @@ public class EventRouter {
         @Nullable final String repoFullName = webhookEvent.repository() != null
                 ? webhookEvent.repository().fullName()
                 : null;
+
+        if (repoFullName != null) {
+            repoRegistry.register(repoFullName, installationId);
+        }
 
         final RepoConfig repoConfig = repoFullName != null
                 ? configLoader.loadConfig(gitHub, repoFullName)

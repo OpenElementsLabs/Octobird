@@ -35,8 +35,10 @@ public final class RepoConfigMapper {
         final PathsConfig paths = mapPaths(asMap(raw.get("paths")));
         final CodeRabbitConfig codeRabbit = mapCodeRabbit(asMap(raw.get("coderabbit")));
         final TeamsConfig teams = mapTeams(asMap(raw.get("teams")));
+        final ScheduledConfig scheduled = mapScheduled(asMap(raw.get("scheduled")));
 
-        return new DefaultRepoConfig(labels, limits, guards, features, markers, commands, paths, codeRabbit, teams);
+        return new DefaultRepoConfig(labels, limits, guards, features, markers, commands, paths, codeRabbit, teams,
+                scheduled);
     }
 
     private static LabelsConfig mapLabels(final Map<String, Object> m) {
@@ -98,7 +100,13 @@ public final class RepoConfigMapper {
                 boolOr(m.get("next-issue-recommendation"), d.nextIssueRecommendation()),
                 boolOr(m.get("workflow-failure-notification"), d.workflowFailureNotification()),
                 boolOr(m.get("p0-issue-alarm"), d.p0IssueAlarm()),
-                boolOr(m.get("gfi-candidate-notification"), d.gfiCandidateNotification())
+                boolOr(m.get("gfi-candidate-notification"), d.gfiCandidateNotification()),
+                boolOr(m.get("inactivity-unassign"), d.inactivityUnassign()),
+                boolOr(m.get("issue-reminder-no-pr"), d.issueReminderNoPr()),
+                boolOr(m.get("pr-inactivity-reminder"), d.prInactivityReminder()),
+                boolOr(m.get("linked-issue-enforcer"), d.linkedIssueEnforcer()),
+                boolOr(m.get("community-call-reminder"), d.communityCallReminder()),
+                boolOr(m.get("office-hours-reminder"), d.officeHoursReminder())
         );
     }
 
@@ -122,7 +130,13 @@ public final class RepoConfigMapper {
                 stringOr(m.get("next-issue-recommendation"), d.nextIssueRecommendation()),
                 stringOr(m.get("workflow-failure-notification"), d.workflowFailureNotification()),
                 stringOr(m.get("p0-issue-alarm"), d.p0IssueAlarm()),
-                stringOr(m.get("gfi-candidate-notification"), d.gfiCandidateNotification())
+                stringOr(m.get("gfi-candidate-notification"), d.gfiCandidateNotification()),
+                stringOr(m.get("inactivity-unassign"), d.inactivityUnassign()),
+                stringOr(m.get("issue-reminder-no-pr"), d.issueReminderNoPr()),
+                stringOr(m.get("pr-inactivity-reminder"), d.prInactivityReminder()),
+                stringOr(m.get("linked-issue-enforcer"), d.linkedIssueEnforcer()),
+                stringOr(m.get("community-call-reminder"), d.communityCallReminder()),
+                stringOr(m.get("office-hours-reminder"), d.officeHoursReminder())
         );
     }
 
@@ -182,6 +196,61 @@ public final class RepoConfigMapper {
             return new CodeRabbitConfig(Set.copyOf(labels));
         }
         return d;
+    }
+
+    private static ScheduledConfig mapScheduled(final Map<String, Object> m) {
+        final ScheduledConfig d = ScheduledConfig.defaults();
+        if (m.isEmpty()) {
+            return d;
+        }
+        return new ScheduledConfig(
+                intOr(m.get("inactivity-days"), d.inactivityDays()),
+                intOr(m.get("issue-reminder-days"), d.issueReminderDays()),
+                intOr(m.get("pr-inactivity-days"), d.prInactivityDays()),
+                intOr(m.get("linked-issue-enforcer-days"), d.linkedIssueEnforcerDays()),
+                boolOr(m.get("require-author-assigned"), d.requireAuthorAssigned()),
+                mapCommunityCall(asMap(m.get("community-call"))),
+                mapOfficeHours(asMap(m.get("office-hours")))
+        );
+    }
+
+    private static CommunityCallConfig mapCommunityCall(final Map<String, Object> m) {
+        final CommunityCallConfig d = CommunityCallConfig.defaults();
+        if (m.isEmpty()) {
+            return d;
+        }
+        return new CommunityCallConfig(
+                stringOr(m.get("anchor-date"), d.anchorDate()),
+                stringOr(m.get("meeting-link"), d.meetingLink()),
+                stringOr(m.get("calendar-link"), d.calendarLink()),
+                stringList(m.get("cancelled-dates"), d.cancelledDates()),
+                stringList(m.get("excluded-authors"), d.excludedAuthors())
+        );
+    }
+
+    private static OfficeHoursConfig mapOfficeHours(final Map<String, Object> m) {
+        final OfficeHoursConfig d = OfficeHoursConfig.defaults();
+        if (m.isEmpty()) {
+            return d;
+        }
+        return new OfficeHoursConfig(
+                stringOr(m.get("anchor-date"), d.anchorDate()),
+                stringOr(m.get("meeting-link"), d.meetingLink()),
+                stringOr(m.get("calendar-link"), d.calendarLink()),
+                stringList(m.get("cancelled-dates"), d.cancelledDates()),
+                stringList(m.get("excluded-authors"), d.excludedAuthors())
+        );
+    }
+
+    private static List<String> stringList(final Object value, final List<String> defaultValue) {
+        if (value instanceof Collection<?> collection) {
+            final List<String> result = new ArrayList<>();
+            for (final Object item : collection) {
+                result.add(String.valueOf(item));
+            }
+            return List.copyOf(result);
+        }
+        return defaultValue;
     }
 
     @SuppressWarnings("unchecked")
