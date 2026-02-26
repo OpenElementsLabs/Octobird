@@ -21,6 +21,14 @@ import java.io.IOException;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
+/**
+ * Enforces per-user open assignment limits when an issue is assigned. Spam-listed users have a
+ * tighter limit and are further restricted to Good First Issues only. Maintainers (ADMIN/WRITE)
+ * are exempt.
+ *
+ * <p>If the limit is exceeded the handler unassigns the user and posts an explanatory comment.
+ * Enabled via {@link org.hiero.bot.config.FeaturesConfig#assignmentLimit()}.
+ */
 public final class AssignmentLimitHandler extends AbstractEventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(AssignmentLimitHandler.class);

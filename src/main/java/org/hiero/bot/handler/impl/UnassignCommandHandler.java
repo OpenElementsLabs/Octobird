@@ -19,6 +19,14 @@ import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+/**
+ * Handles the {@code /unassign} command posted in an issue comment. When a user who is currently
+ * assigned to an open issue posts {@code /unassign}, this handler removes them and posts a
+ * confirmation comment with an HTML marker to prevent duplicate processing.
+ *
+ * <p>Skips pull requests, closed issues, and bot comments. Enabled via
+ * {@link org.hiero.bot.config.FeaturesConfig#unassignCommand()}.
+ */
 public final class UnassignCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(UnassignCommandHandler.class);

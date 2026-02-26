@@ -18,6 +18,19 @@ import java.io.IOException;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
+/**
+ * Guards advanced-labeled issues by requiring assignees to have completed a minimum number of
+ * intermediate issues. Handles two scenarios:
+ * <ul>
+ *   <li><b>ASSIGNED action</b> – checks the newly assigned user.</li>
+ *   <li><b>LABELED action</b> – re-checks all existing assignees when the advanced label is
+ *       added, so users assigned before the label was applied are also validated.</li>
+ * </ul>
+ *
+ * <p>Unqualified users are removed and receive an explanatory comment with an HTML marker.
+ * Users with ADMIN or WRITE permission are always exempt. Enabled via
+ * {@link org.hiero.bot.config.FeaturesConfig#advancedGuard()}.
+ */
 public final class AdvancedAssignmentGuardHandler extends AbstractEventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(AdvancedAssignmentGuardHandler.class);

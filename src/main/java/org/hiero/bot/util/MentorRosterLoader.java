@@ -17,6 +17,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Loads and caches the mentor roster from a JSON file in the repository. The roster is a JSON
+ * object with an {@code "order"} array of GitHub login strings. Mentor selection rotates by
+ * day number to spread assignments evenly over time.
+ *
+ * <p>If the file is absent or cannot be read, an empty list is returned silently.
+ */
 public final class MentorRosterLoader {
 
     private static final Logger LOG = LoggerFactory.getLogger(MentorRosterLoader.class);
@@ -41,6 +48,12 @@ public final class MentorRosterLoader {
         return CACHE.computeIfAbsent(cacheKey, key -> doLoadRoster(gitHub, repoFullName, rosterPath));
     }
 
+    /**
+     * Selects a mentor from the roster using a day-based rotation strategy.
+     *
+     * @param roster the list of mentor usernames to choose from
+     * @return the selected mentor login, or {@code null} if the roster is empty
+     */
     public static String selectMentor(final List<String> roster) {
         if (roster.isEmpty()) {
             return null;
@@ -74,6 +87,12 @@ public final class MentorRosterLoader {
         }
     }
 
+    /**
+     * Removes all cached roster entries for the given repository, forcing the next lookup to
+     * re-read from GitHub.
+     *
+     * @param repoFullName full repository name in {@code owner/repo} format
+     */
     public static void invalidateCache(final String repoFullName) {
         CACHE.keySet().removeIf(key -> key.startsWith(repoFullName + ":"));
     }

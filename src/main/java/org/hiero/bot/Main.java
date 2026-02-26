@@ -19,6 +19,10 @@ import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.util.List;
 
+/**
+ * Entry point for the Octobird GitHub App bot. Bootstraps the Helidon web server, wires all
+ * event handlers, and registers the HTTP routes.
+ */
 public final class Main {
 
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
@@ -26,6 +30,11 @@ public final class Main {
     private Main() {
     }
 
+    /**
+     * Starts the Helidon web server with all configured event handlers and routes.
+     *
+     * @param args command-line arguments (unused)
+     */
     public static void main(final String[] args) {
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
@@ -70,6 +79,12 @@ public final class Main {
         }));
     }
 
+    /**
+     * Registers the application HTTP routes on the given routing builder.
+     *
+     * @param routing        the Helidon routing builder to configure
+     * @param webhookService the webhook HTTP service to mount at {@code /webhook}
+     */
     static void setupRouting(final HttpRouting.Builder routing, final WebhookService webhookService) {
         routing.register("/webhook", webhookService)
                 .get("/health", (req, res) -> res.send("OK"));

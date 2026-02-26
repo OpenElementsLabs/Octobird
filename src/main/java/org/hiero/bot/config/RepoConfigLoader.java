@@ -14,6 +14,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Loads per-repository bot configuration from {@code .github/hiero-bot.yml}. Results are cached
+ * in memory; if the file is missing or cannot be read the default configuration is used silently.
+ *
+ * @see RepoConfig
+ * @see RepoConfigMapper
+ */
 public class RepoConfigLoader {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepoConfigLoader.class);
@@ -22,6 +29,15 @@ public class RepoConfigLoader {
 
     private final Map<String, RepoConfig> cache = new ConcurrentHashMap<>();
 
+    /**
+     * Loads the {@link RepoConfig} for the given repository. The result is cached; subsequent
+     * calls for the same repository return the cached value without hitting the GitHub API.
+     * Falls back to {@link DefaultRepoConfig#allDefaults()} if the config file is absent.
+     *
+     * @param gitHub       authenticated GitHub client
+     * @param repoFullName full repository name in {@code owner/repo} format
+     * @return the repository configuration (never {@code null})
+     */
     @SuppressWarnings("unchecked")
     public RepoConfig loadConfig(final GitHub gitHub, final String repoFullName) {
         Objects.requireNonNull(gitHub, "gitHub must not be null");
@@ -41,6 +57,12 @@ public class RepoConfigLoader {
         });
     }
 
+    /**
+     * Removes the cached configuration for the given repository, forcing the next call to
+     * {@link #loadConfig} to reload from GitHub.
+     *
+     * @param repoFullName full repository name in {@code owner/repo} format
+     */
     public void invalidateCache(final String repoFullName) {
         cache.remove(repoFullName);
     }

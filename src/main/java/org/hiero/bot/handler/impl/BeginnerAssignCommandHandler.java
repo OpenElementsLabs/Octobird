@@ -19,6 +19,20 @@ import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+/**
+ * Handles the {@code /assign} command on beginner-labeled issues, and posts a reminder when a
+ * non-collaborator comments on an unassigned beginner issue without the command.
+ *
+ * <p>Two execution paths:
+ * <ul>
+ *   <li><b>Assign command</b> – checks the GFI prerequisite guard, blocks spam users, validates
+ *       assignment limits, and assigns the commenter.</li>
+ *   <li><b>Reminder</b> – posts a one-time reminder (guarded by HTML marker) telling the user
+ *       to use {@code /assign}.</li>
+ * </ul>
+ *
+ * <p>Enabled via {@link org.hiero.bot.config.FeaturesConfig#beginnerAssignCommand()}.
+ */
 public final class BeginnerAssignCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(BeginnerAssignCommandHandler.class);

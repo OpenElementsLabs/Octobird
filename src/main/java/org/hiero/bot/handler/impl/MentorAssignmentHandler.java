@@ -22,6 +22,16 @@ import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
+/**
+ * Automatically assigns a mentor when a new contributor is assigned to a Good First Issue.
+ *
+ * <p>A contributor is considered new if they have no merged pull requests in the repository.
+ * The mentor is selected by a day-based rotation over the configured mentor roster. A welcome
+ * comment is posted that names both the assignee and the mentor; an HTML marker prevents
+ * duplicate mentor assignments on the same issue.
+ *
+ * <p>Enabled via {@link org.hiero.bot.config.FeaturesConfig#mentorAssignment()}.
+ */
 public final class MentorAssignmentHandler extends AbstractEventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(MentorAssignmentHandler.class);

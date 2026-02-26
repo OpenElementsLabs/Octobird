@@ -21,6 +21,16 @@ import java.io.IOException;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
+/**
+ * Guards intermediate-labeled issues by requiring the assignee to have completed a minimum
+ * number of beginner issues. If the prerequisite count is not met, the user is unassigned and
+ * an explanatory comment is posted with an HTML marker.
+ *
+ * <p>The guard is disabled when
+ * {@link org.hiero.bot.config.GuardsConfig#requiredBeginnerCountForIntermediate()} is 0.
+ * Users with ADMIN or WRITE permission are always exempt. Enabled via
+ * {@link org.hiero.bot.config.FeaturesConfig#intermediateGuard()}.
+ */
 public final class IntermediateAssignmentGuardHandler extends AbstractEventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(IntermediateAssignmentGuardHandler.class);

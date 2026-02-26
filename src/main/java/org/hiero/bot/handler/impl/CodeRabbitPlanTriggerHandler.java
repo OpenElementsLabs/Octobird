@@ -18,6 +18,16 @@ import java.io.IOException;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
+/**
+ * Triggers a CodeRabbit plan review by posting {@code @coderabbitai plan} on an issue when one
+ * of the configured trigger labels is added. An HTML marker prevents duplicate triggers on the
+ * same issue.
+ *
+ * <p>The set of trigger labels is configurable via
+ * {@link org.hiero.bot.config.CodeRabbitConfig#triggerLabels()} (defaults: {@code beginner},
+ * {@code intermediate}, {@code advanced}). Enabled via
+ * {@link org.hiero.bot.config.FeaturesConfig#codeRabbitPlanTrigger()}.
+ */
 public final class CodeRabbitPlanTriggerHandler extends AbstractEventHandler<IssuesEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(CodeRabbitPlanTriggerHandler.class);

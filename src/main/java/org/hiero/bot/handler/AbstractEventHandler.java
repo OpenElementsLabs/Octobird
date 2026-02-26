@@ -9,6 +9,16 @@ import java.util.Objects;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
+/**
+ * Base class for all event handlers, providing final implementations of
+ * {@link EventHandler#eventType()}, {@link EventHandler#matches(GitHubEventType, GitHubAction)},
+ * and {@link EventHandler#isActive(RepoConfig)} via constructor-injected predicates.
+ *
+ * <p>Subclasses only need to implement
+ * {@link EventHandler#handle(WebhookEvent, org.hiero.bot.handler.ServiceRegistry, RepoConfig)}.
+ *
+ * @param <T> the concrete {@link WebhookEvent} subtype this handler processes
+ */
 public abstract class AbstractEventHandler<T extends WebhookEvent> implements EventHandler<T> {
 
     private final Class<T> eventType;
@@ -17,6 +27,16 @@ public abstract class AbstractEventHandler<T extends WebhookEvent> implements Ev
 
     private final Predicate<RepoConfig> featureCheck;
 
+    /**
+     * Constructs an {@code AbstractEventHandler} with the given event type, matcher, and
+     * feature-check predicate.
+     *
+     * @param eventType    the {@link Class} object for the concrete event type {@code T}
+     * @param matcher      predicate that returns {@code true} for the event type / action
+     *                     combinations this handler should process
+     * @param featureCheck predicate that returns {@code true} when this handler is enabled
+     *                     for a given repository configuration
+     */
     protected AbstractEventHandler(final Class<T> eventType,
                                    final BiPredicate<GitHubEventType, GitHubAction> matcher,
                                    final Predicate<RepoConfig> featureCheck) {

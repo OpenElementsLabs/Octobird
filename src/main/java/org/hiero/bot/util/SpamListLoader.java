@@ -15,6 +15,12 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+/**
+ * Loads and caches the spam user list from a plain-text file in the repository. Lines starting
+ * with {@code #} and blank lines are ignored. Results are cached per repository and file path.
+ *
+ * <p>If the file is absent or cannot be read, an empty set is assumed silently.
+ */
 public final class SpamListLoader {
 
     private static final Logger LOG = LoggerFactory.getLogger(SpamListLoader.class);
@@ -63,6 +69,12 @@ public final class SpamListLoader {
         }
     }
 
+    /**
+     * Removes all cached spam list entries for the given repository, forcing the next lookup
+     * to re-read from GitHub.
+     *
+     * @param repoFullName full repository name in {@code owner/repo} format
+     */
     public static void invalidateCache(final String repoFullName) {
         CACHE.keySet().removeIf(key -> key.startsWith(repoFullName + ":"));
     }

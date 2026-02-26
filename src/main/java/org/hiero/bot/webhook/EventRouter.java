@@ -20,6 +20,18 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Routes incoming GitHub webhook events to the matching registered {@link EventHandler}s.
+ *
+ * <p>For each delivery the router:
+ * <ol>
+ *   <li>Parses the raw JSON payload into a typed {@link WebhookEvent}.</li>
+ *   <li>Obtains an installation-scoped GitHub client via {@link GitHubAppAuth}.</li>
+ *   <li>Loads the per-repository {@link org.hiero.bot.config.RepoConfig}.</li>
+ *   <li>Invokes all handlers whose {@link EventHandler#matches} and
+ *       {@link EventHandler#isActive} predicates pass.</li>
+ * </ol>
+ */
 public class EventRouter {
 
     private static final Logger LOG = LoggerFactory.getLogger(EventRouter.class);
@@ -28,6 +40,12 @@ public class EventRouter {
     private final RepoConfigLoader configLoader;
     private final WebhookParser parser;
 
+    /**
+     * Creates an {@code EventRouter} with the given handlers and parser.
+     *
+     * @param handlers the list of event handlers to dispatch to
+     * @param parser   the parser used to deserialise raw JSON webhook payloads
+     */
     public EventRouter(final List<EventHandler<?>> handlers, final WebhookParser parser) {
         Objects.requireNonNull(handlers, "handlers must not be null");
         Objects.requireNonNull(parser, "parser must not be null");
@@ -36,6 +54,16 @@ public class EventRouter {
         this.parser = parser;
     }
 
+    /**
+     * Processes one webhook delivery: parses it, resolves the installation client and repo
+     * config, then dispatches to all matching handlers.
+     *
+     * @param event     the value of the {@code X-GitHub-Event} header
+     * @param payload   the raw JSON body of the webhook delivery
+     * @param auth      the GitHub App authenticator used to obtain an installation client
+     * @param botConfig the bot configuration (currently unused, reserved for future use)
+     * @throws IOException if a GitHub API call or handler fails
+     */
     public void route(final String event, final String payload, final GitHubAppAuth auth,
                       final BotConfig botConfig) throws IOException {
         final GitHubEventType eventType;

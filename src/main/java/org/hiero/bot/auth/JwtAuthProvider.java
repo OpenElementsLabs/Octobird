@@ -9,11 +9,27 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Objects;
 
+/**
+ * Implements {@link AuthorizationProvider} for GitHub App authentication by generating
+ * short-lived RS256-signed JWT tokens used to authenticate as the GitHub App itself.
+ *
+ * <p>The JWT is signed with the App's RSA private key and is valid for 10 minutes
+ * (with a 60-second backdated {@code iat} to account for clock skew).
+ *
+ * @see <a href="https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-json-web-token-jwt-for-a-github-app">
+ *     GitHub Docs – Generating a JWT for a GitHub App</a>
+ */
 class JwtAuthProvider implements AuthorizationProvider {
 
     private final long appId;
     private final PrivateKey privateKey;
 
+    /**
+     * Creates a new {@code JwtAuthProvider}.
+     *
+     * @param appId      the numeric GitHub App ID
+     * @param privateKey the RSA private key used to sign the JWT
+     */
     JwtAuthProvider(final long appId, final PrivateKey privateKey) {
         this.appId = appId;
         this.privateKey = Objects.requireNonNull(privateKey, "privateKey must not be null");

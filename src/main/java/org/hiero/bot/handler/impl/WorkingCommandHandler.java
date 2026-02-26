@@ -16,6 +16,14 @@ import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+/**
+ * Handles the {@code /working} command posted in an issue or pull request comment. When an
+ * authorized user (assignee of an issue, or the author of a pull request) posts {@code /working},
+ * this handler reacts to the comment with an 👀 emoji to acknowledge it.
+ *
+ * <p>Skips bot comments. Enabled via
+ * {@link org.hiero.bot.config.FeaturesConfig#workingCommand()}.
+ */
 public final class WorkingCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkingCommandHandler.class);

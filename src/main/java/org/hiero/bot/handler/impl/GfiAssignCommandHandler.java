@@ -19,6 +19,19 @@ import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+/**
+ * Handles the {@code /assign} command on Good First Issues, and posts an introductory reminder
+ * when a non-collaborator comments on an unassigned GFI without the assign command.
+ *
+ * <p>Two execution paths:
+ * <ul>
+ *   <li><b>Assign command</b> – validates assignment limits and assigns the commenter.</li>
+ *   <li><b>Reminder</b> – posts a one-time reminder (guarded by HTML marker) telling the user
+ *       to use {@code /assign}.</li>
+ * </ul>
+ *
+ * <p>Enabled via {@link org.hiero.bot.config.FeaturesConfig#gfiAssignCommand()}.
+ */
 public final class GfiAssignCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
 
     private static final Logger LOG = LoggerFactory.getLogger(GfiAssignCommandHandler.class);

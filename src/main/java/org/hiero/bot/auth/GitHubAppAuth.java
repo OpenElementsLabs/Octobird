@@ -15,15 +15,32 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Handles GitHub App authentication by generating RS256 JWT tokens and exchanging them for
+ * short-lived installation access tokens. Tokens are cached per installation and refreshed
+ * automatically before they expire.
+ */
 public class GitHubAppAuth {
 
     private final BotConfig config;
     private final Map<Long, CachedToken> tokenCache = new ConcurrentHashMap<>();
 
+    /**
+     * Creates a new {@code GitHubAppAuth} instance.
+     *
+     * @param config the bot configuration containing the App ID and private key
+     */
     public GitHubAppAuth(final BotConfig config) {
         this.config = Objects.requireNonNull(config, "config must not be null");
     }
 
+    /**
+     * Returns an authenticated {@link GitHub} client scoped to the given installation.
+     *
+     * @param installationId the GitHub App installation ID
+     * @return an authenticated client for that installation
+     * @throws IOException if the installation token cannot be obtained
+     */
     public GitHub getInstallationClient(final long installationId) throws IOException {
         final String token = getInstallationToken(installationId);
         return new GitHubBuilder().withAppInstallationToken(token).build();
@@ -58,6 +75,13 @@ public class GitHubAppAuth {
         }
     }
 
+    /**
+     * Parses a PEM-encoded RSA private key (PKCS#8 or traditional RSA format).
+     *
+     * @param pem the PEM string, with or without header/footer lines
+     * @return the parsed {@link PrivateKey}
+     * @throws Exception if the key cannot be decoded or parsed
+     */
     static PrivateKey parsePrivateKey(final String pem) throws Exception {
         final String stripped = pem
                 .replace("-----BEGIN PRIVATE KEY-----", "")
@@ -70,12 +94,23 @@ public class GitHubAppAuth {
         return KeyFactory.getInstance("RSA").generatePrivate(spec);
     }
 
+    /**
+     * Cached installation access token with its expiry time.
+     *
+     * @param token     the raw token string
+     * @param expiresAt the instant at which the token expires
+     */
     private record CachedToken(String token, Instant expiresAt) {
         CachedToken {
             Objects.requireNonNull(token, "token must not be null");
             Objects.requireNonNull(expiresAt, "expiresAt must not be null");
         }
 
+        /**
+         * Returns {@code true} if the token will still be valid at least 60 seconds from now.
+         *
+         * @return {@code true} if the cached token is still usable
+         */
         boolean isValid() {
             return Instant.now().plusSeconds(60).isBefore(expiresAt);
         }
