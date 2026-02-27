@@ -5,7 +5,6 @@ package org.hiero.bot.config;
  *
  * @param unassignCommand               enable the /unassign command handler
  * @param workingCommand                enable the /working command handler
- * @param assignmentLimit               enable the assignment limit handler
  * @param assignCommand                 enable the unified /assign command handler (all difficulty levels)
  * @param mentorAssignment              enable the mentor assignment handler
  * @param intermediateGuard             enable the intermediate assignment guard
@@ -27,7 +26,6 @@ package org.hiero.bot.config;
  */
 public record FeaturesConfig(boolean unassignCommand,
                              boolean workingCommand,
-                             boolean assignmentLimit,
                              boolean assignCommand,
                              boolean mentorAssignment,
                              boolean intermediateGuard,
@@ -53,7 +51,7 @@ public record FeaturesConfig(boolean unassignCommand,
      * @return a {@code FeaturesConfig} with all features enabled
      */
     public static FeaturesConfig defaults() {
-        return new FeaturesConfig(true, true, true, true, true, true, true, true, true,
+        return new FeaturesConfig(true, true, true, true, true, true, true, true,
                 true, true, true, true, true, true, true,
                 true, true, true, true, true);
     }

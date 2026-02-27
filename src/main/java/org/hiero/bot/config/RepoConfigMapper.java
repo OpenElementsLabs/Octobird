@@ -89,7 +89,6 @@ public final class RepoConfigMapper {
         return new FeaturesConfig(
                 boolOr(m.get("unassign-command"), d.unassignCommand()),
                 boolOr(m.get("working-command"), d.workingCommand()),
-                boolOr(m.get("assignment-limit"), d.assignmentLimit()),
                 boolOr(m.get("assign-command"), d.assignCommand()),
                 boolOr(m.get("mentor-assignment"), d.mentorAssignment()),
                 boolOr(m.get("intermediate-guard"), d.intermediateGuard()),

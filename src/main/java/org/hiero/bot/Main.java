@@ -53,7 +53,6 @@ public final class Main {
                 // Phase 1 (retained):
                 new UnassignCommandHandler(),
                 new WorkingCommandHandler(),
-                new AssignmentLimitHandler(),
                 // Phase 2 - Comment Commands:
                 new AssignCommandHandler(),
                 // Phase 2 - Assignment Guards:

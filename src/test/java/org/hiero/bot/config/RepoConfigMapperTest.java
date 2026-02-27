@@ -103,7 +103,6 @@ class RepoConfigMapperTest {
         // Then
         assertFalse(config.features().unassignCommand());
         assertTrue(config.features().workingCommand());
-        assertTrue(config.features().assignmentLimit());
         assertFalse(config.features().codeRabbitPlanTrigger());
     }
 
@@ -202,7 +201,6 @@ class RepoConfigMapperTest {
         assertEquals(3, config.assignmentLimits().normalUserMax());
         assertEquals(0, config.assignmentLimits().spamUserMax());
         assertFalse(config.features().mentorAssignment());
-        assertTrue(config.features().assignmentLimit());
     }
 
     @Test

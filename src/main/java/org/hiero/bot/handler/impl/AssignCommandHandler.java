@@ -6,11 +6,7 @@ import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssueCommentEvent;
-import org.hiero.bot.util.CommentMarkerChecker;
-import org.hiero.bot.util.IssueSearchHelper;
-import org.hiero.bot.util.MessageFormatter;
-import org.hiero.bot.util.PermissionChecker;
-import org.hiero.bot.util.SpamListLoader;
+import org.hiero.bot.util.*;
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHLabel;
 import org.kohsuke.github.GHRepository;
@@ -53,8 +49,10 @@ public final class AssignCommandHandler extends AbstractEventHandler<IssueCommen
     private static final Predicate<RepoConfig> FEATURE_CHECK =
             repoConfig -> repoConfig.features().assignCommand();
 
-    /** Issue difficulty levels in order of precedence (highest first). */
-    private enum Level { ADVANCED, INTERMEDIATE, BEGINNER, GFI }
+    /**
+     * Issue difficulty levels in order of precedence (highest first).
+     */
+    private enum Level {ADVANCED, INTERMEDIATE, BEGINNER, GFI}
 
     public AssignCommandHandler() {
         super(IssueCommentEvent.class, MATCHER, FEATURE_CHECK);

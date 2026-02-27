@@ -217,7 +217,7 @@ class PrInactivityReminderTaskTest {
     private static RepoConfig configWithFeatureDisabled() {
         final DefaultRepoConfig defaults = DefaultRepoConfig.allDefaults("owner/repo");
         final FeaturesConfig features = new FeaturesConfig(
-                true, true, true, true, true, true, true, true, true,
+                true, true, true, true, true, true, true, true,
                 true, true, true, true, true, true,
                 true, true, false, true, true, true);
         return new DefaultRepoConfig(
