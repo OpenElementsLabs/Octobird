@@ -15,6 +15,8 @@ The `actions/` folder contains existing GitHub Actions workflows, scripts, and a
 
 The `actions/` folder serves as a **reference for features to implement** as native event handlers in the Java application. See [ROADMAP.md](ROADMAP.md) for the detailed migration plan with all features grouped into 5 phases.
 
+For a complete description of every implemented workflow — handlers, scheduled tasks, user commands, decision logic, and Mermaid diagrams — see [WORKFLOWS.md](WORKFLOWS.md).
+
 ## Tech Stack
 
 - **Language:** Java 21 (uses records, virtual threads)

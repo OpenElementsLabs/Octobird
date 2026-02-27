@@ -55,8 +55,7 @@ public final class Main {
                 new WorkingCommandHandler(),
                 new AssignmentLimitHandler(),
                 // Phase 2 - Comment Commands:
-                new GfiAssignCommandHandler(),
-                new BeginnerAssignCommandHandler(),
+                new AssignCommandHandler(),
                 // Phase 2 - Assignment Guards:
                 new MentorAssignmentHandler(),
                 new IntermediateAssignmentGuardHandler(),

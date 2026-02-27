@@ -204,7 +204,7 @@ class GfiCandidateNotificationHandlerTest {
         final DefaultRepoConfig defaults = DefaultRepoConfig.allDefaults();
         final FeaturesConfig features = new FeaturesConfig(
                 true, true, true, true, true, true, true, true, true,
-                true, true, true, true, true, true, false,
+                true, true, true, true, true, false,
                 true, true, true, true, true, true);
         return new DefaultRepoConfig(
                 "",
