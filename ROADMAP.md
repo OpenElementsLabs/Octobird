@@ -220,7 +220,153 @@ Records sind bereits immutable Java Records mit Jackson-kompatibler Struktur.
 - Verzeichnis `src/main/resources/db/migration/`
 - Namensschema: `V001__create_repo_config.sql`, `V002__create_app_state.sql`, etc.
 
-### 6.2 Repo-Konfigurations-Entities
+### 6.2 Datenbank-Schema
+
+```mermaid
+erDiagram
+    repo_config {
+        UUID id PK
+        BIGINT repo_id UK "GitHub Repository-ID (Tenant)"
+        VARCHAR repo_full_name "owner/repo (denormalisiert)"
+        BIGINT installation_id
+        VARCHAR gfi_candidate_label
+        INT normal_user_max
+        INT spam_user_max
+        VARCHAR assign_pattern
+        VARCHAR unassign_pattern
+        VARCHAR working_pattern
+        VARCHAR spam_list_path
+        VARCHAR mentor_roster_path
+        VARCHAR gfi_candidate_team
+        BOOLEAN feat_unassign_command
+        BOOLEAN feat_assign_command
+        BOOLEAN feat_missing_linked_issue
+        BOOLEAN feat_verified_commits
+        BOOLEAN feat_merge_conflict
+        BOOLEAN feat_next_issue_recommendation
+        BOOLEAN feat_workflow_failure_notification
+        BOOLEAN feat_gfi_candidate_notification
+        BOOLEAN feat_inactivity_unassign
+        BOOLEAN feat_issue_reminder_no_pr
+        BOOLEAN feat_pr_inactivity_reminder
+        BOOLEAN feat_linked_issue_enforcer
+        BOOLEAN feat_community_call_reminder
+        BOOLEAN feat_office_hours_reminder
+        VARCHAR marker_unassign_prefix
+        VARCHAR marker_gfi_reminder
+        VARCHAR marker_beginner_reminder
+        VARCHAR marker_beginner_gfi_guard
+        VARCHAR marker_mentor_assignment
+        VARCHAR marker_intermediate_guard
+        VARCHAR marker_advanced_guard
+        VARCHAR marker_missing_linked_issue
+        VARCHAR marker_verified_commits
+        VARCHAR marker_merge_conflict
+        VARCHAR marker_next_issue_recommendation
+        VARCHAR marker_workflow_failure_notification
+        VARCHAR marker_gfi_candidate_notification
+        VARCHAR marker_inactivity_unassign
+        VARCHAR marker_issue_reminder_no_pr
+        VARCHAR marker_pr_inactivity_reminder
+        VARCHAR marker_linked_issue_enforcer
+        VARCHAR marker_community_call_reminder
+        VARCHAR marker_office_hours_reminder
+        INT sched_inactivity_days
+        INT sched_issue_reminder_days
+        INT sched_pr_inactivity_days
+        INT sched_linked_issue_enforcer_days
+        BOOLEAN sched_require_author_assigned
+        VARCHAR cc_anchor_date
+        VARCHAR cc_meeting_link
+        VARCHAR cc_calendar_link
+        VARCHAR oh_anchor_date
+        VARCHAR oh_meeting_link
+        VARCHAR oh_calendar_link
+    }
+
+    repo_config_labels {
+        UUID repo_config_id FK
+        VARCHAR issue_level "GOOD_FIRST_ISSUE | BEGINNER | ..."
+        VARCHAR label_name
+    }
+
+    repo_config_guards {
+        UUID repo_config_id FK
+        VARCHAR issue_level "BEGINNER | INTERMEDIATE | ADVANCED"
+        INT required_count
+    }
+
+    cc_cancelled_dates {
+        UUID repo_config_id FK
+        VARCHAR cancelled_date "ISO-8601"
+    }
+
+    cc_excluded_authors {
+        UUID repo_config_id FK
+        VARCHAR username
+    }
+
+    oh_cancelled_dates {
+        UUID repo_config_id FK
+        VARCHAR cancelled_date "ISO-8601"
+    }
+
+    oh_excluded_authors {
+        UUID repo_config_id FK
+        VARCHAR username
+    }
+
+    spam_user {
+        UUID id PK
+        BIGINT repo_id FK "Tenant"
+        VARCHAR username UK
+    }
+
+    mentor {
+        UUID id PK
+        BIGINT repo_id FK "Tenant"
+        VARCHAR username
+        INT sort_order
+    }
+
+    reminder_state {
+        UUID id PK
+        BIGINT repo_id FK "Tenant"
+        INT issue_number
+        VARCHAR reminder_type
+        TIMESTAMP posted_at
+    }
+
+    mentor_rotation {
+        UUID id PK
+        BIGINT repo_id UK "Tenant"
+        INT next_index
+    }
+
+    audit_log {
+        UUID id PK
+        BIGINT repo_id FK "Tenant"
+        VARCHAR handler_name
+        VARCHAR action
+        VARCHAR target
+        TIMESTAMP timestamp
+        TEXT details
+    }
+
+    repo_config ||--o{ repo_config_labels : "levelLabels"
+    repo_config ||--o{ repo_config_guards : "requiredCounts"
+    repo_config ||--o{ cc_cancelled_dates : "communityCall"
+    repo_config ||--o{ cc_excluded_authors : "communityCall"
+    repo_config ||--o{ oh_cancelled_dates : "officeHours"
+    repo_config ||--o{ oh_excluded_authors : "officeHours"
+    repo_config ||--o{ spam_user : "repo_id"
+    repo_config ||--o{ mentor : "repo_id"
+    repo_config ||--o{ reminder_state : "repo_id"
+    repo_config ||--|| mentor_rotation : "repo_id"
+    repo_config ||--o{ audit_log : "repo_id"
+```
+
+### 6.3 Entities
 
 Ersetzt `RepoConfigLoader` + `RepoConfigMapper` (aktuell: YAML via GitHub API → Records).
 
@@ -255,7 +401,7 @@ REST-Endpoint importiert jemals eine Entity-Klasse.
 | `SpamUserEntity` | `repo_id`, `username` | Ersetzt `.github/spam-list.txt` |
 | `MentorEntity` | `repo_id`, `username`, `sort_order` | Ersetzt `.github/mentor_roster.json` |
 
-### 6.3 App-State-Entities
+### 6.4 App-State-Entities
 
 State den die App selbst verwaltet (nicht vom User konfiguriert):
 
@@ -265,7 +411,7 @@ State den die App selbst verwaltet (nicht vom User konfiguriert):
 | `MentorRotationEntity` | `repo_id`, `next_index` | Mentor-Rotations-Zähler |
 | `AuditLogEntity` | `repo_id`, `handler_name`, `action`, `target`, `timestamp`, `details` | Protokoll aller Bot-Aktionen |
 
-### 6.4 JPA-Repository-Schicht
+### 6.5 JPA-Repository-Schicht
 
 **Abstrakte Basisklasse `AbstractRepository<T>`:**
 
@@ -339,7 +485,7 @@ am Eintrittspunkt der Verarbeitung (Webhook-Request bzw. Scheduled-Task-Ausführ
 - Repositories selbst sind **transaktions-agnostisch** — sie arbeiten auf dem übergebenen
   `EntityManager` und kümmern sich nicht um `begin`/`commit`.
 
-### 6.5 Service-Schicht (Entity ↔ Record/DTO-Mapping)
+### 6.6 Service-Schicht (Entity ↔ Record/DTO-Mapping)
 
 Die Service-Schicht ist die einzige Stelle, die sowohl Repositories (Entities) als auch
 die bestehenden Config-Records kennt. Sie übersetzt zwischen beiden Welten.
@@ -381,7 +527,7 @@ org.hiero.bot.service/
   (bisheriges Verhalten via `RepoConfigLoader`)
 - Wenn auch keine YAML-Datei vorhanden: `DefaultRepoConfig.allDefaults()`
 
-### 6.6 REST-API für Konfiguration
+### 6.7 REST-API für Konfiguration
 
 **Endpoints:**
 
@@ -430,14 +576,15 @@ möglich. Stattdessen wird die OpenAPI-Spec manuell als YAML-Datei gepflegt:
   ein Integrationstest ergänzt, der prüft, dass alle registrierten Routen in der
   OpenAPI-Spec dokumentiert sind
 
-### 6.7 Implementierungsreihenfolge
+### 6.8 Implementierungsreihenfolge
 
 1. JPA-Infrastruktur: Dependencies, `persistence.xml`, DataSource, Flyway (6.1)
-2. `RepoConfigEntity` + Migrationen + Repository (6.2 + 6.4)
-3. Service-Schicht: `EntityRecordMapper` + `RepoConfigService` als `RepoConfig`-Quelle (6.5)
-4. State-Entities + Repositories: Reminder, Rotation, Audit (6.3 + 6.4)
-5. Spam/Mentor-Entities + Services, bestehende Utility-Klassen ablösen (6.5)
-6. REST-API-Endpoints mit Config-Records als JSON-Modell (6.6)
+2. Schema + Entities + Migrationen (6.2 + 6.3)
+3. Repository-Schicht: `AbstractRepository` + konkrete Repositories (6.5)
+4. Service-Schicht: `EntityRecordMapper` + `RepoConfigService` als `RepoConfig`-Quelle (6.6)
+5. State-Entities + Repositories: Reminder, Rotation, Audit (6.4 + 6.5)
+6. Spam/Mentor-Entities + Services, bestehende Utility-Klassen ablösen (6.6)
+7. REST-API-Endpoints mit Config-Records als JSON-Modell + OpenAPI-Spec (6.7)
 
 ---
 
