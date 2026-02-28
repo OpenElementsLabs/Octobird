@@ -41,7 +41,7 @@ public final class PermissionChecker {
      * @return {@code true} if the user is exempt from guards
      * @throws IOException if the permission cannot be fetched
      */
-    public static boolean isExemptFromGuard(final GHRepository repo, final String username) throws IOException {
+    public static boolean isCommitterOfRepo(final GHRepository repo, final String username) throws IOException {
         final GHPermissionType permission = getPermission(repo, username);
         return permission == GHPermissionType.ADMIN || permission == GHPermissionType.WRITE;
     }

@@ -6,11 +6,7 @@ import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.*;
 import org.hiero.bot.model.event.IssueCommentEvent;
-import org.hiero.bot.util.CommentMarkerChecker;
-import org.hiero.bot.util.IssueSearchHelper;
-import org.hiero.bot.util.MentorRosterLoader;
-import org.hiero.bot.util.PermissionChecker;
-import org.hiero.bot.util.SpamListLoader;
+import org.hiero.bot.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -101,6 +97,52 @@ class AssignCommandHandlerTest {
         verify(issue, never()).addAssignees(any(GHUser.class));
     }
 
+    @Test
+    void rejectsWhenIssueAlreadyHasAssignee() throws IOException {
+        // Given
+        final IssueCommentEvent event = buildEvent("/assign", "alice", "User");
+        when(gitHub.getRepository("owner/repo")).thenReturn(repo);
+        when(repo.getIssue(42)).thenReturn(issue);
+
+        final GHLabel gfiLabel = mock(GHLabel.class);
+        when(gfiLabel.getName()).thenReturn("Good First Issue");
+        when(issue.getLabels()).thenReturn(List.of(gfiLabel));
+
+        final GHUser existingAssignee = mock(GHUser.class);
+        when(issue.getAssignees()).thenReturn(List.of(existingAssignee));
+
+        // When
+        handler.handle(event, registry, CONFIG);
+
+        // Then
+        verify(issue).comment(argThat(msg -> msg.contains("already assigned")));
+        verify(issue, never()).addAssignees(any(GHUser.class));
+    }
+
+    @Test
+    void rejectsCommitterWithSelfAssignMessage() throws IOException {
+        // Given
+        final IssueCommentEvent event = buildEvent("/assign", "maintainer", "User");
+        when(gitHub.getRepository("owner/repo")).thenReturn(repo);
+        when(repo.getIssue(42)).thenReturn(issue);
+
+        final GHLabel gfiLabel = mock(GHLabel.class);
+        when(gfiLabel.getName()).thenReturn("Good First Issue");
+        when(issue.getLabels()).thenReturn(List.of(gfiLabel));
+        when(issue.getAssignees()).thenReturn(List.of());
+
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class)) {
+            pc.when(() -> PermissionChecker.isCommitterOfRepo(repo, "maintainer")).thenReturn(true);
+
+            // When
+            handler.handle(event, registry, CONFIG);
+
+            // Then
+            verify(issue).comment(argThat(msg -> msg.contains("committer")));
+            verify(issue, never()).addAssignees(any(GHUser.class));
+        }
+    }
+
     // ---- GFI tests ----
 
     @Test
@@ -116,9 +158,11 @@ class AssignCommandHandlerTest {
         when(issue.getAssignees()).thenReturn(List.of());
         when(gitHub.getUser("alice")).thenReturn(ghUser);
 
-        try (final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
+             final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
              final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
              final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
+            pc.when(() -> PermissionChecker.isCommitterOfRepo(repo, "alice")).thenReturn(false);
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(0);
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq(CONFIG.markers().mentorAssignment()))).thenReturn(true);
@@ -133,7 +177,7 @@ class AssignCommandHandlerTest {
     }
 
     @Test
-    void rejectsAlreadyAssignedUserOnGfi() throws IOException {
+    void rejectsUserExceedingAssignmentLimit() throws IOException {
         // Given
         final IssueCommentEvent event = buildEvent("/assign", "alice", "User");
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
@@ -142,21 +186,24 @@ class AssignCommandHandlerTest {
         final GHLabel gfiLabel = mock(GHLabel.class);
         when(gfiLabel.getName()).thenReturn("Good First Issue");
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
+        when(issue.getAssignees()).thenReturn(List.of());
 
-        final GHUser assignee = mock(GHUser.class);
-        when(assignee.getLogin()).thenReturn("alice");
-        when(issue.getAssignees()).thenReturn(List.of(assignee));
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+            pc.when(() -> PermissionChecker.isCommitterOfRepo(repo, "alice")).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(2);
 
-        // When
-        handler.handle(event, registry, CONFIG);
+            // When
+            handler.handle(event, registry, CONFIG);
 
-        // Then
-        verify(issue).comment(argThat(msg -> msg.contains("already assigned")));
-        verify(issue, never()).addAssignees(any(GHUser.class));
+            // Then
+            verify(issue).comment(argThat(msg -> msg.contains("exceed the limit")));
+            verify(issue, never()).addAssignees(any(GHUser.class));
+        }
     }
 
     @Test
-    void rejectsSpamUserExceedingGfiLimit() throws IOException {
+    void rejectsSpamUser() throws IOException {
         // Given
         final IssueCommentEvent event = buildEvent("/assign", "spammer", "User");
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
@@ -167,42 +214,18 @@ class AssignCommandHandlerTest {
         when(issue.getLabels()).thenReturn(List.of(gfiLabel));
         when(issue.getAssignees()).thenReturn(List.of());
 
-        try (final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
+             final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
              final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+            pc.when(() -> PermissionChecker.isCommitterOfRepo(repo, "spammer")).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "spammer")).thenReturn(0);
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
-            sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "spammer")).thenReturn(1);
 
             // When
             handler.handle(event, registry, CONFIG);
 
             // Then
-            verify(issue).comment(argThat(msg -> msg.contains("limited assignment privileges")));
-            verify(issue, never()).addAssignees(any(GHUser.class));
-        }
-    }
-
-    @Test
-    void rejectsNormalUserExceedingGfiLimit() throws IOException {
-        // Given
-        final IssueCommentEvent event = buildEvent("/assign", "alice", "User");
-        when(gitHub.getRepository("owner/repo")).thenReturn(repo);
-        when(repo.getIssue(42)).thenReturn(issue);
-
-        final GHLabel gfiLabel = mock(GHLabel.class);
-        when(gfiLabel.getName()).thenReturn("Good First Issue");
-        when(issue.getLabels()).thenReturn(List.of(gfiLabel));
-        when(issue.getAssignees()).thenReturn(List.of());
-
-        try (final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
-             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
-            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
-            sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(2);
-
-            // When
-            handler.handle(event, registry, CONFIG);
-
-            // Then
-            verify(issue).comment(argThat(msg -> msg.contains("exceed the limit")));
+            verify(issue).comment(argThat(msg -> msg.contains("flagged for spam")));
             verify(issue, never()).addAssignees(any(GHUser.class));
         }
     }
@@ -223,8 +246,11 @@ class AssignCommandHandlerTest {
 
         try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
              final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
+             final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
              final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
-            pc.when(() -> PermissionChecker.isExemptFromGuard(repo, "alice")).thenReturn(false);
+            pc.when(() -> PermissionChecker.isCommitterOfRepo(repo, "alice")).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(0);
+            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "Good First Issue")).thenReturn(0);
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), contains("@alice"))).thenReturn(false);
 
@@ -233,34 +259,6 @@ class AssignCommandHandlerTest {
 
             // Then
             verify(issue).comment(argThat(msg -> msg.contains("Good First Issue")));
-            verify(issue, never()).addAssignees(any(GHUser.class));
-        }
-    }
-
-    @Test
-    void blocksSpamUsersFromBeginnerIssues() throws IOException {
-        // Given
-        final IssueCommentEvent event = buildEvent("/assign", "spammer", "User");
-        when(gitHub.getRepository("owner/repo")).thenReturn(repo);
-        when(repo.getIssue(42)).thenReturn(issue);
-
-        final GHLabel beginnerLabel = mock(GHLabel.class);
-        when(beginnerLabel.getName()).thenReturn("beginner");
-        when(issue.getLabels()).thenReturn(List.of(beginnerLabel));
-        when(issue.getAssignees()).thenReturn(List.of());
-
-        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
-             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
-             final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class)) {
-            pc.when(() -> PermissionChecker.isExemptFromGuard(repo, "spammer")).thenReturn(false);
-            sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "spammer", "Good First Issue")).thenReturn(1);
-            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "spammer", SPAM_LIST_PATH)).thenReturn(true);
-
-            // When
-            handler.handle(event, registry, CONFIG);
-
-            // Then
-            verify(issue).comment(argThat(msg -> msg.contains("limited assignment privileges")));
             verify(issue, never()).addAssignees(any(GHUser.class));
         }
     }
@@ -281,10 +279,10 @@ class AssignCommandHandlerTest {
         try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
              final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
              final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class)) {
-            pc.when(() -> PermissionChecker.isExemptFromGuard(repo, "alice")).thenReturn(false);
-            sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "Good First Issue")).thenReturn(1);
-            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
+            pc.when(() -> PermissionChecker.isCommitterOfRepo(repo, "alice")).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(0);
+            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "Good First Issue")).thenReturn(1);
 
             // When
             handler.handle(event, registry, CONFIG);
@@ -312,8 +310,11 @@ class AssignCommandHandlerTest {
 
         try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
              final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
+             final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
              final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
-            pc.when(() -> PermissionChecker.isExemptFromGuard(repo, "alice")).thenReturn(false);
+            pc.when(() -> PermissionChecker.isCommitterOfRepo(repo, "alice")).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(0);
+            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "beginner")).thenReturn(0);
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), contains("@alice"))).thenReturn(false);
 
@@ -327,7 +328,7 @@ class AssignCommandHandlerTest {
     }
 
     @Test
-    void exemptUserBypassesIntermediatePrerequisite() throws IOException {
+    void committerIsToldToSelfAssign() throws IOException {
         // Given
         final IssueCommentEvent event = buildEvent("/assign", "maintainer", "User");
         when(gitHub.getRepository("owner/repo")).thenReturn(repo);
@@ -337,21 +338,16 @@ class AssignCommandHandlerTest {
         when(intermediateLabel.getName()).thenReturn("intermediate");
         when(issue.getLabels()).thenReturn(List.of(intermediateLabel));
         when(issue.getAssignees()).thenReturn(List.of());
-        when(gitHub.getUser("maintainer")).thenReturn(ghUser);
 
-        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
-             final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
-             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
-            pc.when(() -> PermissionChecker.isExemptFromGuard(repo, "maintainer")).thenReturn(true);
-            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "maintainer", SPAM_LIST_PATH)).thenReturn(false);
-            sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "maintainer")).thenReturn(0);
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class)) {
+            pc.when(() -> PermissionChecker.isCommitterOfRepo(repo, "maintainer")).thenReturn(true);
 
             // When
             handler.handle(event, registry, CONFIG);
 
             // Then
-            verify(issue).addAssignees(ghUser);
-            verify(issue).comment(argThat(msg -> msg.contains("has been assigned")));
+            verify(issue).comment(argThat(msg -> msg.contains("committer")));
+            verify(issue, never()).addAssignees(any(GHUser.class));
         }
     }
 
@@ -371,8 +367,11 @@ class AssignCommandHandlerTest {
 
         try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
              final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
+             final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
              final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
-            pc.when(() -> PermissionChecker.isExemptFromGuard(repo, "alice")).thenReturn(false);
+            pc.when(() -> PermissionChecker.isCommitterOfRepo(repo, "alice")).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(0);
+            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "intermediate")).thenReturn(0);
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), contains("@alice"))).thenReturn(false);
 
@@ -400,9 +399,11 @@ class AssignCommandHandlerTest {
 
         try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
              final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
+             final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
              final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
-            pc.when(() -> PermissionChecker.isExemptFromGuard(repo, "alice")).thenReturn(false);
-            // Only intermediate label lookup should happen (for advanced prerequisite check)
+            pc.when(() -> PermissionChecker.isCommitterOfRepo(repo, "alice")).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(0);
+            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "intermediate")).thenReturn(0);
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), contains("@alice"))).thenReturn(false);
 
@@ -441,10 +442,12 @@ class AssignCommandHandlerTest {
         when(issue.getAssignees()).thenReturn(List.of());
         when(gitHub.getUser("newcomer")).thenReturn(ghUser);
 
-        try (final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
+             final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
              final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
              final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class);
              final MockedStatic<MentorRosterLoader> ml = mockStatic(MentorRosterLoader.class)) {
+            pc.when(() -> PermissionChecker.isCommitterOfRepo(repo, "newcomer")).thenReturn(false);
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "newcomer", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "newcomer")).thenReturn(0);
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq(CONFIG.markers().mentorAssignment()))).thenReturn(false);
@@ -476,10 +479,12 @@ class AssignCommandHandlerTest {
         when(issue.getAssignees()).thenReturn(List.of());
         when(gitHub.getUser("experienced")).thenReturn(ghUser);
 
-        try (final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
+             final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
              final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
              final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class);
              final MockedStatic<MentorRosterLoader> ml = mockStatic(MentorRosterLoader.class)) {
+            pc.when(() -> PermissionChecker.isCommitterOfRepo(repo, "experienced")).thenReturn(false);
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "experienced", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "experienced")).thenReturn(0);
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq(CONFIG.markers().mentorAssignment()))).thenReturn(false);
@@ -507,10 +512,12 @@ class AssignCommandHandlerTest {
         when(issue.getAssignees()).thenReturn(List.of());
         when(gitHub.getUser("newcomer")).thenReturn(ghUser);
 
-        try (final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
+             final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
              final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
              final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class);
              final MockedStatic<MentorRosterLoader> ml = mockStatic(MentorRosterLoader.class)) {
+            pc.when(() -> PermissionChecker.isCommitterOfRepo(repo, "newcomer")).thenReturn(false);
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "newcomer", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "newcomer")).thenReturn(0);
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq(CONFIG.markers().mentorAssignment()))).thenReturn(true);
@@ -537,10 +544,12 @@ class AssignCommandHandlerTest {
         when(issue.getAssignees()).thenReturn(List.of());
         when(gitHub.getUser("newcomer")).thenReturn(ghUser);
 
-        try (final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
+             final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
              final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
              final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class);
              final MockedStatic<MentorRosterLoader> ml = mockStatic(MentorRosterLoader.class)) {
+            pc.when(() -> PermissionChecker.isCommitterOfRepo(repo, "newcomer")).thenReturn(false);
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "newcomer", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "newcomer")).thenReturn(0);
             mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq(CONFIG.markers().mentorAssignment()))).thenReturn(false);
@@ -575,10 +584,10 @@ class AssignCommandHandlerTest {
              final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
              final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
              final MockedStatic<MentorRosterLoader> ml = mockStatic(MentorRosterLoader.class)) {
-            pc.when(() -> PermissionChecker.isExemptFromGuard(repo, "alice")).thenReturn(false);
-            sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "Good First Issue")).thenReturn(1);
-            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
+            pc.when(() -> PermissionChecker.isCommitterOfRepo(repo, "alice")).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(0);
+            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "Good First Issue")).thenReturn(1);
 
             // When
             handler.handle(event, registry, CONFIG);

@@ -19,20 +19,17 @@ import java.util.regex.Pattern;
 
 /**
  * Handles the {@code /assign} command for all difficulty levels (GFI, beginner, intermediate,
- * advanced), and posts an introductory reminder on unassigned GFI and beginner issues when a
- * non-collaborator comments without the assign command.
+ * advanced). On a successful GFI assignment, a mentor is assigned to first-time contributors.
  *
- * <p>Validation rules per level:
- * <ul>
- *   <li><b>GFI</b> – spam users are limited by {@code spamUserMax}; normal users by
- *       {@code normalUserMax}.</li>
- *   <li><b>Beginner</b> – requires a minimum number of closed GFI issues; spam users are
- *       blocked entirely.</li>
- *   <li><b>Intermediate</b> – requires a minimum number of closed beginner issues; spam users
- *       are blocked entirely; exempt (ADMIN/WRITE) users bypass prerequisites.</li>
- *   <li><b>Advanced</b> – requires a minimum number of closed intermediate issues; spam users
- *       are blocked entirely; exempt (ADMIN/WRITE) users bypass prerequisites.</li>
- * </ul>
+ * <p>Validation order:
+ * <ol>
+ *   <li>Issue must already be unassigned (no existing assignees).</li>
+ *   <li>Committer (ADMIN/WRITE) users are told to self-assign.</li>
+ *   <li>Open assignment count must not exceed {@code normalUserMax}.</li>
+ *   <li>Spam-listed users are blocked entirely.</li>
+ *   <li>Level prerequisite: for levels above GFI the user must have completed a minimum
+ *       number of issues at the previous level (configurable via {@code guards}).</li>
+ * </ol>
  *
  * <p>Enabled via {@link org.hiero.bot.config.FeaturesConfig#assignCommand()}.
  */
@@ -75,60 +72,39 @@ public final class AssignCommandHandler extends IssueCommandTriggerHandler {
                                      final String commenter, final String repoFullName,
                                      final int issueNumber, final IssueLevel issueLevel,
                                      final RepoConfig repoConfig) throws IOException {
-        // Already assigned?
-        final boolean alreadyAssigned = issue.getAssignees().stream()
-                .anyMatch(u -> u.getLogin().equals(commenter));
-        if (alreadyAssigned) {
+        if (!issue.getAssignees().isEmpty()) {
+            issue.comment(MessageFormatter.format("Hi @{}, another account is already assigned to this issue."));
+            return;
+        }
+        if (PermissionChecker.isCommitterOfRepo(repo, commenter)) {
+            issue.comment(MessageFormatter.format("@{} you are already a committer of this repository and can assign you by yourself.", commenter));
+            return;
+        }
+        if (issue.getAssignees().stream()
+                .anyMatch(u -> u.getLogin().equals(commenter))) {
             issue.comment(MessageFormatter.format("@{} you are already assigned to this issue.", commenter));
             return;
         }
-
-        // Level-specific prerequisite check for Beginner and above (exempt users bypass)
-        if (issueLevel != IssueLevel.GOOD_FIRST_ISSUE && !PermissionChecker.isExemptFromGuard(repo, commenter)) {
-            if (!checkPrerequisite(gitHub, issue, commenter, repoFullName, issueLevel, repoConfig)) {
-                return;
-            }
+        final int normalMax = repoConfig.assignmentLimits().normalUserMax();
+        final int count = IssueSearchHelper.countOpenAssignments(gitHub, repoFullName, commenter);
+        if (count >= normalMax) {
+            issue.comment(MessageFormatter.format(
+                    "Hi @{}, assigning you to this issue would exceed the limit of {} open assignments.\n\n" +
+                            "Please resolve and merge your existing assigned issues before requesting new ones.",
+                    commenter, normalMax));
+            return;
         }
-
-        // Spam check
         final String spamListPath = repoConfig.paths().spamList();
         final boolean isSpam = SpamListLoader.isSpamUser(gitHub, repoFullName, commenter, spamListPath);
         if (isSpam) {
-            if (issueLevel == IssueLevel.GOOD_FIRST_ISSUE) {
-                // Spam users can claim GFIs but with a lower limit
-                final int spamMax = repoConfig.assignmentLimits().spamUserMax();
-                final int count = IssueSearchHelper.countOpenAssignments(gitHub, repoFullName, commenter);
-                if (count >= spamMax) {
-                    issue.comment(MessageFormatter.format(
-                            "Hi @{}, this is the Assignment Bot.\n\n" +
-                                    "Your account currently has limited assignment privileges with a maximum of **{} open assignment** at a time.\n\n" +
-                                    "You currently have {} open issue(s) assigned. " +
-                                    "Please complete and merge your existing assignment before requesting a new one.",
-                            commenter, spamMax, count));
-                    return;
-                }
-            } else {
-                // Spam users are completely blocked from beginner and above
-                issue.comment(MessageFormatter.format(
-                        "Hi @{}, this is the Assignment Bot.\n\n" +
-                                "Your account currently has limited assignment privileges. " +
-                                "You may only be assigned to issues labeled **Good First Issue**.\n\n" +
-                                "Please complete and merge your assigned Good First Issue " +
-                                "to have restrictions lifted.", commenter));
-                return;
-            }
-        } else {
-            // Assignment limit check for non-spam users
-            final int normalMax = repoConfig.assignmentLimits().normalUserMax();
-            final int count = IssueSearchHelper.countOpenAssignments(gitHub, repoFullName, commenter);
-            if (count >= normalMax) {
-                issue.comment(MessageFormatter.format(
-                        "Hi @{}, this is the Assignment Bot.\n\n" +
-                                "Assigning you to this issue would exceed the limit of {} open assignments.\n\n" +
-                                "Please resolve and merge your existing assigned issues before requesting new ones.",
-                        commenter, normalMax));
-                return;
-            }
+            issue.comment(MessageFormatter.format(
+                    "Hi @{}, your account has been flagged for spam activity in this repo and cannot be assigned to issues.\n\n" +
+                            "If you believe this is a mistake, please contact the maintainers.",
+                    commenter));
+            return;
+        }
+        if (!checkPrerequisite(gitHub, issue, commenter, repoFullName, issueLevel, repoConfig)) {
+            return;
         }
 
         issue.addAssignees(gitHub.getUser(commenter));
@@ -194,12 +170,10 @@ public final class AssignCommandHandler extends IssueCommandTriggerHandler {
             if (!CommentMarkerChecker.hasMarker(issue, userMarker)) {
                 final String currentLevelLabel = repoConfig.labels().labelFor(issueLevel);
                 issue.comment(MessageFormatter.format(
-                        "{}\n\nHi @{}, this is the Assignment Bot.\n\n" +
-                                "This is a **{}** issue that requires at least **{}** completed {} issue(s).\n\n" +
-                                "You currently have **{}** completed {} issue(s). " +
-                                "Please complete the required {} issues first.",
-                        userMarker, commenter, currentLevelLabel, required,
-                        previousLabel, closed, previousLabel, previousLabel));
+                        "Hi @{}, this is an issue labeled by {}. Working on it requires at least **{}** completed issue(s) labeled with {}.\n\n" +
+                                "You currently have **{}** completed issue(s) with the {} label. ",
+                        commenter, currentLevelLabel, required,
+                        previousLabel, closed, previousLabel));
             }
             return false;
         }
