@@ -39,7 +39,7 @@ public final class MergeConflictHandler extends AbstractEventHandler<PullRequest
     private static final BiPredicate<GitHubEventType, GitHubAction> MATCHER =
             (event, action) -> event == GitHubEventType.PULL_REQUEST
                     && (action == GitHubAction.OPENED || action == GitHubAction.SYNCHRONIZE
-                            || action == GitHubAction.REOPENED);
+                    || action == GitHubAction.REOPENED);
 
     private static final Predicate<RepoConfig> FEATURE_CHECK =
             repoConfig -> repoConfig.features().mergeConflict();
@@ -54,7 +54,7 @@ public final class MergeConflictHandler extends AbstractEventHandler<PullRequest
         final GitHub gitHub = registry.getGitHub();
 
         // Skip bots
-        if ("Bot".equals(event.sender().type())) {
+        if (event.sender().isBot()) {
             return;
         }
 

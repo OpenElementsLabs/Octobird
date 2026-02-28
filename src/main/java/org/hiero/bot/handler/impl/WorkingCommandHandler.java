@@ -1,10 +1,8 @@
 package org.hiero.bot.handler.impl;
 
 import org.hiero.bot.config.RepoConfig;
-import org.hiero.bot.handler.AbstractEventHandler;
+import org.hiero.bot.handler.IssueCommandTriggerHandler;
 import org.hiero.bot.handler.ServiceRegistry;
-import org.hiero.bot.model.GitHubAction;
-import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssueCommentEvent;
 import org.kohsuke.github.*;
 import org.slf4j.Logger;
@@ -12,7 +10,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -24,35 +21,26 @@ import java.util.regex.Pattern;
  * <p>Skips bot comments. Enabled via
  * {@link org.hiero.bot.config.FeaturesConfig#workingCommand()}.
  */
-public final class WorkingCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
+public final class WorkingCommandHandler extends IssueCommandTriggerHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkingCommandHandler.class);
-
-    private static final BiPredicate<GitHubEventType, GitHubAction> MATCHER =
-            (event, action) -> event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED;
 
     private static final Predicate<RepoConfig> FEATURE_CHECK =
             repoConfig -> repoConfig.features().workingCommand();
 
     public WorkingCommandHandler() {
-        super(IssueCommentEvent.class, MATCHER, FEATURE_CHECK);
+        super(FEATURE_CHECK);
     }
 
     @Override
-    public void handle(final IssueCommentEvent commentEvent, final ServiceRegistry registry,
-                       final RepoConfig repoConfig) throws IOException {
+    protected Pattern commandPattern(final RepoConfig repoConfig) {
+        return repoConfig.commands().compiledWorkingPattern();
+    }
+
+    @Override
+    protected void handleCommand(final IssueCommentEvent commentEvent, final ServiceRegistry registry,
+                                 final RepoConfig repoConfig) throws IOException {
         final GitHub gitHub = registry.getGitHub();
-
-        // Skip bots
-        if ("Bot".equals(commentEvent.comment().user().type())) {
-            return;
-        }
-
-        final Pattern workingPattern = repoConfig.commands().compiledWorkingPattern();
-        final String body = commentEvent.comment().body();
-        if (body == null || !workingPattern.matcher(body).find()) {
-            return;
-        }
 
         final String username = commentEvent.comment().user().login();
         final String repoFullName = commentEvent.repository().fullName();
@@ -83,6 +71,7 @@ public final class WorkingCommandHandler extends AbstractEventHandler<IssueComme
         }
 
         // React with eyes emoji on the triggering comment
+        final String body = commentEvent.comment().body();
         final List<GHIssueComment> comments = ghIssue.getComments();
         GHIssueComment targetComment = null;
         for (final GHIssueComment c : comments) {

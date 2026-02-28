@@ -207,76 +207,6 @@ class AssignCommandHandlerTest {
         }
     }
 
-    @Test
-    void postsReminderOnUnassignedGfi() throws IOException {
-        // Given
-        final IssueCommentEvent event = buildEvent("Thanks for this issue!", "alice", "User");
-        when(gitHub.getRepository("owner/repo")).thenReturn(repo);
-        when(repo.getIssue(42)).thenReturn(issue);
-
-        final GHLabel gfiLabel = mock(GHLabel.class);
-        when(gfiLabel.getName()).thenReturn("Good First Issue");
-        when(issue.getLabels()).thenReturn(List.of(gfiLabel));
-        when(issue.getAssignees()).thenReturn(List.of());
-
-        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
-             final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
-            pc.when(() -> PermissionChecker.isCollaborator(repo, "alice")).thenReturn(false);
-            mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- GFI assign reminder -->"))).thenReturn(false);
-
-            // When
-            handler.handle(event, registry, CONFIG);
-
-            // Then
-            verify(issue).comment(argThat(msg ->
-                    msg.contains("<!-- GFI assign reminder -->") && msg.contains("/assign")));
-        }
-    }
-
-    @Test
-    void skipsGfiReminderForCollaborator() throws IOException {
-        // Given
-        final IssueCommentEvent event = buildEvent("Some comment", "alice", "User");
-        when(gitHub.getRepository("owner/repo")).thenReturn(repo);
-        when(repo.getIssue(42)).thenReturn(issue);
-
-        final GHLabel gfiLabel = mock(GHLabel.class);
-        when(gfiLabel.getName()).thenReturn("Good First Issue");
-        when(issue.getLabels()).thenReturn(List.of(gfiLabel));
-        when(issue.getAssignees()).thenReturn(List.of());
-
-        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class)) {
-            pc.when(() -> PermissionChecker.isCollaborator(repo, "alice")).thenReturn(true);
-
-            // When
-            handler.handle(event, registry, CONFIG);
-
-            // Then
-            verify(issue, never()).comment(any());
-        }
-    }
-
-    @Test
-    void skipsGfiReminderWhenAlreadyAssigned() throws IOException {
-        // Given
-        final IssueCommentEvent event = buildEvent("Some comment", "alice", "User");
-        when(gitHub.getRepository("owner/repo")).thenReturn(repo);
-        when(repo.getIssue(42)).thenReturn(issue);
-
-        final GHLabel gfiLabel = mock(GHLabel.class);
-        when(gfiLabel.getName()).thenReturn("Good First Issue");
-        when(issue.getLabels()).thenReturn(List.of(gfiLabel));
-
-        final GHUser assignee = mock(GHUser.class);
-        when(issue.getAssignees()).thenReturn(List.of(assignee));
-
-        // When
-        handler.handle(event, registry, CONFIG);
-
-        // Then
-        verify(issue, never()).comment(any());
-    }
-
     // ---- Beginner tests ----
 
     @Test
@@ -365,32 +295,6 @@ class AssignCommandHandlerTest {
         }
     }
 
-    @Test
-    void postsReminderOnUnassignedBeginnerIssue() throws IOException {
-        // Given
-        final IssueCommentEvent event = buildEvent("Thanks!", "alice", "User");
-        when(gitHub.getRepository("owner/repo")).thenReturn(repo);
-        when(repo.getIssue(42)).thenReturn(issue);
-
-        final GHLabel beginnerLabel = mock(GHLabel.class);
-        when(beginnerLabel.getName()).thenReturn("beginner");
-        when(issue.getLabels()).thenReturn(List.of(beginnerLabel));
-        when(issue.getAssignees()).thenReturn(List.of());
-
-        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
-             final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
-            pc.when(() -> PermissionChecker.isCollaborator(repo, "alice")).thenReturn(false);
-            mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq("<!-- beginner assign reminder -->"))).thenReturn(false);
-
-            // When
-            handler.handle(event, registry, CONFIG);
-
-            // Then
-            verify(issue).comment(argThat(msg ->
-                    msg.contains("<!-- beginner assign reminder -->") && msg.contains("/assign")));
-        }
-    }
-
     // ---- Intermediate tests ----
 
     @Test
@@ -449,24 +353,6 @@ class AssignCommandHandlerTest {
             verify(issue).addAssignees(ghUser);
             verify(issue).comment(argThat(msg -> msg.contains("has been assigned")));
         }
-    }
-
-    @Test
-    void skipsReminderForIntermediateIssue() throws IOException {
-        // Given
-        final IssueCommentEvent event = buildEvent("Looks interesting!", "alice", "User");
-        when(gitHub.getRepository("owner/repo")).thenReturn(repo);
-        when(repo.getIssue(42)).thenReturn(issue);
-
-        final GHLabel intermediateLabel = mock(GHLabel.class);
-        when(intermediateLabel.getName()).thenReturn("intermediate");
-        when(issue.getLabels()).thenReturn(List.of(intermediateLabel));
-
-        // When
-        handler.handle(event, registry, CONFIG);
-
-        // Then
-        verify(issue, never()).comment(any());
     }
 
     // ---- Advanced tests ----

@@ -1,10 +1,8 @@
 package org.hiero.bot.handler.impl;
 
 import org.hiero.bot.config.RepoConfig;
-import org.hiero.bot.handler.AbstractEventHandler;
+import org.hiero.bot.handler.IssueCommandTriggerHandler;
 import org.hiero.bot.handler.ServiceRegistry;
-import org.hiero.bot.model.GitHubAction;
-import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssueCommentEvent;
 import org.hiero.bot.util.MessageFormatter;
 import org.kohsuke.github.GHIssue;
@@ -15,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -27,23 +24,25 @@ import java.util.regex.Pattern;
  * <p>Skips pull requests, closed issues, and bot comments. Enabled via
  * {@link org.hiero.bot.config.FeaturesConfig#unassignCommand()}.
  */
-public final class UnassignCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
+public final class UnassignCommandHandler extends IssueCommandTriggerHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(UnassignCommandHandler.class);
-
-    private static final BiPredicate<GitHubEventType, GitHubAction> MATCHER =
-            (event, action) -> event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED;
 
     private static final Predicate<RepoConfig> FEATURE_CHECK =
             repoConfig -> repoConfig.features().unassignCommand();
 
     public UnassignCommandHandler() {
-        super(IssueCommentEvent.class, MATCHER, FEATURE_CHECK);
+        super(FEATURE_CHECK);
     }
 
     @Override
-    public void handle(final IssueCommentEvent commentEvent, final ServiceRegistry registry,
-                       final RepoConfig repoConfig) throws IOException {
+    protected Pattern commandPattern(final RepoConfig repoConfig) {
+        return repoConfig.commands().compiledUnassignPattern();
+    }
+
+    @Override
+    protected void handleCommand(final IssueCommentEvent commentEvent, final ServiceRegistry registry,
+                                 final RepoConfig repoConfig) throws IOException {
         final GitHub gitHub = registry.getGitHub();
 
         // Skip PRs
@@ -53,17 +52,6 @@ public final class UnassignCommandHandler extends AbstractEventHandler<IssueComm
 
         // Skip if issue is not open
         if (!"open".equals(commentEvent.issue().state())) {
-            return;
-        }
-
-        // Skip bots
-        if ("Bot".equals(commentEvent.comment().user().type())) {
-            return;
-        }
-
-        final Pattern unassignPattern = repoConfig.commands().compiledUnassignPattern();
-        final String body = commentEvent.comment().body();
-        if (body == null || !unassignPattern.matcher(body).find()) {
             return;
         }
 

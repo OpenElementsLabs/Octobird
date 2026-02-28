@@ -63,7 +63,7 @@ public final class NextIssueRecommendationHandler extends AbstractEventHandler<P
         }
 
         // Skip bots
-        if ("Bot".equals(event.sender().type())) {
+        if (event.sender().isBot()) {
             return;
         }
 
@@ -138,7 +138,7 @@ public final class NextIssueRecommendationHandler extends AbstractEventHandler<P
     }
 
     private List<GHIssue> searchOpenUnassignedIssues(final GitHub gitHub, final String repoFullName,
-                                                      final String label) throws IOException {
+                                                     final String label) throws IOException {
         final List<GHIssue> results = new ArrayList<>();
         int count = 0;
         for (final GHIssue issue : gitHub.searchIssues()
@@ -154,10 +154,10 @@ public final class NextIssueRecommendationHandler extends AbstractEventHandler<P
     }
 
     private static String buildRecommendationComment(final String marker,
-                                                      final String completedLabelText,
-                                                      final String recommendedLabel,
-                                                      final boolean isFallback,
-                                                      final List<GHIssue> recommendations) {
+                                                     final String completedLabelText,
+                                                     final String recommendedLabel,
+                                                     final boolean isFallback,
+                                                     final List<GHIssue> recommendations) {
         final StringBuilder comment = new StringBuilder();
         comment.append(marker).append("\n\n");
         comment.append(MessageFormatter.format(

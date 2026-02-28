@@ -60,7 +60,7 @@ public final class VerifiedCommitsHandler extends AbstractEventHandler<PullReque
         final GitHub gitHub = registry.getGitHub();
 
         // Skip bots
-        if ("Bot".equals(event.sender().type())) {
+        if (event.sender().isBot()) {
             return;
         }
 

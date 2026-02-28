@@ -23,4 +23,8 @@ public record User(long id, String login, String type, @Nullable String avatarUr
         Objects.requireNonNull(login, "login must not be null");
         Objects.requireNonNull(type, "type must not be null");
     }
+
+    public boolean isBot() {
+        return "Bot".equals(type);
+    }
 }

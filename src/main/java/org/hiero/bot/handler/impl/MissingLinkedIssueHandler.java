@@ -36,7 +36,7 @@ public final class MissingLinkedIssueHandler extends AbstractEventHandler<PullRe
     private static final BiPredicate<GitHubEventType, GitHubAction> MATCHER =
             (event, action) -> event == GitHubEventType.PULL_REQUEST
                     && (action == GitHubAction.OPENED || action == GitHubAction.EDITED
-                            || action == GitHubAction.REOPENED);
+                    || action == GitHubAction.REOPENED);
 
     private static final Predicate<RepoConfig> FEATURE_CHECK =
             repoConfig -> repoConfig.features().missingLinkedIssue();
@@ -51,7 +51,7 @@ public final class MissingLinkedIssueHandler extends AbstractEventHandler<PullRe
         final GitHub gitHub = registry.getGitHub();
 
         // Skip bots
-        if ("Bot".equals(event.sender().type())) {
+        if (event.sender().isBot()) {
             return;
         }
 

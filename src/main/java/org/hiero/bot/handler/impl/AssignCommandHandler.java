@@ -1,10 +1,8 @@
 package org.hiero.bot.handler.impl;
 
 import org.hiero.bot.config.RepoConfig;
-import org.hiero.bot.handler.AbstractEventHandler;
+import org.hiero.bot.handler.IssueCommandTriggerHandler;
 import org.hiero.bot.handler.ServiceRegistry;
-import org.hiero.bot.model.GitHubAction;
-import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssueCommentEvent;
 import org.hiero.bot.util.*;
 import java.util.List;
@@ -17,7 +15,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -40,12 +37,9 @@ import java.util.regex.Pattern;
  *
  * <p>Enabled via {@link org.hiero.bot.config.FeaturesConfig#assignCommand()}.
  */
-public final class AssignCommandHandler extends AbstractEventHandler<IssueCommentEvent> {
+public final class AssignCommandHandler extends IssueCommandTriggerHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(AssignCommandHandler.class);
-
-    private static final BiPredicate<GitHubEventType, GitHubAction> MATCHER =
-            (event, action) -> event == GitHubEventType.ISSUE_COMMENT && action == GitHubAction.CREATED;
 
     private static final Predicate<RepoConfig> FEATURE_CHECK =
             repoConfig -> repoConfig.features().assignCommand();
@@ -56,19 +50,18 @@ public final class AssignCommandHandler extends AbstractEventHandler<IssueCommen
     private enum Level {ADVANCED, INTERMEDIATE, BEGINNER, GFI}
 
     public AssignCommandHandler() {
-        super(IssueCommentEvent.class, MATCHER, FEATURE_CHECK);
+        super(FEATURE_CHECK);
     }
 
     @Override
-    public void handle(final IssueCommentEvent commentEvent, final ServiceRegistry registry,
-                       final RepoConfig repoConfig) throws IOException {
+    protected Pattern commandPattern(final RepoConfig repoConfig) {
+        return repoConfig.commands().compiledAssignPattern();
+    }
+
+    @Override
+    protected void handleCommand(final IssueCommentEvent commentEvent, final ServiceRegistry registry,
+                                 final RepoConfig repoConfig) throws IOException {
         final GitHub gitHub = registry.getGitHub();
-
-        // Skip bots
-        if ("Bot".equals(commentEvent.comment().user().type())) {
-            return;
-        }
-
         final String repoFullName = commentEvent.repository().fullName();
         final int issueNumber = commentEvent.issue().number();
 
@@ -80,16 +73,8 @@ public final class AssignCommandHandler extends AbstractEventHandler<IssueCommen
             return;
         }
 
-        final Pattern assignPattern = repoConfig.commands().compiledAssignPattern();
-        final String body = commentEvent.comment().body();
-        final boolean hasAssignCommand = body != null && assignPattern.matcher(body).find();
         final String commenter = commentEvent.comment().user().login();
-
-        if (hasAssignCommand) {
-            handleAssignCommand(gitHub, repo, issue, commenter, repoFullName, issueNumber, level, repoConfig);
-        } else {
-            handleReminder(repo, issue, commenter, repoFullName, issueNumber, level, repoConfig);
-        }
+        handleAssignCommand(gitHub, repo, issue, commenter, repoFullName, issueNumber, level, repoConfig);
     }
 
     private Level determineLevel(final Collection<GHLabel> labels, final RepoConfig repoConfig) {
@@ -300,46 +285,4 @@ public final class AssignCommandHandler extends AbstractEventHandler<IssueCommen
         return true;
     }
 
-    private void handleReminder(final GHRepository repo, final GHIssue issue, final String commenter,
-                                final String repoFullName, final int issueNumber, final Level level,
-                                final RepoConfig repoConfig) throws IOException {
-        // Only post reminders for GFI and beginner issues
-        if (level != Level.GFI && level != Level.BEGINNER) {
-            return;
-        }
-
-        // Only post reminder if issue is unassigned
-        if (!issue.getAssignees().isEmpty()) {
-            return;
-        }
-
-        // Only for non-collaborators
-        if (PermissionChecker.isCollaborator(repo, commenter)) {
-            return;
-        }
-
-        if (level == Level.GFI) {
-            final String reminderMarker = repoConfig.markers().gfiReminder();
-            if (CommentMarkerChecker.hasMarker(issue, reminderMarker)) {
-                return;
-            }
-            issue.comment(MessageFormatter.format(
-                    "{}\n\nHi @{}, thanks for your interest in this issue!\n\n" +
-                            "This is a **Good First Issue** \u2014 if you'd like to work on it, " +
-                            "please comment `/assign` to get assigned.",
-                    reminderMarker, commenter));
-            LOG.info("Posted GFI assign reminder on {}#{}", repoFullName, issueNumber);
-        } else {
-            final String reminderMarker = repoConfig.markers().beginnerReminder();
-            if (CommentMarkerChecker.hasMarker(issue, reminderMarker)) {
-                return;
-            }
-            issue.comment(MessageFormatter.format(
-                    "{}\n\nHi @{}, thanks for your interest in this issue!\n\n" +
-                            "This is a **beginner** issue \u2014 if you'd like to work on it, " +
-                            "please comment `/assign` to get assigned.",
-                    reminderMarker, commenter));
-            LOG.info("Posted beginner assign reminder on {}#{}", repoFullName, issueNumber);
-        }
-    }
 }
