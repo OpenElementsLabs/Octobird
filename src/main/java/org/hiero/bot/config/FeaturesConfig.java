@@ -5,10 +5,7 @@ package org.hiero.bot.config;
  *
  * @param unassignCommand               enable the /unassign command handler
  * @param workingCommand                enable the /working command handler
- * @param assignCommand                 enable the unified /assign command handler (all difficulty levels)
- * @param mentorAssignment              enable the mentor assignment handler
- * @param intermediateGuard             enable the intermediate assignment guard
- * @param advancedGuard                 enable the advanced assignment guard
+ * @param assignCommand                 enable the unified /assign command handler (all levels + mentor assignment)
  * @param codeRabbitPlanTrigger         enable the CodeRabbit plan trigger handler
  * @param missingLinkedIssue            enable the missing linked issue reminder handler
  * @param verifiedCommits               enable the verified commits check handler
@@ -27,9 +24,6 @@ package org.hiero.bot.config;
 public record FeaturesConfig(boolean unassignCommand,
                              boolean workingCommand,
                              boolean assignCommand,
-                             boolean mentorAssignment,
-                             boolean intermediateGuard,
-                             boolean advancedGuard,
                              boolean codeRabbitPlanTrigger,
                              boolean missingLinkedIssue,
                              boolean verifiedCommits,
@@ -51,8 +45,8 @@ public record FeaturesConfig(boolean unassignCommand,
      * @return a {@code FeaturesConfig} with all features enabled
      */
     public static FeaturesConfig defaults() {
-        return new FeaturesConfig(true, true, true, true, true, true, true, true,
-                true, true, true, true, true, true, true,
-                true, true, true, true, true);
+        return new FeaturesConfig(true, true, true, true, true,
+                true, true, true, true, true, true,
+                true, true, true, true, true, true);
     }
 }

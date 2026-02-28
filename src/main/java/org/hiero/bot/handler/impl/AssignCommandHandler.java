@@ -7,6 +7,7 @@ import org.hiero.bot.model.GitHubAction;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.IssueCommentEvent;
 import org.hiero.bot.util.*;
+import java.util.List;
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHLabel;
 import org.kohsuke.github.GHRepository;
@@ -178,6 +179,41 @@ public final class AssignCommandHandler extends AbstractEventHandler<IssueCommen
         issue.addAssignees(gitHub.getUser(commenter));
         issue.comment(MessageFormatter.format("@{} has been assigned to this issue.", commenter));
         LOG.info("Assigned {} to {} issue {}#{}", commenter, level.name().toLowerCase(), repoFullName, issueNumber);
+
+        if (level == Level.GFI) {
+            tryAssignMentor(gitHub, issue, commenter, repoFullName, issueNumber, repoConfig);
+        }
+    }
+
+    private void tryAssignMentor(final GitHub gitHub, final GHIssue issue, final String assignee,
+                                 final String repoFullName, final int issueNumber,
+                                 final RepoConfig repoConfig) throws IOException {
+        final String marker = repoConfig.markers().mentorAssignment();
+        if (CommentMarkerChecker.hasMarker(issue, marker)) {
+            LOG.debug("Mentor already assigned for {}#{}", repoFullName, issueNumber);
+            return;
+        }
+
+        if (!IssueSearchHelper.hasNoMergedPullRequests(gitHub, repoFullName, assignee)) {
+            LOG.debug("{} already has merged PRs, skipping mentor assignment", assignee);
+            return;
+        }
+
+        final String rosterPath = repoConfig.paths().mentorRoster();
+        final List<String> roster = MentorRosterLoader.loadRoster(gitHub, repoFullName, rosterPath);
+        final String mentor = MentorRosterLoader.selectMentor(roster);
+        if (mentor == null) {
+            LOG.debug("No mentors available for {}", repoFullName);
+            return;
+        }
+
+        issue.comment(MessageFormatter.format(
+                "{}\n\nWelcome @{}! \uD83D\uDC4B This is your first contribution \u2014 exciting!\n\n" +
+                        "@{} has been assigned as your mentor for this issue. " +
+                        "Feel free to ask them any questions as you work through it.\n\n" +
+                        "Good luck and happy coding!",
+                marker, assignee, mentor));
+        LOG.info("Assigned mentor {} to newcomer {} on {}#{}", mentor, assignee, repoFullName, issueNumber);
     }
 
     /**

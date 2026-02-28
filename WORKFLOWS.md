@@ -6,34 +6,63 @@ This document describes every automated workflow implemented in Octobird: event-
 
 ## Table of Contents
 
+0. [Handler Overview](#0-handler-overview)
 1. [User Commands](#1-user-commands)
    - [/assign (all difficulty levels)](#11-assign-all-difficulty-levels)
    - [/unassign](#12-unassign)
    - [/working](#13-working)
-2. [Issue Assignment Enforcement](#2-issue-assignment-enforcement)
-   - [Assignment Limit Enforcement](#21-assignment-limit-enforcement)
-   - [Intermediate Guard](#22-intermediate-guard)
-   - [Advanced Guard](#23-advanced-guard)
-3. [Contributor Onboarding](#3-contributor-onboarding)
-   - [Mentor Assignment](#31-mentor-assignment)
-   - [CodeRabbit Plan Trigger](#32-coderabbit-plan-trigger)
-4. [Pull Request Workflows](#4-pull-request-workflows)
-   - [Missing Linked Issue](#41-missing-linked-issue)
-   - [Merge Conflict Detection](#42-merge-conflict-detection)
-   - [Verified Commits Check](#43-verified-commits-check)
-   - [Next Issue Recommendation](#44-next-issue-recommendation)
-5. [Notification Workflows](#5-notification-workflows)
-   - [P0 Issue Alarm](#51-p0-issue-alarm)
-   - [GFI Candidate Notification](#52-gfi-candidate-notification)
-   - [Workflow Failure Notification](#53-workflow-failure-notification)
-6. [Scheduled Tasks](#6-scheduled-tasks)
-   - [Issue Reminder — No PR](#61-issue-reminder--no-pr)
-   - [PR Inactivity Reminder](#62-pr-inactivity-reminder)
-   - [Inactivity Unassign](#63-inactivity-unassign)
-   - [Linked Issue Enforcer](#64-linked-issue-enforcer)
-   - [Community Call Reminder](#65-community-call-reminder)
-   - [Office Hours Reminder](#66-office-hours-reminder)
-7. [Configuration Reference](#7-configuration-reference)
+2. [Contributor Onboarding](#2-contributor-onboarding)
+   - [CodeRabbit Plan Trigger](#21-coderabbit-plan-trigger)
+3. [Pull Request Workflows](#3-pull-request-workflows)
+   - [Missing Linked Issue](#31-missing-linked-issue)
+   - [Merge Conflict Detection](#32-merge-conflict-detection)
+   - [Verified Commits Check](#33-verified-commits-check)
+   - [Next Issue Recommendation](#34-next-issue-recommendation)
+4. [Notification Workflows](#4-notification-workflows)
+   - [P0 Issue Alarm](#41-p0-issue-alarm)
+   - [GFI Candidate Notification](#42-gfi-candidate-notification)
+   - [Workflow Failure Notification](#43-workflow-failure-notification)
+5. [Scheduled Tasks](#5-scheduled-tasks)
+   - [Issue Reminder — No PR](#51-issue-reminder--no-pr)
+   - [PR Inactivity Reminder](#52-pr-inactivity-reminder)
+   - [Inactivity Unassign](#53-inactivity-unassign)
+   - [Linked Issue Enforcer](#54-linked-issue-enforcer)
+   - [Community Call Reminder](#55-community-call-reminder)
+   - [Office Hours Reminder](#56-office-hours-reminder)
+6. [Configuration Reference](#6-configuration-reference)
+
+---
+
+## 0. Handler Overview
+
+### Event-driven Handlers
+
+| Handler | Event | Action(s) | Feature Flag | Key Prerequisites |
+|---------|-------|-----------|--------------|-------------------|
+| `AssignCommandHandler` | `issue_comment` | `created` | `assign-command` | Issue has difficulty label (GFI/beginner/intermediate/advanced); commenter is not a bot; includes mentor assignment for GFI newcomers |
+| `UnassignCommandHandler` | `issue_comment` | `created` | `unassign-command` | Comment matches `/unassign`; issue is open and not a PR; commenter is assigned |
+| `WorkingCommandHandler` | `issue_comment` | `created` | `working-command` | Comment matches `/working`; commenter is PR author or issue assignee |
+| `CodeRabbitPlanTriggerHandler` | `issues` | `labeled` | `coderabbit-plan-trigger` | Added label is in `coderabbit.trigger-labels` |
+| `MissingLinkedIssueHandler` | `pull_request` | `opened`, `edited`, `reopened` | `missing-linked-issue` | Sender is not a bot; PR is not merged; PR body has no closing reference |
+| `MergeConflictHandler` | `pull_request` | `opened`, `synchronize`, `reopened` | `merge-conflict` | Sender is not a bot; PR is not a draft; mergeable state is "dirty" |
+| `VerifiedCommitsHandler` | `pull_request` | `opened`, `synchronize` | `verified-commits` | Sender is not a bot; at least one commit is unverified |
+| `NextIssueRecommendationHandler` | `pull_request` | `closed` | `next-issue-recommendation` | PR is merged; sender is not a bot; linked issue has beginner/GFI label |
+| `WorkflowFailureNotificationHandler` | `workflow_run` | `completed` | `workflow-failure-notification` | Workflow conclusion is "failure"; affected PRs found |
+| `P0IssueAlarmHandler` | `issues` | `labeled` | `p0-issue-alarm` | Label matches P0 label; `teams.p0-teams` is configured |
+| `GfiCandidateNotificationHandler` | `issues` | `labeled` | `gfi-candidate-notification` | Label matches GFI candidate label; `teams.gfi-candidate-team` is configured |
+
+### Scheduled Tasks
+
+| Task | Frequency | Feature Flag | Key Prerequisites |
+|------|-----------|--------------|-------------------|
+| `IssueReminderNoPrTask` | Daily | `issue-reminder-no-pr` | Issue assigned for >= `issueReminderDays`; no linked PR; no recent `/working` comment |
+| `PrInactivityReminderTask` | Daily | `pr-inactivity-reminder` | PR author is not a bot; no commits for >= `prInactivityDays` |
+| `InactivityUnassignTask` | Daily | `inactivity-unassign` | Assignee inactive for >= `inactivityDays`; no recent `/working` comment |
+| `LinkedIssueEnforcerTask` | Twice-weekly | `linked-issue-enforcer` | PR older than `linkedIssueEnforcerDays`; no closing reference or author not assigned |
+| `CommunityCallReminderTask` | Bi-weekly | `community-call-reminder` | Today matches bi-weekly schedule from anchor date; date not cancelled |
+| `OfficeHoursReminderTask` | Bi-weekly | `office-hours-reminder` | Today matches bi-weekly schedule from anchor date; date not cancelled |
+
+All handlers use HTML comment markers to prevent duplicate bot messages.
 
 ---
 
@@ -77,6 +106,16 @@ flowchart TD
     N -- No --> S{Open assignments < normalUserMax?}
     S -- No --> T[Post: assignment limit exceeded]
     S -- Yes --> Q
+    Q --> U{Level is GFI?}
+    U -- No --> Z2([Done])
+    U -- Yes --> V{Mentor marker already present?}
+    V -- Yes --> Z2
+    V -- No --> W{Assignee has merged PRs?}
+    W -- Yes --> Z2([Experienced — skip mentor])
+    W -- No --> X[Load mentor roster]
+    X --> Y{Roster empty?}
+    Y -- Yes --> Z2
+    Y -- No --> AA[Post welcome comment with mentor mention + marker]
 ```
 
 **Level prerequisites (configurable):**
@@ -137,119 +176,9 @@ flowchart TD
 
 ---
 
-## 2. Issue Assignment Enforcement
+## 2. Contributor Onboarding
 
-### 2.1 Assignment Limit Enforcement
-
-**Handler:** `AssignmentLimitHandler`
-**Feature flag:** `features.assignment-limit`
-**Trigger:** `issues` event with action `assigned`
-
-This handler fires whenever GitHub assigns a user, regardless of how the assignment happened (API, UI, or another handler). It is the backstop that enforces per-user limits.
-
-```mermaid
-flowchart TD
-    A([Issue assigned]) --> B{Is assignee ADMIN or WRITE?}
-    B -- Yes --> Z([Allow — maintainers exempt])
-    B -- No --> C{Is spam-listed user?}
-    C -- Yes --> D{Assigned issue has GFI label?}
-    D -- No --> E[Unassign + post comment:\nspam users can only claim GFI]
-    D -- Yes --> F{Open spam assignments <= spamUserMax?}
-    F -- No --> G[Unassign + post comment:\nspam limit exceeded]
-    F -- Yes --> Z
-    C -- No --> H{Open assignments <= normalUserMax?}
-    H -- Yes --> Z
-    H -- No --> I[Unassign + post comment:\nnormal limit exceeded]
-```
-
----
-
-### 2.2 Intermediate Guard
-
-**Handler:** `IntermediateAssignmentGuardHandler`
-**Feature flag:** `features.intermediate-guard`
-**Trigger:** `issues` event with action `assigned`
-
-Guards intermediate-labeled issues. Disabled entirely when `guards.required-beginner-count-for-intermediate` is 0.
-
-```mermaid
-flowchart TD
-    A([Issue assigned]) --> B{requiredBeginnerCount > 0?}
-    B -- No --> Z([Guard disabled])
-    B -- Yes --> C{Has 'intermediate' label?}
-    C -- No --> Z
-    C -- Yes --> D{Is ADMIN or WRITE?}
-    D -- Yes --> Z
-    D -- No --> E{Per-user marker already present?}
-    E -- Yes --> Z
-    E -- No --> F{Closed beginner issues >= requiredBeginnerCount?}
-    F -- Yes --> Z
-    F -- No --> G[Remove assignee]
-    G --> H[Post comment with prerequisite info + marker]
-```
-
-**Config key:** `guards.required-beginner-count-for-intermediate` (default: 0, i.e. disabled)
-
----
-
-### 2.3 Advanced Guard
-
-**Handler:** `AdvancedAssignmentGuardHandler`
-**Feature flag:** `features.advanced-guard`
-**Trigger:** `issues` event with action `assigned` OR `labeled`
-
-The advanced guard fires on both assignment and on label addition (in case the label is added after assignment).
-
-```mermaid
-flowchart TD
-    A([Issue assigned or 'advanced' label added]) --> B{Has 'advanced' label?}
-    B -- No --> Z([Ignore])
-    B -- Yes --> C{Event is LABELED?}
-    C -- Yes --> D[Collect ALL current assignees]
-    C -- No --> E[Collect only the new assignee]
-    D --> F
-    E --> F{For each assignee:\nIs ADMIN or WRITE?}
-    F -- Yes --> Z
-    F -- No --> G{Per-user marker present?}
-    G -- Yes --> Z
-    G -- No --> H{Closed intermediate issues >= requiredIntermediateCount?}
-    H -- Yes --> Z
-    H -- No --> I[Remove assignee]
-    I --> J[Post comment with prerequisite info + marker]
-```
-
-**Config key:** `guards.required-intermediate-count-for-advanced` (default: 1)
-
----
-
-## 3. Contributor Onboarding
-
-### 3.1 Mentor Assignment
-
-**Handler:** `MentorAssignmentHandler`
-**Feature flag:** `features.mentor-assignment`
-**Trigger:** `issues` event with action `assigned` on Good First Issues
-
-```mermaid
-flowchart TD
-    A([Issue assigned]) --> B{Is assignee a bot?}
-    B -- Yes --> Z([Ignore])
-    B -- No --> C{Has 'Good First Issue' label?}
-    C -- No --> Z
-    C -- Yes --> D{Assignee has any merged PRs in repo?}
-    D -- Yes --> Z([Experienced contributor — skip])
-    D -- No --> E{Marker already present?}
-    E -- Yes --> Z
-    E -- No --> F[Load mentor roster from paths.mentor-roster]
-    F --> G{Roster is empty?}
-    G -- Yes --> Z
-    G -- No --> H[Select mentor by day-based rotation]
-    H --> I[Post welcome comment mentioning\nnew contributor and mentor with marker]
-```
-
----
-
-### 3.2 CodeRabbit Plan Trigger
+### 2.1 CodeRabbit Plan Trigger
 
 **Handler:** `CodeRabbitPlanTriggerHandler`
 **Feature flag:** `features.coderabbit-plan-trigger`
@@ -270,9 +199,9 @@ flowchart TD
 
 ---
 
-## 4. Pull Request Workflows
+## 3. Pull Request Workflows
 
-### 4.1 Missing Linked Issue
+### 3.1 Missing Linked Issue
 
 **Handler:** `MissingLinkedIssueHandler`
 **Feature flag:** `features.missing-linked-issue`
@@ -293,7 +222,7 @@ flowchart TD
 
 ---
 
-### 4.2 Merge Conflict Detection
+### 3.2 Merge Conflict Detection
 
 **Handler:** `MergeConflictHandler`
 **Feature flag:** `features.merge-conflict`
@@ -316,7 +245,7 @@ flowchart TD
 
 ---
 
-### 4.3 Verified Commits Check
+### 3.3 Verified Commits Check
 
 **Handler:** `VerifiedCommitsHandler`
 **Feature flag:** `features.verified-commits`
@@ -338,7 +267,7 @@ flowchart TD
 
 ---
 
-### 4.4 Next Issue Recommendation
+### 3.4 Next Issue Recommendation
 
 **Handler:** `NextIssueRecommendationHandler`
 **Feature flag:** `features.next-issue-recommendation`
@@ -365,9 +294,9 @@ flowchart TD
 
 ---
 
-## 5. Notification Workflows
+## 4. Notification Workflows
 
-### 5.1 P0 Issue Alarm
+### 4.1 P0 Issue Alarm
 
 **Handler:** `P0IssueAlarmHandler`
 **Feature flag:** `features.p0-issue-alarm`
@@ -388,7 +317,7 @@ flowchart TD
 
 ---
 
-### 5.2 GFI Candidate Notification
+### 4.2 GFI Candidate Notification
 
 **Handler:** `GfiCandidateNotificationHandler`
 **Feature flag:** `features.gfi-candidate-notification`
@@ -409,7 +338,7 @@ flowchart TD
 
 ---
 
-### 5.3 Workflow Failure Notification
+### 4.3 Workflow Failure Notification
 
 **Handler:** `WorkflowFailureNotificationHandler`
 **Feature flag:** `features.workflow-failure-notification`
@@ -430,11 +359,11 @@ flowchart TD
 
 ---
 
-## 6. Scheduled Tasks
+## 5. Scheduled Tasks
 
 Scheduled tasks run periodically across all registered repositories. The scheduler is configured in `ScheduledTaskManager` and each task's feature flag must be enabled in the repo config.
 
-### 6.1 Issue Reminder — No PR
+### 5.1 Issue Reminder — No PR
 
 **Task:** `IssueReminderNoPrTask`
 **Feature flag:** `features.issue-reminder-no-pr`
@@ -462,7 +391,7 @@ flowchart TD
 
 ---
 
-### 6.2 PR Inactivity Reminder
+### 5.2 PR Inactivity Reminder
 
 **Task:** `PrInactivityReminderTask`
 **Feature flag:** `features.pr-inactivity-reminder`
@@ -484,7 +413,7 @@ flowchart TD
 
 ---
 
-### 6.3 Inactivity Unassign
+### 5.3 Inactivity Unassign
 
 **Task:** `InactivityUnassignTask`
 **Feature flag:** `features.inactivity-unassign`
@@ -517,7 +446,7 @@ flowchart TD
 
 ---
 
-### 6.4 Linked Issue Enforcer
+### 5.4 Linked Issue Enforcer
 
 **Task:** `LinkedIssueEnforcerTask`
 **Feature flag:** `features.linked-issue-enforcer`
@@ -546,7 +475,7 @@ flowchart TD
 
 ---
 
-### 6.5 Community Call Reminder
+### 5.5 Community Call Reminder
 
 **Task:** `CommunityCallReminderTask`
 **Feature flag:** `features.community-call-reminder`
@@ -573,7 +502,7 @@ flowchart TD
 
 ---
 
-### 6.6 Office Hours Reminder
+### 5.6 Office Hours Reminder
 
 **Task:** `OfficeHoursReminderTask`
 **Feature flag:** `features.office-hours-reminder`
@@ -600,7 +529,7 @@ flowchart TD
 
 ---
 
-## 7. Configuration Reference
+## 6. Configuration Reference
 
 All settings are read from `.github/hiero-bot.yml` in each repository. Missing keys fall back to the documented defaults.
 
@@ -608,14 +537,9 @@ All settings are read from `.github/hiero-bot.yml` in each repository. Missing k
 
 | Key | Default | Controls |
 |-----|---------|----------|
-| `gfi-assign-command` | `true` | `/assign` on GFI issues |
-| `beginner-assign-command` | `true` | `/assign` on Beginner issues |
+| `assign-command` | `true` | `/assign` command (all difficulty levels, includes limit enforcement and mentor assignment) |
 | `unassign-command` | `true` | `/unassign` command |
 | `working-command` | `true` | `/working` command |
-| `assignment-limit` | `true` | Assignment limit enforcement on assign |
-| `mentor-assignment` | `true` | Automatic mentor assignment for newcomers |
-| `intermediate-guard` | `true` | Prerequisite guard for intermediate issues |
-| `advanced-guard` | `true` | Prerequisite guard for advanced issues |
 | `coderabbit-plan-trigger` | `true` | CodeRabbit plan comment on labeling |
 | `missing-linked-issue` | `true` | PR linked-issue reminder |
 | `merge-conflict` | `true` | Merge conflict detection on PRs |

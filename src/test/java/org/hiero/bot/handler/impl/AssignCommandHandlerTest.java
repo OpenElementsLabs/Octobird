@@ -8,6 +8,7 @@ import org.hiero.bot.model.*;
 import org.hiero.bot.model.event.IssueCommentEvent;
 import org.hiero.bot.util.CommentMarkerChecker;
 import org.hiero.bot.util.IssueSearchHelper;
+import org.hiero.bot.util.MentorRosterLoader;
 import org.hiero.bot.util.PermissionChecker;
 import org.hiero.bot.util.SpamListLoader;
 import org.junit.jupiter.api.BeforeEach;
@@ -116,9 +117,11 @@ class AssignCommandHandlerTest {
         when(gitHub.getUser("alice")).thenReturn(ghUser);
 
         try (final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
-             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class)) {
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
+             final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class)) {
             sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
             sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(0);
+            mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq(CONFIG.markers().mentorAssignment()))).thenReturn(true);
 
             // When
             handler.handle(event, registry, CONFIG);
@@ -535,6 +538,169 @@ class AssignCommandHandlerTest {
                 "", defaults.labels(), defaults.assignmentLimits(), guards,
                 defaults.features(), defaults.markers(), defaults.commands(),
                 defaults.paths(), defaults.codeRabbit(), defaults.teams(), defaults.scheduled());
+    }
+
+    // ---- Mentor assignment tests ----
+
+    @Test
+    void assignsMentorToNewcomerOnGfi() throws IOException {
+        // Given
+        final IssueCommentEvent event = buildEvent("/assign", "newcomer", "User");
+        when(gitHub.getRepository("owner/repo")).thenReturn(repo);
+        when(repo.getIssue(42)).thenReturn(issue);
+
+        final GHLabel gfiLabel = mock(GHLabel.class);
+        when(gfiLabel.getName()).thenReturn("Good First Issue");
+        when(issue.getLabels()).thenReturn(List.of(gfiLabel));
+        when(issue.getAssignees()).thenReturn(List.of());
+        when(gitHub.getUser("newcomer")).thenReturn(ghUser);
+
+        try (final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
+             final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class);
+             final MockedStatic<MentorRosterLoader> ml = mockStatic(MentorRosterLoader.class)) {
+            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "newcomer", SPAM_LIST_PATH)).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "newcomer")).thenReturn(0);
+            mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq(CONFIG.markers().mentorAssignment()))).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "newcomer")).thenReturn(true);
+            ml.when(() -> MentorRosterLoader.loadRoster(gitHub, "owner/repo", CONFIG.paths().mentorRoster())).thenReturn(List.of("mentor1"));
+            ml.when(() -> MentorRosterLoader.selectMentor(List.of("mentor1"))).thenReturn("mentor1");
+
+            // When
+            handler.handle(event, registry, CONFIG);
+
+            // Then
+            verify(issue).addAssignees(ghUser);
+            verify(issue, times(2)).comment(any());
+            verify(issue, atLeastOnce()).comment(argThat(msg -> msg.contains("has been assigned")));
+            verify(issue, atLeastOnce()).comment(argThat(msg -> msg.contains("@mentor1") && msg.contains("Welcome @newcomer")));
+        }
+    }
+
+    @Test
+    void skipsMentorForExperiencedContributor() throws IOException {
+        // Given
+        final IssueCommentEvent event = buildEvent("/assign", "experienced", "User");
+        when(gitHub.getRepository("owner/repo")).thenReturn(repo);
+        when(repo.getIssue(42)).thenReturn(issue);
+
+        final GHLabel gfiLabel = mock(GHLabel.class);
+        when(gfiLabel.getName()).thenReturn("Good First Issue");
+        when(issue.getLabels()).thenReturn(List.of(gfiLabel));
+        when(issue.getAssignees()).thenReturn(List.of());
+        when(gitHub.getUser("experienced")).thenReturn(ghUser);
+
+        try (final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
+             final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class);
+             final MockedStatic<MentorRosterLoader> ml = mockStatic(MentorRosterLoader.class)) {
+            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "experienced", SPAM_LIST_PATH)).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "experienced")).thenReturn(0);
+            mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq(CONFIG.markers().mentorAssignment()))).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "experienced")).thenReturn(false);
+
+            // When
+            handler.handle(event, registry, CONFIG);
+
+            // Then
+            verify(issue).addAssignees(ghUser);
+            ml.verifyNoInteractions();
+        }
+    }
+
+    @Test
+    void skipsMentorWhenMarkerExists() throws IOException {
+        // Given
+        final IssueCommentEvent event = buildEvent("/assign", "newcomer", "User");
+        when(gitHub.getRepository("owner/repo")).thenReturn(repo);
+        when(repo.getIssue(42)).thenReturn(issue);
+
+        final GHLabel gfiLabel = mock(GHLabel.class);
+        when(gfiLabel.getName()).thenReturn("Good First Issue");
+        when(issue.getLabels()).thenReturn(List.of(gfiLabel));
+        when(issue.getAssignees()).thenReturn(List.of());
+        when(gitHub.getUser("newcomer")).thenReturn(ghUser);
+
+        try (final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
+             final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class);
+             final MockedStatic<MentorRosterLoader> ml = mockStatic(MentorRosterLoader.class)) {
+            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "newcomer", SPAM_LIST_PATH)).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "newcomer")).thenReturn(0);
+            mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq(CONFIG.markers().mentorAssignment()))).thenReturn(true);
+
+            // When
+            handler.handle(event, registry, CONFIG);
+
+            // Then
+            verify(issue).addAssignees(ghUser);
+            ml.verifyNoInteractions();
+        }
+    }
+
+    @Test
+    void skipsMentorWhenNoMentorsAvailable() throws IOException {
+        // Given
+        final IssueCommentEvent event = buildEvent("/assign", "newcomer", "User");
+        when(gitHub.getRepository("owner/repo")).thenReturn(repo);
+        when(repo.getIssue(42)).thenReturn(issue);
+
+        final GHLabel gfiLabel = mock(GHLabel.class);
+        when(gfiLabel.getName()).thenReturn("Good First Issue");
+        when(issue.getLabels()).thenReturn(List.of(gfiLabel));
+        when(issue.getAssignees()).thenReturn(List.of());
+        when(gitHub.getUser("newcomer")).thenReturn(ghUser);
+
+        try (final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
+             final MockedStatic<CommentMarkerChecker> mc = mockStatic(CommentMarkerChecker.class);
+             final MockedStatic<MentorRosterLoader> ml = mockStatic(MentorRosterLoader.class)) {
+            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "newcomer", SPAM_LIST_PATH)).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "newcomer")).thenReturn(0);
+            mc.when(() -> CommentMarkerChecker.hasMarker(eq(issue), eq(CONFIG.markers().mentorAssignment()))).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.hasNoMergedPullRequests(gitHub, "owner/repo", "newcomer")).thenReturn(true);
+            ml.when(() -> MentorRosterLoader.loadRoster(gitHub, "owner/repo", CONFIG.paths().mentorRoster())).thenReturn(List.of());
+            ml.when(() -> MentorRosterLoader.selectMentor(List.of())).thenReturn(null);
+
+            // When
+            handler.handle(event, registry, CONFIG);
+
+            // Then
+            verify(issue).addAssignees(ghUser);
+            // Only the assignment comment, no mentor comment
+            verify(issue, times(1)).comment(any());
+        }
+    }
+
+    @Test
+    void skipsMentorOnNonGfiIssue() throws IOException {
+        // Given
+        final IssueCommentEvent event = buildEvent("/assign", "alice", "User");
+        when(gitHub.getRepository("owner/repo")).thenReturn(repo);
+        when(repo.getIssue(42)).thenReturn(issue);
+
+        final GHLabel beginnerLabel = mock(GHLabel.class);
+        when(beginnerLabel.getName()).thenReturn("beginner");
+        when(issue.getLabels()).thenReturn(List.of(beginnerLabel));
+        when(issue.getAssignees()).thenReturn(List.of());
+        when(gitHub.getUser("alice")).thenReturn(ghUser);
+
+        try (final MockedStatic<PermissionChecker> pc = mockStatic(PermissionChecker.class);
+             final MockedStatic<IssueSearchHelper> sh = mockStatic(IssueSearchHelper.class);
+             final MockedStatic<SpamListLoader> sl = mockStatic(SpamListLoader.class);
+             final MockedStatic<MentorRosterLoader> ml = mockStatic(MentorRosterLoader.class)) {
+            pc.when(() -> PermissionChecker.isExemptFromGuard(repo, "alice")).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countClosedIssuesByLabel(gitHub, "owner/repo", "alice", "Good First Issue")).thenReturn(1);
+            sl.when(() -> SpamListLoader.isSpamUser(gitHub, "owner/repo", "alice", SPAM_LIST_PATH)).thenReturn(false);
+            sh.when(() -> IssueSearchHelper.countOpenAssignments(gitHub, "owner/repo", "alice")).thenReturn(0);
+
+            // When
+            handler.handle(event, registry, CONFIG);
+
+            // Then
+            verify(issue).addAssignees(ghUser);
+            ml.verifyNoInteractions();
+        }
     }
 
     private IssueCommentEvent buildEvent(final String commentBody, final String username, final String type) {

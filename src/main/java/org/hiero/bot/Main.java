@@ -55,10 +55,6 @@ public final class Main {
                 new WorkingCommandHandler(),
                 // Phase 2 - Comment Commands:
                 new AssignCommandHandler(),
-                // Phase 2 - Assignment Guards:
-                new MentorAssignmentHandler(),
-                new IntermediateAssignmentGuardHandler(),
-                new AdvancedAssignmentGuardHandler(),
                 // Phase 2 - Label Trigger:
                 new CodeRabbitPlanTriggerHandler(),
                 // Phase 3 - PR Quality Checks:

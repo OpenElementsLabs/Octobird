@@ -188,7 +188,7 @@ class RepoConfigMapperTest {
                         "spam-user-max", 0
                 ),
                 "features", Map.of(
-                        "mentor-assignment", false
+                        "assign-command", false
                 )
         );
 
@@ -200,7 +200,7 @@ class RepoConfigMapperTest {
         assertEquals("starter", config.labels().beginner());
         assertEquals(3, config.assignmentLimits().normalUserMax());
         assertEquals(0, config.assignmentLimits().spamUserMax());
-        assertFalse(config.features().mentorAssignment());
+        assertFalse(config.features().assignCommand());
     }
 
     @Test
