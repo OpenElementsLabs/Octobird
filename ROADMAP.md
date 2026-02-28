@@ -407,6 +407,29 @@ org.hiero.bot.service/
   nativ. Keine separaten DTOs nötig.
 - REST-Endpoints importieren nie Entity-Klassen, nur Config-Records.
 
+**OpenAPI / Swagger UI:**
+
+Helidon SE nutzt programmatisches Routing — keine Annotation-basierte OpenAPI-Generierung
+möglich. Stattdessen wird die OpenAPI-Spec manuell als YAML-Datei gepflegt:
+
+- **Statische OpenAPI-Spec:** `src/main/resources/openapi.yaml` — beschreibt alle Endpoints,
+  Parameter, Request/Response-Schemas, Beispielwerte und Fehlerfälle
+- **Helidon OpenAPI-Support:** Dependency `helidon-openapi` registriert automatisch
+  `GET /openapi` (liefert die Spec als JSON/YAML)
+- **Swagger UI:** Statische Swagger-UI-Dateien (WebJar oder im Classpath unter
+  `META-INF/resources/swagger-ui/`) werden als statische Ressourcen über Helidon SE
+  ausgeliefert unter `GET /swagger-ui/`
+- **Dokumentationsqualität in der Spec:**
+  - Jeder Endpoint mit `summary`, `description`, `tags`
+  - Pfad-Parameter mit `description` und `example`
+  - Request/Response-Schemas mit `description` und `example` pro Feld
+  - Alle Fehlerfälle dokumentiert (400, 401, 403, 404)
+  - Tags zur Gruppierung: „Configuration", „Spam Users", „Mentors", „Audit Log"
+  - OAuth2-Security-Schema für interaktives Testen über Swagger UI
+- **Spec muss bei API-Änderungen manuell aktualisiert werden** — als Gegenmaßnahme wird
+  ein Integrationstest ergänzt, der prüft, dass alle registrierten Routen in der
+  OpenAPI-Spec dokumentiert sind
+
 ### 6.7 Implementierungsreihenfolge
 
 1. JPA-Infrastruktur: Dependencies, `persistence.xml`, DataSource, Flyway (6.1)
