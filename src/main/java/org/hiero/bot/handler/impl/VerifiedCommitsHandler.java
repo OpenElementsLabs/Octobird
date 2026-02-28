@@ -27,9 +27,7 @@ import java.util.regex.Pattern;
 
 /**
  * Checks that all commits in a pull request are GPG-signed (verified). Posts a one-time comment
- * listing unverified commits when unsigned commits are found. Uses a fail-closed policy: if
- * pagination is truncated (more than 500 commits) and no unverified commits were detected in the
- * scanned portion, at least one is assumed to be unverified.
+ * listing unverified commits when unsigned commits are found.
  *
  * <p>Sanitizes commit messages against Markdown injection and breaks {@code @mentions} with a
  * zero-width space. Skips bots. Enabled via
@@ -39,7 +37,6 @@ public final class VerifiedCommitsHandler extends AbstractEventHandler<PullReque
 
     private static final Logger LOG = LoggerFactory.getLogger(VerifiedCommitsHandler.class);
 
-    private static final int MAX_COMMITS = 500;
     private static final int MAX_DISPLAY = 10;
     private static final Pattern MARKDOWN_SPECIAL_CHARS = Pattern.compile("[`*_~\\[\\]()]");
 
@@ -70,18 +67,11 @@ public final class VerifiedCommitsHandler extends AbstractEventHandler<PullReque
         final GHRepository repo = gitHub.getRepository(repoFullName);
         final GHPullRequest ghPR = repo.getPullRequest(prNumber);
 
-        // Collect unverified commits up to MAX_COMMITS
+        // Collect unverified commits
         final List<String> unverifiedShas = new ArrayList<>();
         final List<String> unverifiedMessages = new ArrayList<>();
-        int checkedCount = 0;
-        boolean truncated = false;
 
         for (final GHPullRequestCommitDetail commitDetail : ghPR.listCommits()) {
-            if (checkedCount >= MAX_COMMITS) {
-                truncated = true;
-                break;
-            }
-            checkedCount++;
             final String sha = commitDetail.getSha();
             final GHCommit ghCommit = repo.getCommit(sha);
             final GHVerification verification = ghCommit.getCommitShortInfo().getVerification();
@@ -91,13 +81,7 @@ public final class VerifiedCommitsHandler extends AbstractEventHandler<PullReque
             }
         }
 
-        // Fail-closed: if truncated with zero unverified found, assume at least 1
-        int unverifiedCount = unverifiedShas.size();
-        if (truncated && unverifiedCount == 0) {
-            unverifiedCount = 1;
-        }
-
-        if (unverifiedCount == 0) {
+        if (unverifiedShas.isEmpty()) {
             return;
         }
 
@@ -124,11 +108,7 @@ public final class VerifiedCommitsHandler extends AbstractEventHandler<PullReque
             commitList.append("- ...and ").append(unverifiedShas.size() - MAX_DISPLAY)
                     .append(" more\n");
         }
-        if (truncated && unverifiedShas.isEmpty()) {
-            commitList.append("- Unable to enumerate commits due to pagination limit.\n");
-        }
 
-        final String countText = truncated ? "at least " + unverifiedCount : String.valueOf(unverifiedCount);
         prAsIssue.comment(MessageFormatter.format(
                 "{}\nHi, this is VerificationBot.\n" +
                         "Your pull request cannot be merged as it has **{} unverified commit(s)**:\n\n" +
@@ -136,9 +116,9 @@ public final class VerifiedCommitsHandler extends AbstractEventHandler<PullReque
                         "Please ensure all commits are GPG-signed:\n" +
                         "`git commit -S -s -m \"Your message here\"`\n\n" +
                         "Thank you for contributing!",
-                marker, countText, commitList));
+                marker, unverifiedShas.size(), commitList));
         LOG.info("Posted unverified commits comment on {}#{} ({} unverified)",
-                repoFullName, prNumber, unverifiedCount);
+                repoFullName, prNumber, unverifiedShas.size());
     }
 
     private static String sanitizeMarkdown(final String input) {
