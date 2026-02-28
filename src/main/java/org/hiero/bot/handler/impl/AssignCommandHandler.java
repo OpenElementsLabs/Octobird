@@ -1,5 +1,6 @@
 package org.hiero.bot.handler.impl;
 
+import org.hiero.bot.config.IssueLevel;
 import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.handler.IssueCommandTriggerHandler;
 import org.hiero.bot.handler.ServiceRegistry;
@@ -61,7 +62,7 @@ public final class AssignCommandHandler extends IssueCommandTriggerHandler {
         final GHRepository repo = gitHub.getRepository(repoFullName);
         final GHIssue issue = repo.getIssue(issueNumber);
 
-        final IssueLevel issueLevel = IssueLevel.determineLevel(issue.getLabels(), repoConfig);
+        final IssueLevel issueLevel = IssueLevelDetector.determineLevel(issue.getLabels(), repoConfig.labels());
         if (issueLevel == null) {
             return;
         }

@@ -13,6 +13,21 @@ public record LabelsConfig(String goodFirstIssue, String beginner, String interm
                            String gfiCandidate) {
 
     /**
+     * Returns the label name for the given issue difficulty level.
+     *
+     * @param level the issue level
+     * @return the configured label name for that level
+     */
+    public String labelFor(final IssueLevel level) {
+        return switch (level) {
+            case GOOD_FIRST_ISSUE -> goodFirstIssue;
+            case BEGINNER -> beginner;
+            case INTERMEDIATE -> intermediate;
+            case ADVANCED -> advanced;
+        };
+    }
+
+    /**
      * Returns the default label configuration.
      *
      * @return a {@code LabelsConfig} with standard label names
