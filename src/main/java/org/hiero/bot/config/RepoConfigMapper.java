@@ -2,6 +2,7 @@ package org.hiero.bot.config;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,13 +46,16 @@ public final class RepoConfigMapper {
         if (m.isEmpty()) {
             return d;
         }
-        return new LabelsConfig(
-                stringOr(m.get("good-first-issue"), d.goodFirstIssue()),
-                stringOr(m.get("beginner"), d.beginner()),
-                stringOr(m.get("intermediate"), d.intermediate()),
-                stringOr(m.get("advanced"), d.advanced()),
-                stringOr(m.get("gfi-candidate"), d.gfiCandidate())
-        );
+        final Map<IssueLevel, String> levelLabels = new EnumMap<>(IssueLevel.class);
+        levelLabels.put(IssueLevel.GOOD_FIRST_ISSUE,
+                stringOr(m.get("good-first-issue"), d.labelFor(IssueLevel.GOOD_FIRST_ISSUE)));
+        levelLabels.put(IssueLevel.BEGINNER,
+                stringOr(m.get("beginner"), d.labelFor(IssueLevel.BEGINNER)));
+        levelLabels.put(IssueLevel.INTERMEDIATE,
+                stringOr(m.get("intermediate"), d.labelFor(IssueLevel.INTERMEDIATE)));
+        levelLabels.put(IssueLevel.ADVANCED,
+                stringOr(m.get("advanced"), d.labelFor(IssueLevel.ADVANCED)));
+        return new LabelsConfig(levelLabels, stringOr(m.get("gfi-candidate"), d.gfiCandidate()));
     }
 
     private static AssignmentLimitsConfig mapAssignmentLimits(final Map<String, Object> m) {
@@ -70,11 +74,15 @@ public final class RepoConfigMapper {
         if (m.isEmpty()) {
             return d;
         }
-        return new GuardsConfig(
-                intOr(m.get("required-gfi-count-for-beginner"), d.requiredGfiCountForBeginner()),
-                intOr(m.get("required-beginner-count-for-intermediate"), d.requiredBeginnerCountForIntermediate()),
-                intOr(m.get("required-intermediate-count-for-advanced"), d.requiredIntermediateCountForAdvanced())
-        );
+        final Map<IssueLevel, Integer> counts = new EnumMap<>(IssueLevel.class);
+        counts.put(IssueLevel.GOOD_FIRST_ISSUE, 0);
+        counts.put(IssueLevel.BEGINNER,
+                intOr(m.get("required-gfi-count-for-beginner"), d.requiredCountFor(IssueLevel.BEGINNER)));
+        counts.put(IssueLevel.INTERMEDIATE,
+                intOr(m.get("required-beginner-count-for-intermediate"), d.requiredCountFor(IssueLevel.INTERMEDIATE)));
+        counts.put(IssueLevel.ADVANCED,
+                intOr(m.get("required-intermediate-count-for-advanced"), d.requiredCountFor(IssueLevel.ADVANCED)));
+        return new GuardsConfig(counts);
     }
 
     private static FeaturesConfig mapFeatures(final Map<String, Object> m) {

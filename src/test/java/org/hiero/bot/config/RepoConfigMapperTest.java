@@ -40,10 +40,10 @@ class RepoConfigMapperTest {
         final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
-        assertEquals("Good First Issue", config.labels().goodFirstIssue());
-        assertEquals("Beginner Task", config.labels().beginner());
-        assertEquals("intermediate", config.labels().intermediate());
-        assertEquals("advanced", config.labels().advanced());
+        assertEquals("Good First Issue", config.labels().labelFor(IssueLevel.GOOD_FIRST_ISSUE));
+        assertEquals("Beginner Task", config.labels().labelFor(IssueLevel.BEGINNER));
+        assertEquals("intermediate", config.labels().labelFor(IssueLevel.INTERMEDIATE));
+        assertEquals("advanced", config.labels().labelFor(IssueLevel.ADVANCED));
         assertEquals("good first issue candidate", config.labels().gfiCandidate());
     }
 
@@ -79,9 +79,9 @@ class RepoConfigMapperTest {
         final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
-        assertEquals(3, config.guards().requiredGfiCountForBeginner());
-        assertEquals(0, config.guards().requiredBeginnerCountForIntermediate());
-        assertEquals(2, config.guards().requiredIntermediateCountForAdvanced());
+        assertEquals(3, config.guards().requiredCountFor(IssueLevel.BEGINNER));
+        assertEquals(0, config.guards().requiredCountFor(IssueLevel.INTERMEDIATE));
+        assertEquals(2, config.guards().requiredCountFor(IssueLevel.ADVANCED));
     }
 
     @Test
@@ -175,8 +175,8 @@ class RepoConfigMapperTest {
         final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
-        assertEquals("GFI", config.labels().goodFirstIssue());
-        assertEquals("starter", config.labels().beginner());
+        assertEquals("GFI", config.labels().labelFor(IssueLevel.GOOD_FIRST_ISSUE));
+        assertEquals("starter", config.labels().labelFor(IssueLevel.BEGINNER));
         assertEquals(3, config.assignmentLimits().normalUserMax());
         assertEquals(0, config.assignmentLimits().spamUserMax());
         assertFalse(config.features().assignCommand());
@@ -196,7 +196,7 @@ class RepoConfigMapperTest {
 
         // Then
         assertEquals("gfi-review", config.labels().gfiCandidate());
-        assertEquals("Good First Issue", config.labels().goodFirstIssue());
+        assertEquals("Good First Issue", config.labels().labelFor(IssueLevel.GOOD_FIRST_ISSUE));
     }
 
     @Test

@@ -2,6 +2,7 @@ package org.hiero.bot.handler.impl;
 
 import org.hiero.bot.config.DefaultRepoConfig;
 import org.hiero.bot.config.GuardsConfig;
+import org.hiero.bot.config.IssueLevel;
 import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.*;
@@ -16,7 +17,9 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -417,10 +420,9 @@ class AssignCommandHandlerTest {
 
     private static RepoConfig configWithIntermediateRequirement(final int requiredBeginner) {
         final DefaultRepoConfig defaults = DefaultRepoConfig.allDefaults();
-        final GuardsConfig guards = new GuardsConfig(
-                defaults.guards().requiredGfiCountForBeginner(),
-                requiredBeginner,
-                defaults.guards().requiredIntermediateCountForAdvanced());
+        final Map<IssueLevel, Integer> counts = new EnumMap<>(defaults.guards().requiredCounts());
+        counts.put(IssueLevel.INTERMEDIATE, requiredBeginner);
+        final GuardsConfig guards = new GuardsConfig(counts);
         return new DefaultRepoConfig(
                 "", defaults.labels(), defaults.assignmentLimits(), guards,
                 defaults.features(), defaults.markers(), defaults.commands(),

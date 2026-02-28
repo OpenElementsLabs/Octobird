@@ -1,5 +1,6 @@
 package org.hiero.bot.handler.impl;
 
+import org.hiero.bot.config.IssueLevel;
 import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.handler.AbstractEventHandler;
 import org.hiero.bot.handler.ServiceRegistry;
@@ -91,10 +92,10 @@ public final class NextIssueRecommendationHandler extends AbstractEventHandler<P
                 .map(String::toLowerCase)
                 .toList();
 
-        final String intermediateLabel = repoConfig.labels().intermediate().toLowerCase();
-        final String advancedLabel = repoConfig.labels().advanced().toLowerCase();
-        final String gfiLabel = repoConfig.labels().goodFirstIssue().toLowerCase();
-        final String beginnerLabel = repoConfig.labels().beginner().toLowerCase();
+        final String intermediateLabel = repoConfig.labels().labelFor(IssueLevel.INTERMEDIATE).toLowerCase();
+        final String advancedLabel = repoConfig.labels().labelFor(IssueLevel.ADVANCED).toLowerCase();
+        final String gfiLabel = repoConfig.labels().labelFor(IssueLevel.GOOD_FIRST_ISSUE).toLowerCase();
+        final String beginnerLabel = repoConfig.labels().labelFor(IssueLevel.BEGINNER).toLowerCase();
 
         // Skip intermediate/advanced issues
         if (labelNames.contains(intermediateLabel) || labelNames.contains(advancedLabel)) {
