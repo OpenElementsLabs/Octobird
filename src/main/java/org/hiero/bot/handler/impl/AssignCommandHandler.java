@@ -5,16 +5,14 @@ import org.hiero.bot.handler.IssueCommandTriggerHandler;
 import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.event.IssueCommentEvent;
 import org.hiero.bot.util.*;
-import java.util.List;
 import org.kohsuke.github.GHIssue;
-import org.kohsuke.github.GHLabel;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Collection;
+import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -44,11 +42,6 @@ public final class AssignCommandHandler extends IssueCommandTriggerHandler {
     private static final Predicate<RepoConfig> FEATURE_CHECK =
             repoConfig -> repoConfig.features().assignCommand();
 
-    /**
-     * Issue difficulty levels in order of precedence (highest first).
-     */
-    private enum Level {ADVANCED, INTERMEDIATE, BEGINNER, GFI}
-
     public AssignCommandHandler() {
         super(FEATURE_CHECK);
     }
@@ -68,42 +61,18 @@ public final class AssignCommandHandler extends IssueCommandTriggerHandler {
         final GHRepository repo = gitHub.getRepository(repoFullName);
         final GHIssue issue = repo.getIssue(issueNumber);
 
-        final Level level = determineLevel(issue.getLabels(), repoConfig);
-        if (level == null) {
+        final IssueLevel issueLevel = IssueLevel.determineLevel(issue.getLabels(), repoConfig);
+        if (issueLevel == null) {
             return;
         }
 
         final String commenter = commentEvent.comment().user().login();
-        handleAssignCommand(gitHub, repo, issue, commenter, repoFullName, issueNumber, level, repoConfig);
-    }
-
-    private Level determineLevel(final Collection<GHLabel> labels, final RepoConfig repoConfig) {
-        for (final GHLabel label : labels) {
-            if (label.getName().equalsIgnoreCase(repoConfig.labels().advanced())) {
-                return Level.ADVANCED;
-            }
-        }
-        for (final GHLabel label : labels) {
-            if (label.getName().equalsIgnoreCase(repoConfig.labels().intermediate())) {
-                return Level.INTERMEDIATE;
-            }
-        }
-        for (final GHLabel label : labels) {
-            if (label.getName().equalsIgnoreCase(repoConfig.labels().beginner())) {
-                return Level.BEGINNER;
-            }
-        }
-        for (final GHLabel label : labels) {
-            if (label.getName().equalsIgnoreCase(repoConfig.labels().goodFirstIssue())) {
-                return Level.GFI;
-            }
-        }
-        return null;
+        handleAssignCommand(gitHub, repo, issue, commenter, repoFullName, issueNumber, issueLevel, repoConfig);
     }
 
     private void handleAssignCommand(final GitHub gitHub, final GHRepository repo, final GHIssue issue,
                                      final String commenter, final String repoFullName,
-                                     final int issueNumber, final Level level,
+                                     final int issueNumber, final IssueLevel issueLevel,
                                      final RepoConfig repoConfig) throws IOException {
         // Already assigned?
         final boolean alreadyAssigned = issue.getAssignees().stream()
@@ -114,8 +83,8 @@ public final class AssignCommandHandler extends IssueCommandTriggerHandler {
         }
 
         // Level-specific prerequisite check for Beginner and above (exempt users bypass)
-        if (level != Level.GFI && !PermissionChecker.isExemptFromGuard(repo, commenter)) {
-            if (!checkPrerequisite(gitHub, issue, commenter, repoFullName, level, repoConfig)) {
+        if (issueLevel != IssueLevel.GOOD_FIRST_ISSUE && !PermissionChecker.isExemptFromGuard(repo, commenter)) {
+            if (!checkPrerequisite(gitHub, issue, commenter, repoFullName, issueLevel, repoConfig)) {
                 return;
             }
         }
@@ -124,7 +93,7 @@ public final class AssignCommandHandler extends IssueCommandTriggerHandler {
         final String spamListPath = repoConfig.paths().spamList();
         final boolean isSpam = SpamListLoader.isSpamUser(gitHub, repoFullName, commenter, spamListPath);
         if (isSpam) {
-            if (level == Level.GFI) {
+            if (issueLevel == IssueLevel.GOOD_FIRST_ISSUE) {
                 // Spam users can claim GFIs but with a lower limit
                 final int spamMax = repoConfig.assignmentLimits().spamUserMax();
                 final int count = IssueSearchHelper.countOpenAssignments(gitHub, repoFullName, commenter);
@@ -163,9 +132,9 @@ public final class AssignCommandHandler extends IssueCommandTriggerHandler {
 
         issue.addAssignees(gitHub.getUser(commenter));
         issue.comment(MessageFormatter.format("@{} has been assigned to this issue.", commenter));
-        LOG.info("Assigned {} to {} issue {}#{}", commenter, level.name().toLowerCase(), repoFullName, issueNumber);
+        LOG.info("Assigned {} to {} issue {}#{}", commenter, issueLevel.name().toLowerCase(), repoFullName, issueNumber);
 
-        if (level == Level.GFI) {
+        if (issueLevel == IssueLevel.GOOD_FIRST_ISSUE) {
             tryAssignMentor(gitHub, issue, commenter, repoFullName, issueNumber, repoConfig);
         }
     }
@@ -206,9 +175,9 @@ public final class AssignCommandHandler extends IssueCommandTriggerHandler {
      * {@code false} if not (and posts an explanatory comment).
      */
     private boolean checkPrerequisite(final GitHub gitHub, final GHIssue issue, final String commenter,
-                                      final String repoFullName, final Level level,
+                                      final String repoFullName, final IssueLevel issueLevel,
                                       final RepoConfig repoConfig) throws IOException {
-        return switch (level) {
+        return switch (issueLevel) {
             case BEGINNER -> checkBeginnerPrerequisite(gitHub, issue, commenter, repoFullName, repoConfig);
             case INTERMEDIATE -> checkIntermediatePrerequisite(gitHub, issue, commenter, repoFullName, repoConfig);
             case ADVANCED -> checkAdvancedPrerequisite(gitHub, issue, commenter, repoFullName, repoConfig);

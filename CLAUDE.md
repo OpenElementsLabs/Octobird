@@ -2,20 +2,25 @@
 
 ## Project Overview
 
-Octobird is a generic GitHub App that provides automation and support for contributors (especially newcomers) to contribute to open-source projects. Built as a lightweight, self-hosted Java application using Helidon.
+Octobird is a generic GitHub App that provides automation and support for contributors (especially newcomers) to
+contribute to open-source projects. Built as a lightweight, self-hosted Java application using Helidon.
 
 ## Project Goal
 
-The `actions/` folder contains existing GitHub Actions workflows, scripts, and automations imported from another repository (Hiero). These represent the target functionality that Octobird aims to replace. The goal is to migrate this workflow-based automation into a proper, generic GitHub App that:
+The `actions/` folder contains existing GitHub Actions workflows, scripts, and automations imported from another
+repository (Hiero). These represent the target functionality that Octobird aims to replace. The goal is to migrate this
+workflow-based automation into a proper, generic GitHub App that:
 
 - Can be installed on any repository
 - Handles contributor workflows (assignment, onboarding, reminders)
 - Replaces scattered GitHub Actions with centralized event-driven handlers
 - Is configurable per repository via `.github/hiero-bot.yml`
 
-The `actions/` folder serves as a **reference for features to implement** as native event handlers in the Java application. See [ROADMAP.md](ROADMAP.md) for the detailed migration plan with all features grouped into 5 phases.
+The `actions/` folder serves as a **reference for features to implement** as native event handlers in the Java
+application. See [ROADMAP.md](ROADMAP.md) for the detailed migration plan with all features grouped into 5 phases.
 
-For a complete description of every implemented workflow — handlers, scheduled tasks, user commands, decision logic, and Mermaid diagrams — see [WORKFLOWS.md](WORKFLOWS.md).
+For a complete description of every implemented workflow — handlers, scheduled tasks, user commands, decision logic, and
+Mermaid diagrams — see [WORKFLOWS.md](WORKFLOWS.md).
 
 ## Tech Stack
 
@@ -47,7 +52,7 @@ src/main/java/org/hiero/bot/
 │   ├── GitHubAppAuth.java                # GitHub App authentication + token caching
 │   └── JwtAuthProvider.java              # RS256 JWT generation
 ├── config/
-│   ├── BotConfig.java                    # Top-level bot configuration record
+│   ├── BotConfig.java                    # Top-issueLevel bot configuration record
 │   ├── RepoConfig.java                   # Per-repo configuration interface
 │   ├── DefaultRepoConfig.java            # Default values for RepoConfig
 │   ├── RepoConfigLoader.java             # Loads .github/hiero-bot.yml per repo
@@ -110,10 +115,15 @@ actions/                                  # Reference workflows from Hiero (to b
 
 - **Event-driven:** GitHub webhook → `WebhookService` → `EventRouter` → `EventHandler`
 - **Constructor-based DI:** No framework DI, dependencies wired manually in `Main.java`
-- **Handler pattern:** Extend `AbstractEventHandler<T>`, pass a `BiPredicate<GitHubEventType, GitHubAction>` (event matcher) and a `Predicate<RepoConfig>` (feature flag check) to `super()`. The `EventRouter` calls `isActive(repoConfig)` before `handle()`.
-- **ServiceRegistry:** `handle()` receives a `ServiceRegistry` (not `GitHub` directly) to allow future services (Discord, Slack, etc.). Use `registry.getGitHub()` inside handlers.
-- **Utility classes:** All static helper utilities live in `org.hiero.bot.util`. Use `MessageFormatter.format("Hi @{}, limit is {}", user, n)` for comment strings (SLF4J-style `{}` placeholders).
-- **Per-repo config:** Loaded from `.github/hiero-bot.yml` via `RepoConfigLoader`, mapped to typed records via `RepoConfigMapper`.
+- **Handler pattern:** Extend `AbstractEventHandler<T>`, pass a `BiPredicate<GitHubEventType, GitHubAction>` (event
+  matcher) and a `Predicate<RepoConfig>` (feature flag check) to `super()`. The `EventRouter` calls
+  `isActive(repoConfig)` before `handle()`.
+- **ServiceRegistry:** `handle()` receives a `ServiceRegistry` (not `GitHub` directly) to allow future services (
+  Discord, Slack, etc.). Use `registry.getGitHub()` inside handlers.
+- **Utility classes:** All static helper utilities live in `org.hiero.bot.util`. Use
+  `MessageFormatter.format("Hi @{}, limit is {}", user, n)` for comment strings (SLF4J-style `{}` placeholders).
+- **Per-repo config:** Loaded from `.github/hiero-bot.yml` via `RepoConfigLoader`, mapped to typed records via
+  `RepoConfigMapper`.
 
 ### Design for future persistence
 
@@ -134,11 +144,13 @@ features, keep the following in mind:
 
 1. Create a class in `org.hiero.bot.handler.impl` extending `AbstractEventHandler<T extends WebhookEvent>`
 2. Declare `private static final BiPredicate<GitHubEventType, GitHubAction> MATCHER` for event filtering
-3. Declare `private static final Predicate<RepoConfig> FEATURE_CHECK` for the feature flag (e.g. `repoConfig -> repoConfig.features().myFeature()`)
-4. Call `super(MyEvent.class, MATCHER, FEATURE_CHECK)` in the constructor — no need to override `matches()` or `isActive()`
+3. Declare `private static final Predicate<RepoConfig> FEATURE_CHECK` for the feature flag (e.g.
+   `repoConfig -> repoConfig.features().myFeature()`)
+4. Call `super(MyEvent.class, MATCHER, FEATURE_CHECK)` in the constructor — no need to override `matches()` or
+   `isActive()`
 5. Implement `handle(T event, ServiceRegistry registry, RepoConfig repoConfig)`:
-   - Get `final GitHub gitHub = registry.getGitHub();`
-   - Use `MessageFormatter.format("template with {} placeholders", args)` for `issue.comment(...)` strings
+    - Get `final GitHub gitHub = registry.getGitHub();`
+    - Use `MessageFormatter.format("template with {} placeholders", args)` for `issue.comment(...)` strings
 6. Register the handler in `Main.java` in the `handlers` list
 
 ## Code Conventions
@@ -177,11 +189,12 @@ void removesUnqualifiedUser() throws IOException {
 - `// Then` — assertions and verifications
 
 This applies to all tests regardless of whether they use Mockito, plain JUnit assertions,
-or integration-level setup. Do not omit any of the three sections, even if one is trivial.
+or integration-issueLevel setup. Do not omit any of the three sections, even if one is trivial.
 
 ## Configuration
 
 Application config in `src/main/resources/application.yaml`:
+
 - `server.port` - HTTP port (default: 8080)
 - `bot.app-id` - GitHub App ID
 - `bot.private-key` - RSA private key for JWT auth
