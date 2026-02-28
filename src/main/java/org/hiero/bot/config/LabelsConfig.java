@@ -7,11 +7,10 @@ package org.hiero.bot.config;
  * @param beginner       label for beginner issues
  * @param intermediate   label for intermediate issues
  * @param advanced       label for advanced issues
- * @param p0             label that triggers the P0 team alarm notification
  * @param gfiCandidate   label that triggers the GFI candidate team notification
  */
 public record LabelsConfig(String goodFirstIssue, String beginner, String intermediate, String advanced,
-                           String p0, String gfiCandidate) {
+                           String gfiCandidate) {
 
     /**
      * Returns the default label configuration.
@@ -20,6 +19,6 @@ public record LabelsConfig(String goodFirstIssue, String beginner, String interm
      */
     public static LabelsConfig defaults() {
         return new LabelsConfig("Good First Issue", "beginner", "intermediate", "advanced",
-                "p0", "good first issue candidate");
+                "good first issue candidate");
     }
 }

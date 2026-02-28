@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -26,7 +25,6 @@ class RepoConfigMapperTest {
         assertEquals(MarkersConfig.defaults(), config.markers());
         assertEquals(CommandsConfig.defaults(), config.commands());
         assertEquals(PathsConfig.defaults(), config.paths());
-        assertEquals(CodeRabbitConfig.defaults(), config.codeRabbit());
         assertEquals(TeamsConfig.defaults(), config.teams());
         assertEquals(ScheduledConfig.defaults(), config.scheduled());
     }
@@ -46,7 +44,6 @@ class RepoConfigMapperTest {
         assertEquals("Beginner Task", config.labels().beginner());
         assertEquals("intermediate", config.labels().intermediate());
         assertEquals("advanced", config.labels().advanced());
-        assertEquals("p0", config.labels().p0());
         assertEquals("good first issue candidate", config.labels().gfiCandidate());
     }
 
@@ -92,8 +89,7 @@ class RepoConfigMapperTest {
         // Given
         final Map<String, Object> raw = Map.of(
                 "features", Map.of(
-                        "unassign-command", false,
-                        "coderabbit-plan-trigger", false
+                        "unassign-command", false
                 )
         );
 
@@ -102,8 +98,7 @@ class RepoConfigMapperTest {
 
         // Then
         assertFalse(config.features().unassignCommand());
-        assertTrue(config.features().workingCommand());
-        assertFalse(config.features().codeRabbitPlanTrigger());
+        assertTrue(config.features().assignCommand());
     }
 
     @Test
@@ -122,22 +117,6 @@ class RepoConfigMapperTest {
         // Then
         assertEquals("custom/spam.txt", config.paths().spamList());
         assertEquals("custom/mentors.json", config.paths().mentorRoster());
-    }
-
-    @Test
-    void customCodeRabbitTriggerLabels() {
-        // Given
-        final Map<String, Object> raw = Map.of(
-                "coderabbit", Map.of(
-                        "trigger-labels", List.of("beginner", "expert")
-                )
-        );
-
-        // When
-        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
-
-        // Then
-        assertEquals(Set.of("beginner", "expert"), config.codeRabbit().triggerLabels());
     }
 
     @Test
@@ -204,11 +183,10 @@ class RepoConfigMapperTest {
     }
 
     @Test
-    void customP0AndGfiCandidateLabels() {
+    void customGfiCandidateLabel() {
         // Given
         final Map<String, Object> raw = Map.of(
                 "labels", Map.of(
-                        "p0", "critical",
                         "gfi-candidate", "gfi-review"
                 )
         );
@@ -217,7 +195,6 @@ class RepoConfigMapperTest {
         final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
-        assertEquals("critical", config.labels().p0());
         assertEquals("gfi-review", config.labels().gfiCandidate());
         assertEquals("Good First Issue", config.labels().goodFirstIssue());
     }
@@ -227,7 +204,6 @@ class RepoConfigMapperTest {
         // Given
         final Map<String, Object> raw = Map.of(
                 "teams", Map.of(
-                        "p0-teams", List.of("@org/maintainers", "@org/triage"),
                         "gfi-candidate-team", "@org/gfi-support"
                 )
         );
@@ -236,7 +212,6 @@ class RepoConfigMapperTest {
         final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
-        assertEquals(List.of("@org/maintainers", "@org/triage"), config.teams().p0Teams());
         assertEquals("@org/gfi-support", config.teams().gfiCandidateTeam());
     }
 
@@ -251,7 +226,6 @@ class RepoConfigMapperTest {
         final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
-        assertEquals(List.of(), config.teams().p0Teams());
         assertEquals("", config.teams().gfiCandidateTeam());
     }
 
@@ -260,7 +234,6 @@ class RepoConfigMapperTest {
         // Given
         final Map<String, Object> raw = Map.of(
                 "features", Map.of(
-                        "p0-issue-alarm", false,
                         "gfi-candidate-notification", false
                 )
         );
@@ -269,7 +242,6 @@ class RepoConfigMapperTest {
         final RepoConfig config = RepoConfigMapper.fromMap("", raw);
 
         // Then
-        assertFalse(config.features().p0IssueAlarm());
         assertFalse(config.features().gfiCandidateNotification());
         assertTrue(config.features().workflowFailureNotification());
     }
@@ -370,6 +342,5 @@ class RepoConfigMapperTest {
         assertFalse(config.features().linkedIssueEnforcer());
         assertFalse(config.features().communityCallReminder());
         assertFalse(config.features().officeHoursReminder());
-        assertTrue(config.features().p0IssueAlarm());
     }
 }

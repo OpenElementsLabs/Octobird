@@ -4,15 +4,12 @@ package org.hiero.bot.config;
  * Per-handler feature flags that control which handlers are active.
  *
  * @param unassignCommand               enable the /unassign command handler
- * @param workingCommand                enable the /working command handler
  * @param assignCommand                 enable the unified /assign command handler (all levels + mentor assignment)
- * @param codeRabbitPlanTrigger         enable the CodeRabbit plan trigger handler
  * @param missingLinkedIssue            enable the missing linked issue reminder handler
  * @param verifiedCommits               enable the verified commits check handler
  * @param mergeConflict                 enable the merge conflict detection handler
  * @param nextIssueRecommendation       enable the next issue recommendation handler
  * @param workflowFailureNotification   enable the workflow failure notification handler
- * @param p0IssueAlarm                  enable the P0 issue team alarm handler
  * @param gfiCandidateNotification      enable the GFI candidate team notification handler
  * @param inactivityUnassign            enable the inactivity unassign scheduled task
  * @param issueReminderNoPr             enable the issue reminder (no PR) scheduled task
@@ -22,15 +19,12 @@ package org.hiero.bot.config;
  * @param officeHoursReminder           enable the office-hours reminder scheduled task
  */
 public record FeaturesConfig(boolean unassignCommand,
-                             boolean workingCommand,
                              boolean assignCommand,
-                             boolean codeRabbitPlanTrigger,
                              boolean missingLinkedIssue,
                              boolean verifiedCommits,
                              boolean mergeConflict,
                              boolean nextIssueRecommendation,
                              boolean workflowFailureNotification,
-                             boolean p0IssueAlarm,
                              boolean gfiCandidateNotification,
                              boolean inactivityUnassign,
                              boolean issueReminderNoPr,
@@ -45,8 +39,8 @@ public record FeaturesConfig(boolean unassignCommand,
      * @return a {@code FeaturesConfig} with all features enabled
      */
     public static FeaturesConfig defaults() {
-        return new FeaturesConfig(true, true, true, true, true,
-                true, true, true, true, true, true,
+        return new FeaturesConfig(true, true, true,
+                true, true, true, true, true,
                 true, true, true, true, true, true);
     }
 }

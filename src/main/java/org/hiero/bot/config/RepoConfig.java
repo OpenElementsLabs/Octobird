@@ -35,9 +35,6 @@ public interface RepoConfig {
     /** File paths for per-repo data files. */
     PathsConfig paths();
 
-    /** CodeRabbit trigger configuration. */
-    CodeRabbitConfig codeRabbit();
-
     /** GitHub team mentions for label-based notifications. */
     TeamsConfig teams();
 

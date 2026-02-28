@@ -52,19 +52,15 @@ public final class Main {
         final List<EventHandler<?>> handlers = List.of(
                 // Phase 1 (retained):
                 new UnassignCommandHandler(),
-                new WorkingCommandHandler(),
                 // Phase 2 - Comment Commands:
                 new AssignCommandHandler(),
-                // Phase 2 - Label Trigger:
-                new CodeRabbitPlanTriggerHandler(),
                 // Phase 3 - PR Quality Checks:
                 new MissingLinkedIssueHandler(),
                 new VerifiedCommitsHandler(),
                 new MergeConflictHandler(),
                 new NextIssueRecommendationHandler(),
                 new WorkflowFailureNotificationHandler(),
-                // Phase 4 - Label-based Notifications:
-                new P0IssueAlarmHandler(),
+                // Phase 4 - Label-based Notification:
                 new GfiCandidateNotificationHandler()
         );
         final WebhookParser webhookParser = new JacksonWebhookParser();

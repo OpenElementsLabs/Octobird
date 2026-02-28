@@ -10,13 +10,11 @@ package org.hiero.bot.config;
  * @param mentorAssignment               marker for mentor assignment
  * @param intermediateGuard              marker for intermediate assignment guard
  * @param advancedGuard                  marker for advanced assignment guard
- * @param codeRabbitPlanTrigger          marker for CodeRabbit plan trigger
  * @param missingLinkedIssue             marker for missing linked issue reminder
  * @param verifiedCommits                marker for verified commits check
  * @param mergeConflict                  marker for merge conflict detection
  * @param nextIssueRecommendation        marker for next issue recommendation
  * @param workflowFailureNotification    marker for workflow failure notification
- * @param p0IssueAlarm                   marker for P0 issue team alarm notification
  * @param gfiCandidateNotification       marker for GFI candidate team notification
  * @param inactivityUnassign             marker for inactivity unassign comment
  * @param issueReminderNoPr              marker for issue reminder (no PR) comment
@@ -32,13 +30,11 @@ public record MarkersConfig(String unassignPrefix,
                             String mentorAssignment,
                             String intermediateGuard,
                             String advancedGuard,
-                            String codeRabbitPlanTrigger,
                             String missingLinkedIssue,
                             String verifiedCommits,
                             String mergeConflict,
                             String nextIssueRecommendation,
                             String workflowFailureNotification,
-                            String p0IssueAlarm,
                             String gfiCandidateNotification,
                             String inactivityUnassign,
                             String issueReminderNoPr,
@@ -61,13 +57,11 @@ public record MarkersConfig(String unassignPrefix,
                 "<!-- Mentor Assignment Bot -->",
                 "<!-- Intermediate Issue Guard -->",
                 "<!-- advanced-check:unqualified -->",
-                "<!-- CodeRabbit Plan Trigger -->",
                 "<!-- LinkBot Missing Issue -->",
                 "<!-- commit-verification-bot -->",
                 "<!-- MergeConflictBotSignature-v1 -->",
                 "<!-- next-issue-bot-marker -->",
                 "<!-- workflowbot:workflow-failure-notifier -->",
-                "<!-- P0 Issue Notification -->",
                 "<!-- GFI Candidate Notification -->",
                 "<!-- inactivity-unassign-bot -->",
                 "<!-- issue-reminder-bot -->",

@@ -423,7 +423,7 @@ class AssignCommandHandlerTest {
         return new DefaultRepoConfig(
                 "", defaults.labels(), defaults.assignmentLimits(), guards,
                 defaults.features(), defaults.markers(), defaults.commands(),
-                defaults.paths(), defaults.codeRabbit(), defaults.teams(), defaults.scheduled());
+                defaults.paths(), defaults.teams(), defaults.scheduled());
     }
 
     // ---- Mentor assignment tests ----

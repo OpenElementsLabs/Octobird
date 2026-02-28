@@ -2,11 +2,9 @@ package org.hiero.bot.config;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Maps a raw YAML configuration map to a typed {@link RepoConfig}, merging partial values with
@@ -35,12 +33,11 @@ public final class RepoConfigMapper {
         final MarkersConfig markers = mapMarkers(asMap(raw.get("markers")));
         final CommandsConfig commands = mapCommands(asMap(raw.get("commands")));
         final PathsConfig paths = mapPaths(asMap(raw.get("paths")));
-        final CodeRabbitConfig codeRabbit = mapCodeRabbit(asMap(raw.get("coderabbit")));
         final TeamsConfig teams = mapTeams(asMap(raw.get("teams")));
         final ScheduledConfig scheduled = mapScheduled(asMap(raw.get("scheduled")));
 
         return new DefaultRepoConfig(repoFullName, labels, limits, guards, features, markers, commands, paths,
-                codeRabbit, teams, scheduled);
+                teams, scheduled);
     }
 
     private static LabelsConfig mapLabels(final Map<String, Object> m) {
@@ -53,7 +50,6 @@ public final class RepoConfigMapper {
                 stringOr(m.get("beginner"), d.beginner()),
                 stringOr(m.get("intermediate"), d.intermediate()),
                 stringOr(m.get("advanced"), d.advanced()),
-                stringOr(m.get("p0"), d.p0()),
                 stringOr(m.get("gfi-candidate"), d.gfiCandidate())
         );
     }
@@ -88,15 +84,12 @@ public final class RepoConfigMapper {
         }
         return new FeaturesConfig(
                 boolOr(m.get("unassign-command"), d.unassignCommand()),
-                boolOr(m.get("working-command"), d.workingCommand()),
                 boolOr(m.get("assign-command"), d.assignCommand()),
-                boolOr(m.get("coderabbit-plan-trigger"), d.codeRabbitPlanTrigger()),
                 boolOr(m.get("missing-linked-issue"), d.missingLinkedIssue()),
                 boolOr(m.get("verified-commits"), d.verifiedCommits()),
                 boolOr(m.get("merge-conflict"), d.mergeConflict()),
                 boolOr(m.get("next-issue-recommendation"), d.nextIssueRecommendation()),
                 boolOr(m.get("workflow-failure-notification"), d.workflowFailureNotification()),
-                boolOr(m.get("p0-issue-alarm"), d.p0IssueAlarm()),
                 boolOr(m.get("gfi-candidate-notification"), d.gfiCandidateNotification()),
                 boolOr(m.get("inactivity-unassign"), d.inactivityUnassign()),
                 boolOr(m.get("issue-reminder-no-pr"), d.issueReminderNoPr()),
@@ -120,13 +113,11 @@ public final class RepoConfigMapper {
                 stringOr(m.get("mentor-assignment"), d.mentorAssignment()),
                 stringOr(m.get("intermediate-guard"), d.intermediateGuard()),
                 stringOr(m.get("advanced-guard"), d.advancedGuard()),
-                stringOr(m.get("coderabbit-plan-trigger"), d.codeRabbitPlanTrigger()),
                 stringOr(m.get("missing-linked-issue"), d.missingLinkedIssue()),
                 stringOr(m.get("verified-commits"), d.verifiedCommits()),
                 stringOr(m.get("merge-conflict"), d.mergeConflict()),
                 stringOr(m.get("next-issue-recommendation"), d.nextIssueRecommendation()),
                 stringOr(m.get("workflow-failure-notification"), d.workflowFailureNotification()),
-                stringOr(m.get("p0-issue-alarm"), d.p0IssueAlarm()),
                 stringOr(m.get("gfi-candidate-notification"), d.gfiCandidateNotification()),
                 stringOr(m.get("inactivity-unassign"), d.inactivityUnassign()),
                 stringOr(m.get("issue-reminder-no-pr"), d.issueReminderNoPr()),
@@ -165,34 +156,7 @@ public final class RepoConfigMapper {
         if (m.isEmpty()) {
             return d;
         }
-        final Object p0TeamsObj = m.get("p0-teams");
-        final List<String> p0Teams;
-        if (p0TeamsObj instanceof Collection<?> collection) {
-            final List<String> teams = new ArrayList<>();
-            for (final Object item : collection) {
-                teams.add(String.valueOf(item));
-            }
-            p0Teams = List.copyOf(teams);
-        } else {
-            p0Teams = d.p0Teams();
-        }
-        return new TeamsConfig(p0Teams, stringOr(m.get("gfi-candidate-team"), d.gfiCandidateTeam()));
-    }
-
-    private static CodeRabbitConfig mapCodeRabbit(final Map<String, Object> m) {
-        final CodeRabbitConfig d = CodeRabbitConfig.defaults();
-        if (m.isEmpty()) {
-            return d;
-        }
-        final Object triggerObj = m.get("trigger-labels");
-        if (triggerObj instanceof Collection<?> collection) {
-            final Set<String> labels = new HashSet<>();
-            for (final Object item : collection) {
-                labels.add(String.valueOf(item));
-            }
-            return new CodeRabbitConfig(Set.copyOf(labels));
-        }
-        return d;
+        return new TeamsConfig(stringOr(m.get("gfi-candidate-team"), d.gfiCandidateTeam()));
     }
 
     private static ScheduledConfig mapScheduled(final Map<String, Object> m) {

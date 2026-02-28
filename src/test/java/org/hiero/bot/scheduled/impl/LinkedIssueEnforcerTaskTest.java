@@ -204,12 +204,12 @@ class LinkedIssueEnforcerTaskTest {
     private static RepoConfig configWithFeatureDisabled() {
         final DefaultRepoConfig defaults = DefaultRepoConfig.allDefaults("owner/repo");
         final FeaturesConfig features = new FeaturesConfig(
+                true, true, true,
                 true, true, true, true, true,
-                true, true, true, true, true, true,
                 true, true, true, false, true, true);
         return new DefaultRepoConfig(
                 "owner/repo", defaults.labels(), defaults.assignmentLimits(), defaults.guards(),
                 features, defaults.markers(), defaults.commands(),
-                defaults.paths(), defaults.codeRabbit(), defaults.teams(), defaults.scheduled());
+                defaults.paths(), defaults.teams(), defaults.scheduled());
     }
 }

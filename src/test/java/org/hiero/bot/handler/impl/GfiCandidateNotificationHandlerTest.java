@@ -194,8 +194,7 @@ class GfiCandidateNotificationHandlerTest {
                 defaults.markers(),
                 defaults.commands(),
                 defaults.paths(),
-                defaults.codeRabbit(),
-                new TeamsConfig(defaults.teams().p0Teams(), teamMention),
+                new TeamsConfig(teamMention),
                 defaults.scheduled()
         );
     }
@@ -203,8 +202,8 @@ class GfiCandidateNotificationHandlerTest {
     private static RepoConfig configWithFeatureDisabled() {
         final DefaultRepoConfig defaults = DefaultRepoConfig.allDefaults();
         final FeaturesConfig features = new FeaturesConfig(
-                true, true, true, true, true,
-                true, true, true, true, true, false,
+                true, true, true,
+                true, true, true, true, false,
                 true, true, true, true, true, true);
         return new DefaultRepoConfig(
                 "",
@@ -215,7 +214,6 @@ class GfiCandidateNotificationHandlerTest {
                 defaults.markers(),
                 defaults.commands(),
                 defaults.paths(),
-                defaults.codeRabbit(),
                 defaults.teams(),
                 defaults.scheduled()
         );
