@@ -172,83 +172,34 @@ public final class AssignCommandHandler extends IssueCommandTriggerHandler {
     }
 
     /**
-     * Checks the level-specific prerequisite for the commenter. Returns {@code true} if qualified,
+     * Checks the level-specific prerequisite for the commenter. The user must have completed
+     * a minimum number of issues at the previous level. Returns {@code true} if qualified,
      * {@code false} if not (and posts an explanatory comment).
      */
     private boolean checkPrerequisite(final GitHub gitHub, final GHIssue issue, final String commenter,
                                       final String repoFullName, final IssueLevel issueLevel,
                                       final RepoConfig repoConfig) throws IOException {
-        return switch (issueLevel) {
-            case BEGINNER -> checkBeginnerPrerequisite(gitHub, issue, commenter, repoFullName, repoConfig);
-            case INTERMEDIATE -> checkIntermediatePrerequisite(gitHub, issue, commenter, repoFullName, repoConfig);
-            case ADVANCED -> checkAdvancedPrerequisite(gitHub, issue, commenter, repoFullName, repoConfig);
-            default -> true;
-        };
-    }
-
-    private boolean checkBeginnerPrerequisite(final GitHub gitHub, final GHIssue issue,
-                                              final String commenter, final String repoFullName,
-                                              final RepoConfig repoConfig) throws IOException {
-        final String gfiLabel = repoConfig.labels().goodFirstIssue();
-        final int required = repoConfig.guards().requiredGfiCountForBeginner();
-        final String markerPrefix = repoConfig.markers().beginnerGfiGuard();
-        final String userMarker = markerPrefix + " @" + commenter;
-
-        final int closed = IssueSearchHelper.countClosedIssuesByLabel(gitHub, repoFullName, commenter, gfiLabel);
-        if (closed < required) {
-            if (!CommentMarkerChecker.hasMarker(issue, userMarker)) {
-                issue.comment(MessageFormatter.format(
-                        "{}\n\nHi @{}, this is the Assignment Bot.\n\n" +
-                                "This is a **beginner** issue that requires at least **{}** completed Good First Issue(s).\n\n" +
-                                "You currently have **{}** completed Good First Issue(s). " +
-                                "Please complete a Good First Issue before requesting a beginner issue.",
-                        userMarker, commenter, required, closed));
-            }
-            return false;
+        final IssueLevel previousLevel = issueLevel.previousLevel();
+        if (previousLevel == null) {
+            return true;
         }
-        return true;
-    }
 
-    private boolean checkIntermediatePrerequisite(final GitHub gitHub, final GHIssue issue,
-                                                  final String commenter, final String repoFullName,
-                                                  final RepoConfig repoConfig) throws IOException {
-        final String beginnerLabel = repoConfig.labels().beginner();
-        final int required = repoConfig.guards().requiredBeginnerCountForIntermediate();
-        final String markerPrefix = repoConfig.markers().intermediateGuard();
+        final String previousLabel = repoConfig.labels().labelFor(previousLevel);
+        final int required = repoConfig.guards().requiredCountFor(issueLevel);
+        final String markerPrefix = repoConfig.markers().guardMarkerFor(issueLevel);
         final String userMarker = markerPrefix + " @" + commenter;
 
-        final int closed = IssueSearchHelper.countClosedIssuesByLabel(gitHub, repoFullName, commenter, beginnerLabel);
+        final int closed = IssueSearchHelper.countClosedIssuesByLabel(gitHub, repoFullName, commenter, previousLabel);
         if (closed < required) {
             if (!CommentMarkerChecker.hasMarker(issue, userMarker)) {
+                final String currentLevelLabel = repoConfig.labels().labelFor(issueLevel);
                 issue.comment(MessageFormatter.format(
                         "{}\n\nHi @{}, this is the Assignment Bot.\n\n" +
-                                "This is an **intermediate** issue that requires at least **{}** completed beginner issue(s).\n\n" +
-                                "You currently have **{}** completed beginner issue(s). " +
-                                "Please complete the required beginner issues first.",
-                        userMarker, commenter, required, closed));
-            }
-            return false;
-        }
-        return true;
-    }
-
-    private boolean checkAdvancedPrerequisite(final GitHub gitHub, final GHIssue issue,
-                                              final String commenter, final String repoFullName,
-                                              final RepoConfig repoConfig) throws IOException {
-        final String intermediateLabel = repoConfig.labels().intermediate();
-        final int required = repoConfig.guards().requiredIntermediateCountForAdvanced();
-        final String markerPrefix = repoConfig.markers().advancedGuard();
-        final String userMarker = markerPrefix + " @" + commenter;
-
-        final int closed = IssueSearchHelper.countClosedIssuesByLabel(gitHub, repoFullName, commenter, intermediateLabel);
-        if (closed < required) {
-            if (!CommentMarkerChecker.hasMarker(issue, userMarker)) {
-                issue.comment(MessageFormatter.format(
-                        "{}\n\nHi @{}, this is the Assignment Bot.\n\n" +
-                                "This is an **advanced** issue that requires at least **{}** completed intermediate issue(s).\n\n" +
-                                "You currently have **{}** completed intermediate issue(s). " +
-                                "Please complete the required intermediate issues first.",
-                        userMarker, commenter, required, closed));
+                                "This is a **{}** issue that requires at least **{}** completed {} issue(s).\n\n" +
+                                "You currently have **{}** completed {} issue(s). " +
+                                "Please complete the required {} issues first.",
+                        userMarker, commenter, currentLevelLabel, required,
+                        previousLabel, closed, previousLabel, previousLabel));
             }
             return false;
         }

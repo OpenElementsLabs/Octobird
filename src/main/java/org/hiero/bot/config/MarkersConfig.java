@@ -44,6 +44,24 @@ public record MarkersConfig(String unassignPrefix,
                             String officeHoursReminder) {
 
     /**
+     * Returns the guard marker prefix for the given issue level. This marker is used to
+     * prevent duplicate prerequisite-check comments.
+     *
+     * @param level the target issue level (must be {@link IssueLevel#BEGINNER} or higher)
+     * @return the guard marker prefix
+     * @throws IllegalArgumentException if level is {@link IssueLevel#GOOD_FIRST_ISSUE}
+     */
+    public String guardMarkerFor(final IssueLevel level) {
+        return switch (level) {
+            case BEGINNER -> beginnerGfiGuard;
+            case INTERMEDIATE -> intermediateGuard;
+            case ADVANCED -> advancedGuard;
+            case GOOD_FIRST_ISSUE -> throw new IllegalArgumentException(
+                    "GOOD_FIRST_ISSUE has no guard marker");
+        };
+    }
+
+    /**
      * Returns the default marker configuration.
      *
      * @return a {@code MarkersConfig} with standard HTML comment markers

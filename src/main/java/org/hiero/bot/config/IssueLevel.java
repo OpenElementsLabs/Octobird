@@ -25,4 +25,16 @@ public enum IssueLevel {
     public int complexity() {
         return complexity;
     }
+
+    /**
+     * Returns the previous (lower-complexity) level, or {@code null} if this is
+     * {@link #GOOD_FIRST_ISSUE}.
+     *
+     * @return the previous level, or {@code null}
+     */
+    public IssueLevel previousLevel() {
+        final IssueLevel[] levels = values();
+        final int index = ordinal() - 1;
+        return index >= 0 ? levels[index] : null;
+    }
 }
