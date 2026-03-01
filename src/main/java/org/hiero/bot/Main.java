@@ -1,20 +1,29 @@
 package org.hiero.bot;
 
+import com.zaxxer.hikari.HikariDataSource;
 import io.helidon.config.Config;
 import io.helidon.webserver.WebServer;
 import io.helidon.webserver.http.HttpRouting;
+import jakarta.persistence.EntityManagerFactory;
 import org.hiero.bot.auth.GitHubAppAuth;
 import org.hiero.bot.config.BotConfig;
+import org.hiero.bot.config.DatabaseConfig;
+import org.hiero.bot.config.RepoConfigLoader;
 import org.hiero.bot.handler.EventHandler;
 import org.hiero.bot.handler.impl.*;
 import org.hiero.bot.model.parse.JacksonWebhookParser;
 import org.hiero.bot.model.parse.WebhookParser;
-import org.hiero.bot.config.RepoConfigLoader;
+import org.hiero.bot.persistence.DataSourceFactory;
+import org.hiero.bot.persistence.EntityManagerFactoryProvider;
+import org.hiero.bot.persistence.FlywayMigrator;
+import org.hiero.bot.persistence.TransactionManager;
+import org.hiero.bot.rest.*;
 import org.hiero.bot.scheduled.RepoRegistry;
 import org.hiero.bot.scheduled.ScheduledTask;
 import org.hiero.bot.scheduled.ScheduledTaskManager;
 import org.hiero.bot.scheduled.ScheduledTaskRunner;
 import org.hiero.bot.scheduled.impl.*;
+import org.hiero.bot.service.*;
 import org.hiero.bot.webhook.EventRouter;
 import org.hiero.bot.webhook.WebhookService;
 import org.hiero.bot.webhook.WebhookVerifier;
@@ -46,14 +55,29 @@ public final class Main {
 
         final Config config = Config.create();
         final BotConfig botConfig = BotConfig.fromConfig(config.get("bot"));
+        final DatabaseConfig dbConfig = DatabaseConfig.fromConfig(config.get("datasource"));
         final GitHubAppAuth auth = new GitHubAppAuth(botConfig);
         final WebhookVerifier verifier = new WebhookVerifier(botConfig.webhookSecret());
 
+        // --- Persistence setup ---
+        final HikariDataSource dataSource = DataSourceFactory.create(dbConfig);
+        FlywayMigrator.migrate(dataSource);
+        final EntityManagerFactory emf = EntityManagerFactoryProvider.create(dataSource);
+        final TransactionManager txManager = new TransactionManager(emf);
+
+        // --- Services ---
+        final RepoConfigLoader repoConfigLoader = new RepoConfigLoader();
+        final RepoConfigService configService = new RepoConfigService(txManager, repoConfigLoader);
+        final SpamUserService spamUserService = new SpamUserService(txManager);
+        final MentorService mentorService = new MentorService(txManager);
+        final AuditLogService auditLogService = new AuditLogService(txManager);
+
+        // --- Handlers ---
         final List<EventHandler<?>> handlers = List.of(
                 // Phase 1 (retained):
                 new UnassignCommandHandler(),
                 // Phase 2 - Comment Commands:
-                new AssignCommandHandler(),
+                new AssignCommandHandler(spamUserService, mentorService),
                 // Phase 3 - PR Quality Checks:
                 new MissingLinkedIssueHandler(),
                 new VerifiedCommitsHandler(),
@@ -65,7 +89,7 @@ public final class Main {
         );
         final WebhookParser webhookParser = new JacksonWebhookParser();
         final RepoRegistry repoRegistry = new RepoRegistry();
-        final EventRouter router = new EventRouter(handlers, webhookParser, repoRegistry);
+        final EventRouter router = new EventRouter(handlers, webhookParser, repoRegistry, configService);
         final WebhookService webhookService = new WebhookService(verifier, router, auth, botConfig);
 
         final List<ScheduledTask> scheduledTasks = List.of(
@@ -76,18 +100,25 @@ public final class Main {
                 new CommunityCallReminderTask(),
                 new OfficeHoursReminderTask()
         );
-        final RepoConfigLoader repoConfigLoader = new RepoConfigLoader();
         final ScheduledTaskRunner taskRunner = new ScheduledTaskRunner(
-                scheduledTasks, repoRegistry, auth, repoConfigLoader);
+                scheduledTasks, repoRegistry, auth, configService);
 
         final ScheduledTaskManager scheduledTaskManager = new ScheduledTaskManager();
         // Run all scheduled tasks daily (initial delay of 1 hour to allow repos to register)
         scheduledTaskManager.scheduleAtFixedRate(taskRunner::runAll, 1,
                 24, java.util.concurrent.TimeUnit.HOURS);
 
+        // --- REST API services ---
+        final ReposApiService reposApi = new ReposApiService(repoRegistry);
+        final ConfigApiService configApi = new ConfigApiService(configService, repoRegistry);
+        final SpamUsersApiService spamUsersApi = new SpamUsersApiService(spamUserService, repoRegistry);
+        final MentorsApiService mentorsApi = new MentorsApiService(mentorService, repoRegistry);
+        final AuditLogApiService auditLogApi = new AuditLogApiService(auditLogService, repoRegistry);
+
         final WebServer server = WebServer.builder()
                 .config(config.get("server"))
-                .routing(routing -> setupRouting(routing, webhookService))
+                .routing(routing -> setupRouting(routing, webhookService,
+                        reposApi, configApi, spamUsersApi, mentorsApi, auditLogApi))
                 .build()
                 .start();
 
@@ -96,6 +127,8 @@ public final class Main {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             scheduledTaskManager.shutdown();
             server.stop();
+            emf.close();
+            dataSource.close();
         }));
     }
 
@@ -104,9 +137,22 @@ public final class Main {
      *
      * @param routing        the Helidon routing builder to configure
      * @param webhookService the webhook HTTP service to mount at {@code /webhook}
+     * @param reposApi       the repos REST API service
+     * @param configApi      the config REST API service
+     * @param spamUsersApi   the spam users REST API service
+     * @param mentorsApi     the mentors REST API service
+     * @param auditLogApi    the audit log REST API service
      */
-    static void setupRouting(final HttpRouting.Builder routing, final WebhookService webhookService) {
+    static void setupRouting(final HttpRouting.Builder routing, final WebhookService webhookService,
+                             final ReposApiService reposApi, final ConfigApiService configApi,
+                             final SpamUsersApiService spamUsersApi, final MentorsApiService mentorsApi,
+                             final AuditLogApiService auditLogApi) {
         routing.register("/webhook", webhookService)
-                .get("/health", (req, res) -> res.send("OK"));
+                .get("/health", (req, res) -> res.send("OK"))
+                .register("/api/repos", reposApi)
+                .register("/api/repos", configApi)
+                .register("/api/repos", spamUsersApi)
+                .register("/api/repos", mentorsApi)
+                .register("/api/repos", auditLogApi);
     }
 }

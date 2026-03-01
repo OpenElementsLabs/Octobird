@@ -5,7 +5,12 @@ import org.hiero.bot.config.RepoConfig;
 import org.hiero.bot.handler.IssueCommandTriggerHandler;
 import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.event.IssueCommentEvent;
-import org.hiero.bot.util.*;
+import org.hiero.bot.service.MentorService;
+import org.hiero.bot.service.SpamUserService;
+import org.hiero.bot.util.CommentMarkerChecker;
+import org.hiero.bot.util.IssueSearchHelper;
+import org.hiero.bot.util.MessageFormatter;
+import org.hiero.bot.util.PermissionChecker;
 import org.kohsuke.github.GHIssue;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
@@ -13,7 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -40,8 +45,13 @@ public final class AssignCommandHandler extends IssueCommandTriggerHandler {
     private static final Predicate<RepoConfig> FEATURE_CHECK =
             repoConfig -> repoConfig.features().assignCommand();
 
-    public AssignCommandHandler() {
+    private final SpamUserService spamUserService;
+    private final MentorService mentorService;
+
+    public AssignCommandHandler(final SpamUserService spamUserService, final MentorService mentorService) {
         super(FEATURE_CHECK);
+        this.spamUserService = Objects.requireNonNull(spamUserService, "spamUserService must not be null");
+        this.mentorService = Objects.requireNonNull(mentorService, "mentorService must not be null");
     }
 
     @Override
@@ -53,6 +63,7 @@ public final class AssignCommandHandler extends IssueCommandTriggerHandler {
     protected void handleCommand(final IssueCommentEvent commentEvent, final ServiceRegistry registry,
                                  final RepoConfig repoConfig) throws IOException {
         final GitHub gitHub = registry.getGitHub();
+        final long repoId = commentEvent.repository().id();
         final String repoFullName = commentEvent.repository().fullName();
         final int issueNumber = commentEvent.issue().number();
 
@@ -65,12 +76,14 @@ public final class AssignCommandHandler extends IssueCommandTriggerHandler {
         }
 
         final String commenter = commentEvent.comment().user().login();
-        handleAssignCommand(gitHub, repo, issue, commenter, repoFullName, issueNumber, issueLevel, repoConfig);
+        final long commenterId = commentEvent.comment().user().id();
+        handleAssignCommand(gitHub, repo, issue, commenter, commenterId, repoId, repoFullName, issueNumber, issueLevel, repoConfig);
     }
 
     private void handleAssignCommand(final GitHub gitHub, final GHRepository repo, final GHIssue issue,
-                                     final String commenter, final String repoFullName,
-                                     final int issueNumber, final IssueLevel issueLevel,
+                                     final String commenter, final long commenterId, final long repoId,
+                                     final String repoFullName, final int issueNumber,
+                                     final IssueLevel issueLevel,
                                      final RepoConfig repoConfig) throws IOException {
         if (!issue.getAssignees().isEmpty()) {
             issue.comment(MessageFormatter.format("Hi @{}, another account is already assigned to this issue."));
@@ -94,8 +107,7 @@ public final class AssignCommandHandler extends IssueCommandTriggerHandler {
                     commenter, normalMax));
             return;
         }
-        final String spamListPath = repoConfig.paths().spamList();
-        final boolean isSpam = SpamListLoader.isSpamUser(gitHub, repoFullName, commenter, spamListPath);
+        final boolean isSpam = spamUserService.isSpamUser(repoId, commenterId);
         if (isSpam) {
             issue.comment(MessageFormatter.format(
                     "Hi @{}, your account has been flagged for spam activity in this repo and cannot be assigned to issues.\n\n" +
@@ -112,12 +124,12 @@ public final class AssignCommandHandler extends IssueCommandTriggerHandler {
         LOG.info("Assigned {} to {} issue {}#{}", commenter, issueLevel.name().toLowerCase(), repoFullName, issueNumber);
 
         if (issueLevel == IssueLevel.GOOD_FIRST_ISSUE) {
-            tryAssignMentor(gitHub, issue, commenter, repoFullName, issueNumber, repoConfig);
+            tryAssignMentor(gitHub, issue, commenter, repoId, repoFullName, issueNumber, repoConfig);
         }
     }
 
     private void tryAssignMentor(final GitHub gitHub, final GHIssue issue, final String assignee,
-                                 final String repoFullName, final int issueNumber,
+                                 final long repoId, final String repoFullName, final int issueNumber,
                                  final RepoConfig repoConfig) throws IOException {
         final String marker = repoConfig.markers().mentorAssignment();
         if (CommentMarkerChecker.hasMarker(issue, marker)) {
@@ -130,9 +142,7 @@ public final class AssignCommandHandler extends IssueCommandTriggerHandler {
             return;
         }
 
-        final String rosterPath = repoConfig.paths().mentorRoster();
-        final List<String> roster = MentorRosterLoader.loadRoster(gitHub, repoFullName, rosterPath);
-        final String mentor = MentorRosterLoader.selectMentor(roster);
+        final String mentor = mentorService.selectMentor(repoId);
         if (mentor == null) {
             LOG.debug("No mentors available for {}", repoFullName);
             return;

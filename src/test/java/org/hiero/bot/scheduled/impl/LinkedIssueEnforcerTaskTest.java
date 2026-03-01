@@ -208,8 +208,8 @@ class LinkedIssueEnforcerTaskTest {
                 true, true, true, true, true,
                 true, true, true, false, true, true);
         return new DefaultRepoConfig(
-                "owner/repo", defaults.labels(), defaults.assignmentLimits(), defaults.guards(),
+                0, "owner/repo", defaults.labels(), defaults.assignmentLimits(), defaults.guards(),
                 features, defaults.markers(), defaults.commands(),
-                defaults.paths(), defaults.teams(), defaults.scheduled());
+                defaults.teams(), defaults.scheduled());
     }
 }

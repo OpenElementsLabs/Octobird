@@ -247,9 +247,9 @@ class OfficeHoursReminderTaskTest {
                 defaults.scheduled().communityCall(),
                 officeHours);
         return new DefaultRepoConfig(
-                "owner/repo", defaults.labels(), defaults.assignmentLimits(), defaults.guards(),
+                0, "owner/repo", defaults.labels(), defaults.assignmentLimits(), defaults.guards(),
                 defaults.features(), defaults.markers(), defaults.commands(),
-                defaults.paths(), defaults.teams(), scheduled);
+                defaults.teams(), scheduled);
     }
 
     private static RepoConfig configWithAnchorInFuture() {
@@ -265,9 +265,9 @@ class OfficeHoursReminderTaskTest {
                 defaults.scheduled().communityCall(),
                 officeHours);
         return new DefaultRepoConfig(
-                "owner/repo", defaults.labels(), defaults.assignmentLimits(), defaults.guards(),
+                0, "owner/repo", defaults.labels(), defaults.assignmentLimits(), defaults.guards(),
                 defaults.features(), defaults.markers(), defaults.commands(),
-                defaults.paths(), defaults.teams(), scheduled);
+                defaults.teams(), scheduled);
     }
 
     private static RepoConfig configWithFeatureDisabled() {
@@ -277,8 +277,8 @@ class OfficeHoursReminderTaskTest {
                 true, true, true, true, true,
                 true, true, true, true, true, false);
         return new DefaultRepoConfig(
-                "owner/repo", defaults.labels(), defaults.assignmentLimits(), defaults.guards(),
+                0, "owner/repo", defaults.labels(), defaults.assignmentLimits(), defaults.guards(),
                 features, defaults.markers(), defaults.commands(),
-                defaults.paths(), defaults.teams(), defaults.scheduled());
+                defaults.teams(), defaults.scheduled());
     }
 }

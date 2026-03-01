@@ -33,11 +33,10 @@ public final class RepoConfigMapper {
         final FeaturesConfig features = mapFeatures(asMap(raw.get("features")));
         final MarkersConfig markers = mapMarkers(asMap(raw.get("markers")));
         final CommandsConfig commands = mapCommands(asMap(raw.get("commands")));
-        final PathsConfig paths = mapPaths(asMap(raw.get("paths")));
         final TeamsConfig teams = mapTeams(asMap(raw.get("teams")));
         final ScheduledConfig scheduled = mapScheduled(asMap(raw.get("scheduled")));
 
-        return new DefaultRepoConfig(repoFullName, labels, limits, guards, features, markers, commands, paths,
+        return new DefaultRepoConfig(0, repoFullName, labels, limits, guards, features, markers, commands,
                 teams, scheduled);
     }
 
@@ -145,17 +144,6 @@ public final class RepoConfigMapper {
                 stringOr(m.get("assign-pattern"), d.assignPattern()),
                 stringOr(m.get("unassign-pattern"), d.unassignPattern()),
                 stringOr(m.get("working-pattern"), d.workingPattern())
-        );
-    }
-
-    private static PathsConfig mapPaths(final Map<String, Object> m) {
-        final PathsConfig d = PathsConfig.defaults();
-        if (m.isEmpty()) {
-            return d;
-        }
-        return new PathsConfig(
-                stringOr(m.get("spam-list"), d.spamList()),
-                stringOr(m.get("mentor-roster"), d.mentorRoster())
         );
     }
 

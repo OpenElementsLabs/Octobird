@@ -3,6 +3,7 @@ package org.hiero.bot.config;
 /**
  * Default implementation of {@link RepoConfig} backed by immutable config records.
  *
+ * @param repoId           immutable GitHub numeric repository ID
  * @param repoFullName     full repository name in {@code owner/repo} format
  * @param labels           label configuration
  * @param assignmentLimits assignment limit configuration
@@ -10,18 +11,17 @@ package org.hiero.bot.config;
  * @param features         feature flag configuration
  * @param markers          marker configuration
  * @param commands         command pattern configuration
- * @param paths            file path configuration
  * @param teams            GitHub team mentions for label-based notifications
  * @param scheduled        thresholds and settings for scheduled tasks
  */
-public record DefaultRepoConfig(String repoFullName,
+public record DefaultRepoConfig(long repoId,
+                                String repoFullName,
                                 LabelsConfig labels,
                                 AssignmentLimitsConfig assignmentLimits,
                                 GuardsConfig guards,
                                 FeaturesConfig features,
                                 MarkersConfig markers,
                                 CommandsConfig commands,
-                                PathsConfig paths,
                                 TeamsConfig teams,
                                 ScheduledConfig scheduled) implements RepoConfig {
 
@@ -33,6 +33,7 @@ public record DefaultRepoConfig(String repoFullName,
      */
     public static DefaultRepoConfig allDefaults(final String repoFullName) {
         return new DefaultRepoConfig(
+                0,
                 repoFullName,
                 LabelsConfig.defaults(),
                 AssignmentLimitsConfig.defaults(),
@@ -40,7 +41,6 @@ public record DefaultRepoConfig(String repoFullName,
                 FeaturesConfig.defaults(),
                 MarkersConfig.defaults(),
                 CommandsConfig.defaults(),
-                PathsConfig.defaults(),
                 TeamsConfig.defaults(),
                 ScheduledConfig.defaults()
         );
@@ -53,6 +53,7 @@ public record DefaultRepoConfig(String repoFullName,
      */
     public static DefaultRepoConfig allDefaults() {
         return new DefaultRepoConfig(
+                0,
                 "",
                 LabelsConfig.defaults(),
                 AssignmentLimitsConfig.defaults(),
@@ -60,7 +61,6 @@ public record DefaultRepoConfig(String repoFullName,
                 FeaturesConfig.defaults(),
                 MarkersConfig.defaults(),
                 CommandsConfig.defaults(),
-                PathsConfig.defaults(),
                 TeamsConfig.defaults(),
                 ScheduledConfig.defaults()
         );

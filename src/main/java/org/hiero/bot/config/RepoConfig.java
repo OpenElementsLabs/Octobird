@@ -11,6 +11,9 @@ package org.hiero.bot.config;
  */
 public interface RepoConfig {
 
+    /** Immutable GitHub numeric repository ID. */
+    long repoId();
+
     /** Full repository name in {@code owner/repo} format. */
     String repoFullName();
 
@@ -31,9 +34,6 @@ public interface RepoConfig {
 
     /** Regex patterns for bot commands. */
     CommandsConfig commands();
-
-    /** File paths for per-repo data files. */
-    PathsConfig paths();
 
     /** GitHub team mentions for label-based notifications. */
     TeamsConfig teams();

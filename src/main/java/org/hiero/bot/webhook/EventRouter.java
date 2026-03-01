@@ -4,13 +4,13 @@ import org.hiero.bot.auth.GitHubAppAuth;
 import org.hiero.bot.config.BotConfig;
 import org.hiero.bot.config.DefaultRepoConfig;
 import org.hiero.bot.config.RepoConfig;
-import org.hiero.bot.config.RepoConfigLoader;
 import org.hiero.bot.handler.EventHandler;
 import org.hiero.bot.handler.ServiceRegistry;
 import org.hiero.bot.model.GitHubEventType;
 import org.hiero.bot.model.event.WebhookEvent;
 import org.hiero.bot.model.parse.WebhookParser;
 import org.hiero.bot.scheduled.RepoRegistry;
+import org.hiero.bot.service.RepoConfigService;
 import org.kohsuke.github.GitHub;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,24 +38,27 @@ public class EventRouter {
     private static final Logger LOG = LoggerFactory.getLogger(EventRouter.class);
 
     private final List<EventHandler<?>> handlers;
-    private final RepoConfigLoader configLoader;
+    private final RepoConfigService configService;
     private final WebhookParser parser;
     private final RepoRegistry repoRegistry;
 
     /**
-     * Creates an {@code EventRouter} with the given handlers, parser, and repo registry.
+     * Creates an {@code EventRouter} with the given handlers, parser, repo registry,
+     * and config service.
      *
-     * @param handlers     the list of event handlers to dispatch to
-     * @param parser       the parser used to deserialise raw JSON webhook payloads
-     * @param repoRegistry the registry updated with each successfully processed repo
+     * @param handlers      the list of event handlers to dispatch to
+     * @param parser        the parser used to deserialise raw JSON webhook payloads
+     * @param repoRegistry  the registry updated with each successfully processed repo
+     * @param configService the service used to load per-repo configuration
      */
     public EventRouter(final List<EventHandler<?>> handlers, final WebhookParser parser,
-                       final RepoRegistry repoRegistry) {
+                       final RepoRegistry repoRegistry, final RepoConfigService configService) {
         Objects.requireNonNull(handlers, "handlers must not be null");
         Objects.requireNonNull(parser, "parser must not be null");
         Objects.requireNonNull(repoRegistry, "repoRegistry must not be null");
+        Objects.requireNonNull(configService, "configService must not be null");
         this.handlers = List.copyOf(handlers);
-        this.configLoader = new RepoConfigLoader();
+        this.configService = configService;
         this.parser = parser;
         this.repoRegistry = repoRegistry;
     }
@@ -108,13 +111,16 @@ public class EventRouter {
         @Nullable final String repoFullName = webhookEvent.repository() != null
                 ? webhookEvent.repository().fullName()
                 : null;
+        final long repoId = webhookEvent.repository() != null
+                ? webhookEvent.repository().id()
+                : 0;
 
-        if (repoFullName != null) {
-            repoRegistry.register(repoFullName, installationId);
+        if (repoFullName != null && repoId != 0) {
+            repoRegistry.register(repoId, repoFullName, installationId);
         }
 
         final RepoConfig repoConfig = repoFullName != null
-                ? configLoader.loadConfig(gitHub, repoFullName)
+                ? configService.loadConfig(gitHub, repoId, repoFullName)
                 : DefaultRepoConfig.allDefaults();
 
         for (final EventHandler<?> handler : handlers) {

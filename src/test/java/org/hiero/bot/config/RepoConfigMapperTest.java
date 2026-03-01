@@ -24,7 +24,6 @@ class RepoConfigMapperTest {
         assertEquals(FeaturesConfig.defaults(), config.features());
         assertEquals(MarkersConfig.defaults(), config.markers());
         assertEquals(CommandsConfig.defaults(), config.commands());
-        assertEquals(PathsConfig.defaults(), config.paths());
         assertEquals(TeamsConfig.defaults(), config.teams());
         assertEquals(ScheduledConfig.defaults(), config.scheduled());
     }
@@ -99,24 +98,6 @@ class RepoConfigMapperTest {
         // Then
         assertFalse(config.features().unassignCommand());
         assertTrue(config.features().assignCommand());
-    }
-
-    @Test
-    void customPaths() {
-        // Given
-        final Map<String, Object> raw = Map.of(
-                "paths", Map.of(
-                        "spam-list", "custom/spam.txt",
-                        "mentor-roster", "custom/mentors.json"
-                )
-        );
-
-        // When
-        final RepoConfig config = RepoConfigMapper.fromMap("", raw);
-
-        // Then
-        assertEquals("custom/spam.txt", config.paths().spamList());
-        assertEquals("custom/mentors.json", config.paths().mentorRoster());
     }
 
     @Test

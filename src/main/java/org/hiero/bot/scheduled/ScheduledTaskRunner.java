@@ -2,8 +2,8 @@ package org.hiero.bot.scheduled;
 
 import org.hiero.bot.auth.GitHubAppAuth;
 import org.hiero.bot.config.RepoConfig;
-import org.hiero.bot.config.RepoConfigLoader;
 import org.hiero.bot.handler.ServiceRegistry;
+import org.hiero.bot.service.RepoConfigService;
 import org.kohsuke.github.GitHub;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,26 +27,26 @@ public class ScheduledTaskRunner {
     private final List<ScheduledTask> tasks;
     private final RepoRegistry repoRegistry;
     private final GitHubAppAuth auth;
-    private final RepoConfigLoader configLoader;
+    private final RepoConfigService configService;
 
     /**
      * Creates a new {@code ScheduledTaskRunner}.
      *
-     * @param tasks        the ordered list of scheduled tasks to execute
-     * @param repoRegistry the registry of known repositories and their installation IDs
-     * @param auth         the GitHub App authenticator used to obtain installation clients
-     * @param configLoader the per-repository configuration loader
+     * @param tasks         the ordered list of scheduled tasks to execute
+     * @param repoRegistry  the registry of known repositories and their installation IDs
+     * @param auth          the GitHub App authenticator used to obtain installation clients
+     * @param configService the service used to load per-repo configuration
      */
     public ScheduledTaskRunner(final List<ScheduledTask> tasks, final RepoRegistry repoRegistry,
-                                final GitHubAppAuth auth, final RepoConfigLoader configLoader) {
+                                final GitHubAppAuth auth, final RepoConfigService configService) {
         Objects.requireNonNull(tasks, "tasks must not be null");
         Objects.requireNonNull(repoRegistry, "repoRegistry must not be null");
         Objects.requireNonNull(auth, "auth must not be null");
-        Objects.requireNonNull(configLoader, "configLoader must not be null");
+        Objects.requireNonNull(configService, "configService must not be null");
         this.tasks = List.copyOf(tasks);
         this.repoRegistry = repoRegistry;
         this.auth = auth;
-        this.configLoader = configLoader;
+        this.configService = configService;
     }
 
     /**
@@ -55,7 +55,7 @@ public class ScheduledTaskRunner {
      * <p>Safe to call from any thread; errors per repo/task are caught and logged individually.
      */
     public void runAll() {
-        final Map<String, Long> repos = repoRegistry.getAll();
+        final Map<Long, RepoRegistry.RegistrationEntry> repos = repoRegistry.getAll();
         if (repos.isEmpty()) {
             LOG.debug("No repositories registered yet, skipping scheduled tasks");
             return;
@@ -63,13 +63,15 @@ public class ScheduledTaskRunner {
 
         LOG.info("Running scheduled tasks for {} repository/repositories", repos.size());
 
-        for (final Map.Entry<String, Long> entry : repos.entrySet()) {
-            final String repoFullName = entry.getKey();
-            final long installationId = entry.getValue();
+        for (final Map.Entry<Long, RepoRegistry.RegistrationEntry> entry : repos.entrySet()) {
+            final long repoId = entry.getKey();
+            final RepoRegistry.RegistrationEntry reg = entry.getValue();
+            final String repoFullName = reg.repoFullName();
+            final long installationId = reg.installationId();
 
             try {
                 final GitHub gitHub = auth.getInstallationClient(installationId);
-                final RepoConfig repoConfig = configLoader.loadConfig(gitHub, repoFullName);
+                final RepoConfig repoConfig = configService.loadConfig(gitHub, repoId, repoFullName);
                 final ServiceRegistry registry = () -> gitHub;
 
                 for (final ScheduledTask task : tasks) {
