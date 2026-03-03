@@ -6,6 +6,29 @@ info:
   license:
     name: Apache 2.0
 paths:
+  /webhook:
+    post:
+      summary: GitHub webhook receiver
+      operationId: webhook
+      description: Receives and processes GitHub webhook events. Payload is verified via HMAC-SHA256 signature.
+      responses:
+        '200':
+          description: Event processed
+        '401':
+          description: Invalid signature
+  /health:
+    get:
+      summary: Health check
+      operationId: health
+      description: Returns OK when the service is running.
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "OK"
   /api/repos:
     get:
       summary: List registered repositories
@@ -169,6 +192,18 @@ paths:
           description: Mentor roster updated
         '400':
           description: Invalid JSON
+  /swagger-ui:
+    get:
+      summary: Swagger UI
+      operationId: swaggerUi
+      description: Interactive API documentation powered by Swagger UI.
+      responses:
+        '200':
+          description: Swagger UI HTML page
+          content:
+            text/html:
+              schema:
+                type: string
   /api/repos/{owner}/{repo}/audit-log:
     get:
       summary: Get recent audit log entries

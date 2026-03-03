@@ -4,6 +4,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import io.helidon.config.Config;
 import io.helidon.webserver.WebServer;
 import io.helidon.webserver.http.HttpRouting;
+import io.helidon.webserver.staticcontent.StaticContentService;
 import jakarta.persistence.EntityManagerFactory;
 import org.hiero.bot.auth.GitHubAppAuth;
 import org.hiero.bot.config.BotConfig;
@@ -151,6 +152,11 @@ public final class Main {
                 .register("/api/repos", configApi)
                 .register("/api/repos", spamUsersApi)
                 .register("/api/repos", mentorsApi)
-                .register("/api/repos", auditLogApi);
+                .register("/api/repos", auditLogApi)
+                .register("/swagger-ui", StaticContentService.builder("swagger-ui")
+                        .welcomeFileName("index.html")
+                        .build())
+                .register("/webjars", StaticContentService.builder("META-INF/resources/webjars")
+                        .build());
     }
 }
