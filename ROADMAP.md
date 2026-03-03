@@ -523,9 +523,9 @@ org.hiero.bot.service/
 
 **Fallback-Strategie:**
 - Datenbank hat Vorrang
-- Wenn kein DB-Eintrag für ein Repository existiert: Fallback auf `.github/hiero-bot.yml`
-  (bisheriges Verhalten via `RepoConfigLoader`)
-- Wenn auch keine YAML-Datei vorhanden: `DefaultRepoConfig.allDefaults()`
+- Wenn kein DB-Eintrag für ein Repository existiert: `DefaultRepoConfig.allDefaults()`
+- Der YAML-Fallback (`.github/hiero-bot.yml`) wurde entfernt — die Konfiguration erfolgt
+  ausschließlich über die Datenbank oder Built-in-Defaults
 
 ### 6.7 REST-API für Konfiguration
 
@@ -591,6 +591,73 @@ möglich. Stattdessen wird die OpenAPI-Spec manuell als YAML-Datei gepflegt:
 ## Phase 7: Web-Frontend
 
 > Konfigurationsoberfläche für Repo-Admins. Baut auf Phase 6 (API) auf.
+
+### 7.0 Repository-Umstrukturierung
+
+Bevor das Frontend gebaut werden kann, muss das Repository von einem Single-Module-Maven-Projekt
+zu einer Zwei-Komponenten-Architektur umstrukturiert werden. Referenz:
+[maven-initializer](https://github.com/support-and-care/maven-initializer).
+
+**Zielstruktur:**
+
+```
+Octobird/
+├── backend/                    # Java-Backend (Helidon + Maven)
+│   ├── pom.xml
+│   ├── Dockerfile
+│   └── src/
+├── frontend/                   # Next.js-Frontend (pnpm)
+│   ├── package.json
+│   ├── Dockerfile
+│   └── src/
+├── docker-compose.yml          # Lokale Entwicklung (Backend + Frontend + PostgreSQL)
+├── ARCHITECTURE.md             # Architektur-Dokumentation
+└── ...                         # README, ROADMAP, CLAUDE.md, actions/ etc.
+```
+
+**Implementierungsschritte:**
+
+1. **Backend-Verzeichnis erstellen, Code verschieben**
+   - Verzeichnis `backend/` erstellen
+   - `pom.xml`, `src/`, `.mvn/`, `mvnw`, `mvnw.cmd` nach `backend/` verschieben
+   - Pfade in `pom.xml` anpassen (z.B. `artifactId`, relative Pfade)
+   - Build-Befehl verifizieren: `cd backend && ../mvnw clean package`
+
+2. **Backend-Dockerfile erstellen**
+   - Multi-Stage Build: `eclipse-temurin:21-jdk` (Build) → `eclipse-temurin:21-jre` (Runtime)
+   - Maven-Dependencies cachen (Layer-Optimierung)
+   - Port 8080 exposen
+
+3. **Frontend-Scaffold erstellen**
+   - `npx create-next-app@latest frontend` mit Next.js 15, TypeScript, Tailwind CSS, App Router
+   - pnpm als Package Manager konfigurieren
+   - API-Proxy in `next.config.ts` einrichten (`/api/*` → `http://localhost:8080`)
+   - Platzhalter-Seiten für Login, Repo-Übersicht und Konfiguration
+
+4. **Docker Compose erstellen**
+   - Services: `backend`, `frontend`, `db` (PostgreSQL 17)
+   - Backend mit PostgreSQL-Umgebungsvariablen
+   - Frontend mit `NEXT_PUBLIC_API_URL`
+   - Persistentes Volume für PostgreSQL-Daten
+
+5. **`nixpacks.toml` löschen**
+   - Wird durch komponentenspezifische Dockerfiles ersetzt
+   - Coolify-Deployment auf Dockerfile-basiertes Build umstellen
+
+6. **Dokumentation aktualisieren**
+   - `ARCHITECTURE.md` — bereits erstellt (Ziel-Architektur)
+   - `README.md` — Build-Befehle und Projektstruktur anpassen
+   - `CLAUDE.md` — Pfade und Build-Anweisungen aktualisieren
+
+**Designentscheidungen:**
+- **Kein Maven-Multi-Module:** Backend und Frontend sind völlig unabhängige Projekte.
+  Es gibt keinen übergreifenden `pom.xml` — das Frontend nutzt pnpm, nicht Maven.
+- **API-Proxy statt CORS:** Next.js leitet `/api/*`-Requests an das Backend weiter.
+  In Produktion übernimmt der Reverse Proxy (Coolify/Caddy) das Routing.
+- **Separate Dockerfiles:** Jede Komponente hat ein eigenes Dockerfile mit
+  optimiertem Multi-Stage Build. Keine gemeinsame Build-Pipeline.
+- **Maven Wrapper bleibt im Backend:** `mvnw`/`.mvn/` werden nach `backend/` verschoben.
+  Der Root-Level enthält keinen Build-Prozess.
 
 ### 7.1 GitHub OAuth2 Login
 - "Login with GitHub"-Flow (OAuth2 Authorization Code)
