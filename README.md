@@ -36,14 +36,19 @@ This produces `target/github-app-0.1.0-SNAPSHOT.jar` with dependencies in `targe
 
 ### 2. Configure
 
-Set the following environment variables or edit `src/main/resources/application.yaml`:
+The application is configured via environment variables. The `src/main/resources/application.yaml` file references these
+variables using the `${ENV_VAR:default}` syntax, so environment variables are the preferred way to configure the app.
 
-| Setting              | Description                                         |
-|----------------------|-----------------------------------------------------|
-| `bot.app-id`         | Your GitHub App ID                                  |
-| `bot.private-key`    | RSA private key (PEM format) for JWT authentication |
-| `bot.webhook-secret` | HMAC secret for webhook signature verification      |
-| `server.port`        | HTTP port (default: 8080)                           |
+| Environment Variable | Description                                         | Default                                  |
+|----------------------|-----------------------------------------------------|------------------------------------------|
+| `BOT_APP_ID`         | Your GitHub App ID                                  | `0`                                      |
+| `BOT_PRIVATE_KEY`    | RSA private key (PEM format) for JWT authentication |                                          |
+| `BOT_WEBHOOK_SECRET` | HMAC secret for webhook signature verification      |                                          |
+| `PORT`               | HTTP port                                           | `8080`                                   |
+| `DB_URL`             | JDBC database URL                                   | `jdbc:h2:mem:octobird;DB_CLOSE_DELAY=-1` |
+| `DB_USERNAME`        | Database username                                   | `sa`                                     |
+| `DB_PASSWORD`        | Database password                                   |                                          |
+| `DB_DRIVER`          | JDBC driver class                                   | `org.h2.Driver`                          |
 
 **Do not commit real credentials.**
 
@@ -67,25 +72,20 @@ Point your GitHub App's webhook URL to `https://your-host/webhook` and select th
 
 ## Configuration
 
-Currently, each repository configures the bot by adding a `.github/hiero-bot.yml` file. Additional files:
+Repository settings are stored in a database (PostgreSQL in production, H2 in-memory for development). A REST API
+allows managing configuration per repository:
 
-- `.github/spam-list.txt` — One username per line, restricts these users to Good First Issues with a limit of 1
-  assignment
+| Endpoint                                       | Description             |
+|------------------------------------------------|-------------------------|
+| `GET/PUT /api/repos/{owner}/{repo}/config`     | Get or update settings  |
+| `GET /api/repos`                               | List installed repos    |
+| `GET/PUT /api/repos/{owner}/{repo}/spam-users` | Manage spam user list   |
+| `GET/PUT /api/repos/{owner}/{repo}/mentors`    | Manage mentor roster    |
+| `GET /api/repos/{owner}/{repo}/audit-log`      | View bot action history |
 
-A database-backed configuration with a web frontend (GitHub OAuth2 login) is planned, allowing repo admins to manage
-settings through a dashboard instead of config files. See [ROADMAP.md](ROADMAP.md) Phase 6 and 7 for details.
-
-## Architecture
-
-```
-GitHub Webhook ──▶ WebhookService ──▶ EventRouter ──▶ EventHandler
-                   (signature check)   (parse & route)  (business logic)
-```
-
-- **Event-driven** — All logic is triggered by GitHub webhook events
-- **Constructor-based DI** — No framework magic, dependencies wired in `Main.java`
-- **Handler pattern** — Each command/event type is a separate `EventHandler` implementation
-- **Virtual threads** — Uses Project Loom for concurrent and scheduled tasks
+If no database entry exists for a repository, the bot falls back to reading a `.github/hiero-bot.yml` file from the
+repository. If that file is also missing, built-in defaults are used. Database schema migrations are managed
+automatically via Flyway.
 
 ## Development
 
@@ -96,13 +96,6 @@ GitHub Webhook ──▶ WebhookService ──▶ EventRouter ──▶ EventHan
 ```
 
 The project uses the Maven Wrapper, so no local Maven installation is required.
-
-### Adding a new handler
-
-1. Create a class implementing `EventHandler<T>` in `org.hiero.bot.handler`
-2. Implement `matches(GitHubEventType, GitHubAction)` to filter relevant events
-3. Implement `handle(T event, GitHub gitHub, Map<String, Object> repoConfig)`
-4. Register the handler in `Main.java`
 
 ### Code conventions
 
