@@ -120,7 +120,7 @@ public class EventRouter {
         }
 
         final RepoConfig repoConfig = repoFullName != null
-                ? configService.loadConfig(gitHub, repoId, repoFullName)
+                ? configService.loadConfig(repoId, repoFullName)
                 : DefaultRepoConfig.allDefaults();
 
         for (final EventHandler<?> handler : handlers) {

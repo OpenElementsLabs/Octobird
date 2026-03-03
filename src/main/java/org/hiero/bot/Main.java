@@ -8,7 +8,6 @@ import jakarta.persistence.EntityManagerFactory;
 import org.hiero.bot.auth.GitHubAppAuth;
 import org.hiero.bot.config.BotConfig;
 import org.hiero.bot.config.DatabaseConfig;
-import org.hiero.bot.config.RepoConfigLoader;
 import org.hiero.bot.handler.EventHandler;
 import org.hiero.bot.handler.impl.*;
 import org.hiero.bot.model.parse.JacksonWebhookParser;
@@ -66,8 +65,7 @@ public final class Main {
         final TransactionManager txManager = new TransactionManager(emf);
 
         // --- Services ---
-        final RepoConfigLoader repoConfigLoader = new RepoConfigLoader();
-        final RepoConfigService configService = new RepoConfigService(txManager, repoConfigLoader);
+        final RepoConfigService configService = new RepoConfigService(txManager);
         final SpamUserService spamUserService = new SpamUserService(txManager);
         final MentorService mentorService = new MentorService(txManager);
         final AuditLogService auditLogService = new AuditLogService(txManager);

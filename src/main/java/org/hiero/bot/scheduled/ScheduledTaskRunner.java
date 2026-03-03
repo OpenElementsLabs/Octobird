@@ -71,7 +71,7 @@ public class ScheduledTaskRunner {
 
             try {
                 final GitHub gitHub = auth.getInstallationClient(installationId);
-                final RepoConfig repoConfig = configService.loadConfig(gitHub, repoId, repoFullName);
+                final RepoConfig repoConfig = configService.loadConfig(repoId, repoFullName);
                 final ServiceRegistry registry = () -> gitHub;
 
                 for (final ScheduledTask task : tasks) {

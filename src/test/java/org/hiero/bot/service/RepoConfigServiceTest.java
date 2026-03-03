@@ -2,14 +2,12 @@ package org.hiero.bot.service;
 
 import org.hiero.bot.config.DefaultRepoConfig;
 import org.hiero.bot.config.RepoConfig;
-import org.hiero.bot.config.RepoConfigLoader;
 import org.hiero.bot.persistence.TransactionManager;
 import org.hiero.bot.persistence.entity.RepoConfigEntity;
 import org.hiero.bot.persistence.mapper.EntityRecordMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.kohsuke.github.GitHub;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -24,16 +22,12 @@ class RepoConfigServiceTest {
 
     @Mock
     private TransactionManager txManager;
-    @Mock
-    private RepoConfigLoader yamlFallback;
-    @Mock
-    private GitHub gitHub;
 
     private RepoConfigService service;
 
     @BeforeEach
     void setUp() {
-        service = new RepoConfigService(txManager, yamlFallback);
+        service = new RepoConfigService(txManager);
     }
 
     @Test
@@ -53,26 +47,24 @@ class RepoConfigServiceTest {
         });
 
         // When
-        final RepoConfig result = service.loadConfig(gitHub, 42, "owner/repo");
+        final RepoConfig result = service.loadConfig(42, "owner/repo");
 
         // Then
         assertEquals(5, result.assignmentLimits().normalUserMax());
-        verifyNoInteractions(yamlFallback);
     }
 
     @Test
-    void loadConfigFallsBackToYamlWhenNotInDb() {
+    void loadConfigReturnsDefaultsWhenNotInDb() {
         // Given
         when(txManager.executeReadOnly(any())).thenReturn(null);
-        final DefaultRepoConfig yamlConfig = DefaultRepoConfig.allDefaults("owner/repo");
-        when(yamlFallback.loadConfig(gitHub, "owner/repo")).thenReturn(yamlConfig);
 
         // When
-        final RepoConfig result = service.loadConfig(gitHub, 42, "owner/repo");
+        final RepoConfig result = service.loadConfig(42, "owner/repo");
 
         // Then
         assertNotNull(result);
-        verify(yamlFallback).loadConfig(gitHub, "owner/repo");
+        assertEquals("owner/repo", result.repoFullName());
+        assertEquals(DefaultRepoConfig.allDefaults("owner/repo"), result);
     }
 
     @Test

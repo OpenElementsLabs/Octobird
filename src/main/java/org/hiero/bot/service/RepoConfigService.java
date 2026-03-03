@@ -2,51 +2,45 @@ package org.hiero.bot.service;
 
 import org.hiero.bot.config.DefaultRepoConfig;
 import org.hiero.bot.config.RepoConfig;
-import org.hiero.bot.config.RepoConfigLoader;
 import org.hiero.bot.persistence.TransactionManager;
 import org.hiero.bot.persistence.entity.RepoConfigEntity;
 import org.hiero.bot.persistence.mapper.EntityRecordMapper;
 import org.hiero.bot.persistence.repository.RepoConfigRepository;
 import org.jspecify.annotations.Nullable;
-import org.kohsuke.github.GitHub;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 
 /**
- * Service providing 3-tier config fallback: DB first, then YAML file, then defaults.
- * Transparent replacement for {@link RepoConfigLoader} in handler wiring.
+ * Service providing config lookup with fallback to defaults: DB first, then built-in defaults.
  */
 public class RepoConfigService {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepoConfigService.class);
 
     private final TransactionManager txManager;
-    private final RepoConfigLoader yamlFallback;
 
-    public RepoConfigService(final TransactionManager txManager, final RepoConfigLoader yamlFallback) {
+    public RepoConfigService(final TransactionManager txManager) {
         this.txManager = Objects.requireNonNull(txManager, "txManager must not be null");
-        this.yamlFallback = Objects.requireNonNull(yamlFallback, "yamlFallback must not be null");
     }
 
     /**
-     * Loads the config for a repository with 3-tier fallback: DB (by repoId), then YAML, then defaults.
+     * Loads the config for a repository: DB first, then built-in defaults.
      *
-     * @param gitHub       authenticated GitHub client (used for YAML fallback)
      * @param repoId       the immutable GitHub numeric repository ID
-     * @param repoFullName full repository name (used for YAML fallback)
+     * @param repoFullName full repository name (used for default config)
      * @return the repository configuration
      */
-    public RepoConfig loadConfig(final GitHub gitHub, final long repoId, final String repoFullName) {
+    public RepoConfig loadConfig(final long repoId, final String repoFullName) {
         Objects.requireNonNull(repoFullName, "repoFullName must not be null");
         final RepoConfig dbConfig = loadConfigByRepoId(repoId);
         if (dbConfig != null) {
             LOG.debug("Loaded config from DB for {} (id={})", repoFullName, repoId);
             return dbConfig;
         }
-        LOG.debug("No DB config for {} (id={}), falling back to YAML", repoFullName, repoId);
-        return yamlFallback.loadConfig(gitHub, repoFullName);
+        LOG.debug("No DB config for {} (id={}), using defaults", repoFullName, repoId);
+        return DefaultRepoConfig.allDefaults(repoFullName);
     }
 
     /**

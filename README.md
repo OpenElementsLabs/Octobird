@@ -83,8 +83,7 @@ allows managing configuration per repository:
 | `GET/PUT /api/repos/{owner}/{repo}/mentors`    | Manage mentor roster    |
 | `GET /api/repos/{owner}/{repo}/audit-log`      | View bot action history |
 
-If no database entry exists for a repository, the bot falls back to reading a `.github/hiero-bot.yml` file from the
-repository. If that file is also missing, built-in defaults are used. Database schema migrations are managed
+If no database entry exists for a repository, built-in defaults are used. Database schema migrations are managed
 automatically via Flyway.
 
 ## Development
