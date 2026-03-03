@@ -5,6 +5,12 @@ This guide describes how to deploy Octobird on a [Coolify](https://coolify.io) i
 **prod environment** (deployment triggered by Git tags), and how to register the GitHub App
 for a repository.
 
+> **Note on upcoming changes:** The current deployment uses **Nixpacks** to build a single
+> Java application. After Phase 7 (Repository-Umstrukturierung), the deployment will switch to
+> **Docker Compose** with separate containers for backend, frontend, and PostgreSQL. This guide
+> will be updated accordingly when Phase 7 is implemented. See [ROADMAP.md](ROADMAP.md) for
+> details.
+
 ---
 
 ## Table of Contents
@@ -14,9 +20,10 @@ for a repository.
 3. [Coolify – Set up the Dev Environment](#3-coolify--set-up-the-dev-environment)
 4. [Coolify – Set up the Prod Environment](#4-coolify--set-up-the-prod-environment)
 5. [Install the GitHub App on a Repository](#5-install-the-github-app-on-a-repository)
-6. [Repository Configuration](#6-repository-configuration)
+6. [Configuration](#6-configuration)
 7. [Verification & Smoke Test](#7-verification--smoke-test)
 8. [Reference: Environment Variables](#8-reference-environment-variables)
+9. [Future: Docker Compose Deployment](#9-future-docker-compose-deployment)
 
 ---
 
@@ -167,6 +174,9 @@ Under **Environment Variables**, add the following:
 | `BOT_APP_ID` | `<App ID from step 2.6>` | Numeric ID of the dev GitHub App |
 | `BOT_PRIVATE_KEY` | `<single-line PEM string from step 2.7>` | Single line with `\n` as text |
 | `BOT_WEBHOOK_SECRET` | `<secret from step 2.2>` | Random value for HMAC verification |
+| `DB_URL` | `jdbc:h2:mem:octobird;DB_CLOSE_DELAY=-1` | JDBC URL (H2 default, use PostgreSQL for prod) |
+| `DB_USERNAME` | `sa` | Database username |
+| `DB_PASSWORD` | *(empty)* | Database password |
 | `PORT` | `8080` | Optional, default is already `8080` |
 
 > **Security:** Mark all three variables as **Secret** so they are masked in logs and in
@@ -247,6 +257,10 @@ Same as step 3.6, but with the **prod values** from the separate prod GitHub App
 | `BOT_APP_ID` | App ID of the prod GitHub App |
 | `BOT_PRIVATE_KEY` | Single-line PEM string of the prod GitHub App |
 | `BOT_WEBHOOK_SECRET` | Webhook secret of the prod GitHub App |
+| `DB_URL` | `jdbc:postgresql://localhost:5432/octobird` |
+| `DB_USERNAME` | Database username |
+| `DB_PASSWORD` | Database password |
+| `DB_DRIVER` | `org.postgresql.Driver` |
 | `PORT` | `8080` |
 
 ### 4.8 Rollback
@@ -302,77 +316,46 @@ If no event is visible or the status shows `5xx`:
 
 ---
 
-## 6. Repository Configuration
+## 6. Configuration
 
-The target repository needs configuration files under `.github/`. Without these files,
-Octobird falls back to **default values** and only writes a debug log entry for missing files.
+Octobird stores all configuration in the **database** (PostgreSQL in production, H2 in-memory
+for development). There are no configuration files in the target repository — if no database
+entry exists for a repository, built-in defaults are used.
 
-### 6.1 `.github/hiero-bot.yml` – Main configuration
+### 6.1 REST API
 
-```yaml
-# Full example configuration with all available options.
-# All fields are optional; missing fields fall back to the default value.
+Configuration is managed via the REST API:
 
-labels:
-  good-first-issue: "Good First Issue"
-  beginner: "beginner"
-  intermediate: "intermediate"
-  advanced: "advanced"
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/repos` | List all registered repositories |
+| `GET` | `/api/repos/{owner}/{repo}/config` | Read repository configuration |
+| `PUT` | `/api/repos/{owner}/{repo}/config` | Update repository configuration |
+| `GET` | `/api/repos/{owner}/{repo}/spam-users` | Read spam user list |
+| `PUT` | `/api/repos/{owner}/{repo}/spam-users` | Replace spam user list |
+| `GET` | `/api/repos/{owner}/{repo}/mentors` | Read mentor roster |
+| `PUT` | `/api/repos/{owner}/{repo}/mentors` | Replace mentor roster |
+| `GET` | `/api/repos/{owner}/{repo}/audit-log` | Read recent bot actions |
 
-assignment-limits:
-  normal-user-max: 2      # Max concurrent open assignments for normal users
-  spam-user-max: 1        # Max concurrent open assignments for spam-listed users
+### 6.2 Swagger UI
 
-guards:
-  required-gfi-count-for-beginner: 1          # Closed GFIs required for beginner issues
-  required-beginner-count-for-intermediate: 0  # 0 = guard disabled
-  required-intermediate-count-for-advanced: 1  # Closed intermediate issues required
+After deployment, the interactive API documentation is available at:
 
-features:
-  unassign-command: true
-  working-command: true
-  assignment-limit: true
-  gfi-assign-command: true
-  beginner-assign-command: true
-  mentor-assignment: true
-  intermediate-guard: true
-  advanced-guard: true
-  coderabbit-plan-trigger: true
-
-coderabbit:
-  trigger-labels:
-    - beginner
-    - intermediate
-    - advanced
-
-paths:
-  spam-list: ".github/spam-list.txt"
-  mentor-roster: ".github/mentor_roster.json"
+```
+https://<your-domain>/swagger-ui
 ```
 
-### 6.2 `.github/spam-list.txt` – Spam user list
+The OpenAPI specification (YAML) can be fetched directly from:
 
-```text
-# Lines starting with # are comments. Blank lines are ignored.
-# One GitHub login per line.
-
-spamuser1
-anotherbot
+```
+https://<your-domain>/openapi
 ```
 
-### 6.3 `.github/mentor_roster.json` – Mentor rotation
+### 6.3 Initial configuration
 
-```json
-{
-  "order": [
-    "maintainer-alice",
-    "maintainer-bob",
-    "maintainer-charlie"
-  ]
-}
-```
-
-The active mentor rotates daily using a day-number-based index into the list.
+After installing the GitHub App on a repository (step 5), use the REST API or Swagger UI
+to configure the repository settings (labels, feature flags, assignment limits, spam users,
+mentors, etc.). Until configured, Octobird operates with default values for all settings.
 
 ---
 
@@ -385,7 +368,13 @@ curl https://octobird-dev.example.com/health
 # Expected response: OK
 ```
 
-### 7.2 Test a webhook delivery
+### 7.2 Swagger UI
+
+Open `https://octobird-dev.example.com/swagger-ui` in a browser. The interactive API
+documentation should load and display all available endpoints. Use "Try it out" to test
+the REST API directly.
+
+### 7.3 Test a webhook delivery
 
 1. Open an issue in the target repository.
 2. Post a comment containing `/assign`.
@@ -393,26 +382,30 @@ curl https://octobird-dev.example.com/health
    answered with `200`.
 4. Check the Coolify container log to confirm the handler was invoked.
 
-### 7.3 Common errors and solutions
+### 7.4 Common errors and solutions
 
 | Symptom | Possible cause | Solution |
 |---|---|---|
 | Health endpoint not reachable | Container not running | Check the Coolify log for build errors |
 | Webhooks receive `401 Unauthorized` | Wrong webhook secret | Compare `BOT_WEBHOOK_SECRET` in Coolify with the value set in the GitHub App |
 | Webhooks receive `500 Internal Server Error` | Wrong private key or App ID | Verify `BOT_APP_ID` and `BOT_PRIVATE_KEY`; the key must be a single line with `\n` |
-| Bot does not react to `/assign` | Feature disabled or wrong label | Check `hiero-bot.yml` and ensure `features.gfi-assign-command: true` |
+| Bot does not react to `/assign` | Feature disabled or wrong label | Check the repository configuration via REST API or Swagger UI and ensure the feature is enabled |
 | `Failed to create GitHub App client` in log | Private key formatted incorrectly | Re-process the key with the `awk` command from step 2.7 |
 
 ---
 
 ## 8. Reference: Environment Variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `BOT_APP_ID` | Yes | Numeric GitHub App ID (from the app settings page) |
-| `BOT_PRIVATE_KEY` | Yes | Contents of the `.pem` file as a single-line string with `\n` as escape sequences |
-| `BOT_WEBHOOK_SECRET` | Yes | HMAC secret used to verify incoming webhook payloads |
-| `PORT` | No | HTTP port (default: `8080`) |
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `BOT_APP_ID` | Yes | — | Numeric GitHub App ID (from the app settings page) |
+| `BOT_PRIVATE_KEY` | Yes | — | Contents of the `.pem` file as a single-line string with `\n` as escape sequences |
+| `BOT_WEBHOOK_SECRET` | Yes | — | HMAC secret used to verify incoming webhook payloads |
+| `DB_URL` | No | `jdbc:h2:mem:octobird;DB_CLOSE_DELAY=-1` | JDBC database URL |
+| `DB_USERNAME` | No | `sa` | Database username |
+| `DB_PASSWORD` | No | *(empty)* | Database password |
+| `DB_DRIVER` | No | `org.h2.Driver` | JDBC driver class (`org.postgresql.Driver` for production) |
+| `PORT` | No | `8080` | HTTP port |
 
 ### Example: Format the private key correctly
 
@@ -445,3 +438,41 @@ awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' private-key.pem
 | **Webhook URL** | `https://octobird-dev.example.com/webhook` | `https://octobird.example.com/webhook` |
 | **Target repositories** | Test repositories | Production repositories |
 | **Rollback** | Not needed (push a new commit) | Re-push old tag or use Coolify rollback |
+
+---
+
+## 9. Future: Docker Compose Deployment
+
+> This section describes the planned deployment model after Phase 7 (Repository-Umstrukturierung).
+> It is **not yet active** — the current deployment uses Nixpacks as described above.
+
+After Phase 7, the repository will be restructured into separate `backend/` and `frontend/`
+directories, each with its own Dockerfile. The deployment will use **Docker Compose** instead of
+Nixpacks:
+
+**Components:**
+
+| Service | Image | Port | Description |
+|---|---|---|---|
+| `backend` | `backend/Dockerfile` | 8080 | Java backend (Helidon) |
+| `frontend` | `frontend/Dockerfile` | 3000 | Next.js frontend |
+| `db` | `postgres:17` | 5432 | PostgreSQL database |
+
+**Coolify setup:**
+- Resource type: **Docker Compose** (instead of Application)
+- Coolify reads `docker-compose.yml` from the repository root
+- Environment variables are configured in Coolify and injected into the containers
+- Health check targets the backend container (`GET /health` on port 8080)
+
+**What changes:**
+- `nixpacks.toml` will be removed
+- Build configuration moves from Coolify settings to Dockerfiles
+- PostgreSQL runs as a dedicated container (no more H2 in-memory in production)
+- Frontend serves the web UI and proxies API requests to the backend
+
+**Migration steps** when Phase 7 is ready:
+1. Delete the existing Coolify resource (Nixpacks-based)
+2. Create a new Coolify resource of type **Docker Compose**
+3. Point it to the same repository and branch
+4. Transfer all environment variables
+5. Deploy and verify

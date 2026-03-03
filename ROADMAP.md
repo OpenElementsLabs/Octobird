@@ -32,52 +32,6 @@ nach Abhängigkeiten, Nutzen und technischer Machbarkeit.
 
 ---
 
-## 🚀 Nächster Schritt: Test-Deployment in Coolify
-
-> Bevor weitere Features gebaut werden, soll die App mit einem echten GitHub Repository
-> getestet werden. Deployment-Ziel: [Coolify](https://coolify.io) (self-hosted PaaS).
-
-### Was bereits vorbereitet ist
-
-- `nixpacks.toml` im Repository-Root für Coolify-kompatibles Build (Maven + Java 21)
-- App startet auf Port 8080, `GET /health` liefert `"OK"`
-
-### Schritte zum Deployment
-
-1. **GitHub App registrieren** unter [github.com/settings/apps/new](https://github.com/settings/apps/new):
-   - Webhook URL: `https://<coolify-domain>/webhook`
-   - Webhook Secret: beliebiger Zufallswert
-   - Private Key: RSA-Schlüssel generieren und herunterladen
-   - Permissions: Issues (Read & Write), Pull Requests (Read & Write), Repository Contents (Read)
-   - Events abonnieren: `Issues`, `Issue comment`, `Pull request`, `Workflow run`
-
-2. **App in Coolify anlegen:**
-   - Quelle: dieses Git-Repository
-   - Build-Pack: Nixpacks (erkennt `nixpacks.toml` automatisch)
-   - Port: `8080`
-   - Health-Check: `GET /health`
-
-3. **Umgebungsvariablen in Coolify setzen:**
-
-   | Variable | Inhalt |
-   |---|---|
-   | `BOT_APP_ID` | App-ID aus den GitHub App Settings |
-   | `BOT_PRIVATE_KEY` | Inhalt der `.pem`-Datei (einzeilig mit `\n`) |
-   | `BOT_WEBHOOK_SECRET` | Das beim Registrieren gewählte Webhook Secret |
-
-4. **App installieren:** GitHub App auf dem Test-Repository installieren
-
-5. **Smoketest:** Webhook-Delivery in den GitHub App Settings prüfen, Health-Endpoint aufrufen
-
-### Konfiguration des Test-Repositories
-
-Das Test-Repository benötigt:
-- `.github/hiero-bot.yml` — Haupt-Konfiguration (Features, Labels, Limits)
-- `.github/spam-list.txt` — Spam-User-Liste (kann leer sein)
-- `.github/mentor_roster.json` — Mentor-Rotation, z.B. `{"order": ["username1"]}`
-
----
-
 ## ✅ Phase 3: PR-Qualitätschecks (Webhook-basiert) — ABGESCHLOSSEN
 
 > Features die auf PR-Events reagieren und keine lokale Build-Umgebung benötigen.
@@ -145,7 +99,7 @@ Das Test-Repository benötigt:
 
 ---
 
-## Phase 6: Persistenz & Konfigurations-API
+## ✅ Phase 6: Persistenz & Konfigurations-API — ABGESCHLOSSEN
 
 > Ersetzt die dateibasierte Konfiguration (`.github/hiero-bot.yml`) durch eine datenbankgestützte
 > Lösung mit REST-API. Grundlage für das spätere Web-Frontend.
@@ -198,7 +152,7 @@ Records sind bereits immutable Java Records mit Jackson-kompatibler Struktur.
 - **REST PUT Config:** Jackson deserialisiert JSON → Config-Records → Service mappt auf
   Entity, persistiert via Repository
 
-### 6.1 JPA-Infrastruktur & Multi-Tenancy
+### ✅ 6.1 JPA-Infrastruktur & Multi-Tenancy
 
 **Abhängigkeiten hinzufügen:**
 - `jakarta.persistence-api`, `hibernate-core`, `flyway-core`
@@ -220,7 +174,7 @@ Records sind bereits immutable Java Records mit Jackson-kompatibler Struktur.
 - Verzeichnis `src/main/resources/db/migration/`
 - Namensschema: `V001__create_repo_config.sql`, `V002__create_app_state.sql`, etc.
 
-### 6.2 Datenbank-Schema
+### ✅ 6.2 Datenbank-Schema
 
 ```mermaid
 erDiagram
@@ -366,7 +320,7 @@ erDiagram
     repo_config ||--o{ audit_log : "repo_id"
 ```
 
-### 6.3 Entities
+### ✅ 6.3 Entities
 
 Ersetzt `RepoConfigLoader` + `RepoConfigMapper` (aktuell: YAML via GitHub API → Records).
 
@@ -401,7 +355,7 @@ REST-Endpoint importiert jemals eine Entity-Klasse.
 | `SpamUserEntity` | `repo_id`, `username` | Ersetzt `.github/spam-list.txt` |
 | `MentorEntity` | `repo_id`, `username`, `sort_order` | Ersetzt `.github/mentor_roster.json` |
 
-### 6.4 App-State-Entities
+### ✅ 6.4 App-State-Entities
 
 State den die App selbst verwaltet (nicht vom User konfiguriert):
 
@@ -411,7 +365,7 @@ State den die App selbst verwaltet (nicht vom User konfiguriert):
 | `MentorRotationEntity` | `repo_id`, `next_index` | Mentor-Rotations-Zähler |
 | `AuditLogEntity` | `repo_id`, `handler_name`, `action`, `target`, `timestamp`, `details` | Protokoll aller Bot-Aktionen |
 
-### 6.5 JPA-Repository-Schicht
+### ✅ 6.5 JPA-Repository-Schicht
 
 **Abstrakte Basisklasse `AbstractRepository<T>`:**
 
@@ -485,7 +439,7 @@ am Eintrittspunkt der Verarbeitung (Webhook-Request bzw. Scheduled-Task-Ausführ
 - Repositories selbst sind **transaktions-agnostisch** — sie arbeiten auf dem übergebenen
   `EntityManager` und kümmern sich nicht um `begin`/`commit`.
 
-### 6.6 Service-Schicht (Entity ↔ Record/DTO-Mapping)
+### ✅ 6.6 Service-Schicht (Entity ↔ Record/DTO-Mapping)
 
 Die Service-Schicht ist die einzige Stelle, die sowohl Repositories (Entities) als auch
 die bestehenden Config-Records kennt. Sie übersetzt zwischen beiden Welten.
@@ -527,7 +481,7 @@ org.hiero.bot.service/
 - Der YAML-Fallback (`.github/hiero-bot.yml`) wurde entfernt — die Konfiguration erfolgt
   ausschließlich über die Datenbank oder Built-in-Defaults
 
-### 6.7 REST-API für Konfiguration
+### ✅ 6.7 REST-API für Konfiguration
 
 **Endpoints:**
 
@@ -576,21 +530,22 @@ möglich. Stattdessen wird die OpenAPI-Spec manuell als YAML-Datei gepflegt:
   ein Integrationstest ergänzt, der prüft, dass alle registrierten Routen in der
   OpenAPI-Spec dokumentiert sind
 
-### 6.8 Implementierungsreihenfolge
+### ✅ 6.8 Implementierungsreihenfolge
 
-1. JPA-Infrastruktur: Dependencies, `persistence.xml`, DataSource, Flyway (6.1)
-2. Schema + Entities + Migrationen (6.2 + 6.3)
-3. Repository-Schicht: `AbstractRepository` + konkrete Repositories (6.5)
-4. Service-Schicht: `EntityRecordMapper` + `RepoConfigService` als `RepoConfig`-Quelle (6.6)
-5. State-Entities + Repositories: Reminder, Rotation, Audit (6.4 + 6.5)
-6. Spam/Mentor-Entities + Services, bestehende Utility-Klassen ablösen (6.6)
-7. REST-API-Endpoints mit Config-Records als JSON-Modell + OpenAPI-Spec (6.7)
+1. ✅ JPA-Infrastruktur: Dependencies, `persistence.xml`, DataSource, Flyway (6.1)
+2. ✅ Schema + Entities + Migrationen (6.2 + 6.3)
+3. ✅ Repository-Schicht: `AbstractRepository` + konkrete Repositories (6.5)
+4. ✅ Service-Schicht: `EntityRecordMapper` + `RepoConfigService` als `RepoConfig`-Quelle (6.6)
+5. ✅ State-Entities + Repositories: Reminder, Rotation, Audit (6.4 + 6.5)
+6. ✅ Spam/Mentor-Entities + Services, bestehende Utility-Klassen ablösen (6.6)
+7. ✅ REST-API-Endpoints mit Config-Records als JSON-Modell + OpenAPI-Spec + Swagger UI (6.7)
 
 ---
 
-## Phase 7: Web-Frontend
+## Phase 7: Web-Frontend & Deployment
 
-> Konfigurationsoberfläche für Repo-Admins. Baut auf Phase 6 (API) auf.
+> Konfigurationsoberfläche für Repo-Admins, Repository-Umstrukturierung und
+> Deployment auf Coolify via Docker Compose. Baut auf Phase 6 (API) auf.
 
 ### 7.0 Repository-Umstrukturierung
 
@@ -610,7 +565,7 @@ Octobird/
 │   ├── package.json
 │   ├── Dockerfile
 │   └── src/
-├── docker-compose.yml          # Lokale Entwicklung (Backend + Frontend + PostgreSQL)
+├── docker-compose.yml          # Lokale Entwicklung & Coolify-Deployment
 ├── ARCHITECTURE.md             # Architektur-Dokumentation
 └── ...                         # README, ROADMAP, CLAUDE.md, actions/ etc.
 ```
@@ -642,12 +597,13 @@ Octobird/
 
 5. **`nixpacks.toml` löschen**
    - Wird durch komponentenspezifische Dockerfiles ersetzt
-   - Coolify-Deployment auf Dockerfile-basiertes Build umstellen
+   - Coolify-Deployment auf Docker-Compose-basiertes Build umstellen
 
 6. **Dokumentation aktualisieren**
    - `ARCHITECTURE.md` — bereits erstellt (Ziel-Architektur)
    - `README.md` — Build-Befehle und Projektstruktur anpassen
    - `CLAUDE.md` — Pfade und Build-Anweisungen aktualisieren
+   - `DEPLOYMENT.md` — Auf Docker-Compose-basiertes Deployment umstellen
 
 **Designentscheidungen:**
 - **Kein Maven-Multi-Module:** Backend und Frontend sind völlig unabhängige Projekte.
@@ -673,34 +629,32 @@ Octobird/
 - Übersicht der letzten Bot-Aktionen pro Repo
 - Filtert nach Event-Typ, Handler, Zeitraum
 
+### 7.4 Deployment auf Coolify
+
+Nach Abschluss der Umstrukturierung und Frontend-Entwicklung wird die gesamte Anwendung
+(Backend + Frontend + PostgreSQL) als **Docker Compose Stack** auf Coolify deployed:
+
+- **Deployment-Methode:** Coolify Docker Compose (ersetzt das bisherige Nixpacks-basierte
+  Single-Service-Deployment)
+- **Dev-Environment:** Automatisches Deployment bei jedem Push auf `main`
+- **Prod-Environment:** Deployment per Git-Tag (z.B. `v1.0.0`)
+- **Umgebungsvariablen:** `BOT_APP_ID`, `BOT_PRIVATE_KEY`, `BOT_WEBHOOK_SECRET`,
+  Datenbank-Credentials — alle in Coolify konfiguriert
+- **Health-Check:** `GET /health` auf dem Backend-Container
+- Details siehe [DEPLOYMENT.md](DEPLOYMENT.md)
+
 ---
 
 ## Abhängigkeiten zwischen Phasen
 
 ```
-Phase 1+2+3+4+5 (✅ Abgeschlossen)
-  ├──▶ Test-Deployment (🚀 Nächster Schritt)
-  └──▶ Phase 6 (Persistenz & API) ──▶ Phase 7 (Frontend)
+Phase 1+2+3+4+5+6 (✅ Abgeschlossen)
+  └──▶ Phase 7 (Frontend & Deployment)
 ```
 
-- Phase 3, 4, 5 und 6 können nach dem Test-Deployment parallel entwickelt werden
-- Phase 5 baut auf Phase 1+2 auf (nutzt `/working`-Logik und Assignment-Status)
 - Phase 7 baut auf Phase 6 auf (API muss stehen, bevor das Frontend darauf zugreift)
-- **Designprinzip:** Alle Handler sollten Konfiguration über ein abstraktes Interface
-  beziehen, damit der Wechsel von Datei → Datenbank transparent ist
-
----
-
-## Konfiguration pro Repository
-
-**Aktuell (Phase 1–5):** Konfiguration über Dateien im Repository:
-- `.github/hiero-bot.yml` - Hauptkonfiguration
-- `.github/spam-list.txt` - Spam-User (eine Zeile pro Username)
-- `.github/mentor_roster.json` - Mentor-Rotation (`{ "order": ["user1", "user2"] }`)
-
-**Ziel (Phase 6+):** Konfiguration in der Datenbank, verwaltbar über REST-API und
-Web-Frontend mit GitHub-OAuth-Login. Die Dateien im Repository dienen dann nur noch als
-optionaler Fallback.
+- Das Deployment auf Coolify erfolgt nach der Repository-Umstrukturierung (7.0) via
+  Docker Compose
 
 ---
 
