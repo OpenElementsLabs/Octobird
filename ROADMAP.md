@@ -393,7 +393,7 @@ public abstract class AbstractRepository<T> {
 **Konkrete Repositories:**
 
 ```
-org.hiero.bot.persistence/
+com.openelements.octobird.persistence/
 ├── AbstractRepository.java            # Generische Basisklasse (CRUD + Multi-Tenancy)
 ├── RepoConfigRepository.java          # findByRepoId(), save(), delete()
 ├── SpamUserRepository.java            # isSpamUser(repoId, username), addUser(), removeUser()
@@ -445,7 +445,7 @@ Die Service-Schicht ist die einzige Stelle, die sowohl Repositories (Entities) a
 die bestehenden Config-Records kennt. Sie übersetzt zwischen beiden Welten.
 
 ```
-org.hiero.bot.service/
+com.openelements.octobird.service/
 ├── RepoConfigService.java        # Entity ↔ RepoConfig (Records)
 ├── SpamUserService.java          # Entity ↔ List<String>
 ├── MentorService.java            # Entity ↔ List<String> (geordnet)
@@ -547,7 +547,7 @@ möglich. Stattdessen wird die OpenAPI-Spec manuell als YAML-Datei gepflegt:
 > Konfigurationsoberfläche für Repo-Admins, Repository-Umstrukturierung und
 > Deployment auf Coolify via Docker Compose. Baut auf Phase 6 (API) auf.
 
-### 7.0 Repository-Umstrukturierung
+### ✅ 7.0 Repository-Umstrukturierung
 
 Bevor das Frontend gebaut werden kann, muss das Repository von einem Single-Module-Maven-Projekt
 zu einer Zwei-Komponenten-Architektur umstrukturiert werden. Referenz:

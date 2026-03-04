@@ -23,6 +23,22 @@
 hs_err_pid*
 replay_pid*
 
-
+# IDE
 .idea
-target
+
+# Backend
+backend/target/
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+
+# OS
+.DS_Store
+
+# Environment
+.env
+.env.*
+
+# Docker
+docker-compose.override.yml

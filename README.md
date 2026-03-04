@@ -14,30 +14,66 @@ by GitHub webhook events and per-repository configuration.
 - **Assignment limits** — Enforce per-user assignment caps (configurable for spam users vs. regular contributors)
 - **Spam user restrictions** — Limit spam-listed users to "Good First Issue" only
 - **Maintainer bypass** — Collaborators with write/admin access are exempt from limits
-- **Per-repo configuration** — Each repository configures the bot via `.github/hiero-bot.yml`
+- **Per-repo configuration** — Database-backed settings with REST API
 
 See [ROADMAP.md](ROADMAP.md) for planned features including PR quality checks, mentor assignment, inactivity reminders,
 and more.
 
+## Project Structure
+
+```
+Octobird/
+├── backend/                    # Java backend (Helidon + Maven)
+│   ├── pom.xml
+│   ├── Dockerfile
+│   └── src/
+├── frontend/                   # Next.js frontend (pnpm)
+│   ├── package.json
+│   ├── Dockerfile
+│   └── src/
+├── docker-compose.yml          # Full-stack local development
+├── actions/                    # Reference workflows (read-only)
+└── ...                         # README, ROADMAP, CLAUDE.md, ARCHITECTURE.md
+```
+
 ## Requirements
 
 - Java 21+
+- Node.js 20+ and pnpm (for frontend)
 - A [GitHub App](https://docs.github.com/en/apps/creating-github-apps) with webhook permissions
 
 ## Quick Start
 
-### 1. Build
+### Option 1: Docker Compose (Recommended)
 
 ```bash
-./mvnw clean package
+docker compose up
 ```
 
-This produces `target/github-app-0.1.0-SNAPSHOT.jar` with dependencies in `target/libs/`.
+Backend: `http://localhost:8080`, Frontend: `http://localhost:3000`, Database: `localhost:5432`
 
-### 2. Configure
+### Option 2: Individual Services
 
-The application is configured via environment variables. The `src/main/resources/application.yaml` file references these
-variables using the `${ENV_VAR:default}` syntax, so environment variables are the preferred way to configure the app.
+#### Backend
+
+```bash
+cd backend
+./mvnw clean package
+java -jar target/octobird-0.1.0-SNAPSHOT.jar
+```
+
+#### Frontend
+
+```bash
+cd frontend
+pnpm install
+pnpm dev
+```
+
+### Configure
+
+The application is configured via environment variables. The `backend/src/main/resources/application.yaml` file
+references these variables using the `${ENV_VAR:default}` syntax.
 
 | Environment Variable | Description                                         | Default                                  |
 |----------------------|-----------------------------------------------------|------------------------------------------|
@@ -52,23 +88,12 @@ variables using the `${ENV_VAR:default}` syntax, so environment variables are th
 
 **Do not commit real credentials.**
 
-### 3. Run
-
-```bash
-java -jar target/github-app-0.1.0-SNAPSHOT.jar
-```
-
-The bot exposes two endpoints:
+## Endpoints
 
 | Endpoint        | Description                                  |
 |-----------------|----------------------------------------------|
 | `POST /webhook` | GitHub webhook receiver (signature-verified) |
 | `GET /health`   | Health check (returns `OK`)                  |
-
-### 4. Register the webhook
-
-Point your GitHub App's webhook URL to `https://your-host/webhook` and select the events you want to handle (e.g.
-`issue_comment`, `issues`, `pull_request`).
 
 ## Configuration
 
@@ -89,12 +114,13 @@ automatically via Flyway.
 ## Development
 
 ```bash
+cd backend
 ./mvnw clean compile    # Compile
 ./mvnw test             # Run tests
 ./mvnw clean package    # Full build
 ```
 
-The project uses the Maven Wrapper, so no local Maven installation is required.
+The backend uses the Maven Wrapper, so no local Maven installation is required.
 
 ### Code conventions
 
@@ -102,12 +128,22 @@ See [JAVA-BEST-PRACTICES.md](JAVA-BEST-PRACTICES.md) and the Code Conventions se
 
 ## Tech Stack
 
+### Backend
 - **Java 21** — Records, virtual threads, modern APIs
 - **Helidon 4** — Lightweight web server
 - **Kohsuke github-api** — GitHub REST API client
-- **Jackson** — JSON and YAML parsing
+- **Jackson** — JSON parsing
+- **JPA (Hibernate)** — Database persistence
+- **Flyway** — Schema migrations
+- **PostgreSQL / H2** — Production / development database
 - **SLF4J + Logback** — Structured logging
 - **JUnit 5 + Mockito** — Testing
+
+### Frontend
+- **Next.js 15** — React framework (App Router)
+- **TypeScript** — Type-safe JavaScript
+- **Tailwind CSS** — Utility-first styling
+- **pnpm** — Package manager
 
 ## License
 

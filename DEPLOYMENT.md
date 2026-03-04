@@ -188,7 +188,7 @@ Click **Deploy**. Coolify builds the image with Nixpacks and starts the containe
 Watch the build log — a successful deployment ends with:
 
 ```
-Hiero Bot started on http://localhost:8080
+Octobird started on http://localhost:8080
 ```
 
 ---

@@ -1,4 +1,4 @@
-# Octobird - GitHub Bot for Hiero Contributor Automation
+# Octobird - GitHub Bot for Open-Source Contributor Automation
 
 ## Project Overview
 
@@ -8,55 +8,103 @@ contribute to open-source projects. Built as a lightweight, self-hosted Java app
 ## Project Goal
 
 The `actions/` folder contains existing GitHub Actions workflows, scripts, and automations imported from another
-repository (Hiero). These represent the target functionality that Octobird aims to replace. The goal is to migrate this
+repository. These represent the target functionality that Octobird aims to replace. The goal is to migrate this
 workflow-based automation into a proper, generic GitHub App that:
 
 - Can be installed on any repository
 - Handles contributor workflows (assignment, onboarding, reminders)
 - Replaces scattered GitHub Actions with centralized event-driven handlers
-- Is configurable per repository via `.github/hiero-bot.yml`
+- Is configurable per repository via database-backed settings and REST API
 
 The `actions/` folder serves as a **reference for features to implement** as native event handlers in the Java
-application. See [ROADMAP.md](ROADMAP.md) for the detailed migration plan with all features grouped into 5 phases.
+application. See [ROADMAP.md](ROADMAP.md) for the detailed migration plan with all features grouped into phases.
 
 For a complete description of every implemented workflow — handlers, scheduled tasks, user commands, decision logic, and
 Mermaid diagrams — see [WORKFLOWS.md](WORKFLOWS.md).
 
-## Tech Stack
-
-- **Language:** Java 21 (uses records, virtual threads)
-- **Framework:** Helidon 4.2.3 (lightweight web server)
-- **Build:** Apache Maven
-- **GitHub API:** Kohsuke github-api 1.330
-- **Serialization:** Jackson 2.18.3 (JSON + YAML)
-- **Testing:** JUnit 5 (Jupiter) + Mockito
-- **License:** Apache 2.0
-
-## Build & Run Commands
-
-```bash
-./mvnw clean compile        # Compile
-./mvnw test                 # Run tests
-./mvnw clean package        # Full build (JAR + dependencies in target/libs/)
-java -jar target/github-app-0.1.0-SNAPSHOT.jar   # Run the bot
-```
-
-The project uses the Maven Wrapper (`mvnw`), so no local Maven installation is required.
-
 ## Project Structure
 
 ```
-src/main/java/org/hiero/bot/
+Octobird/
+├── backend/                               # Java backend (Helidon + Maven)
+│   ├── pom.xml
+│   ├── Dockerfile
+│   ├── mvnw / mvnw.cmd / .mvn/
+│   └── src/
+├── frontend/                              # Next.js frontend (pnpm)
+│   ├── package.json
+│   ├── Dockerfile
+│   └── src/
+├── docker-compose.yml                     # Full-stack local development
+├── actions/                               # Reference workflows (read-only)
+├── ARCHITECTURE.md
+├── CLAUDE.md
+├── ROADMAP.md
+└── README.md
+```
+
+## Tech Stack
+
+### Backend
+- **Language:** Java 21 (uses records, virtual threads)
+- **Framework:** Helidon 4.2.3 (lightweight web server)
+- **Build:** Apache Maven (with Maven Wrapper)
+- **GitHub API:** Kohsuke github-api 1.330
+- **Persistence:** JPA (Hibernate) + Flyway migrations
+- **Database:** PostgreSQL (production), H2 in-memory (development/test)
+- **Serialization:** Jackson 2.18.3 (JSON)
+- **Testing:** JUnit 5 (Jupiter) + Mockito
+- **License:** Apache 2.0
+
+### Frontend
+- **Framework:** Next.js 15 (App Router)
+- **Language:** TypeScript
+- **UI:** React 19 + Tailwind CSS v4
+- **Package Manager:** pnpm
+
+## Build & Run Commands
+
+### Docker Compose (Full Stack)
+
+```bash
+docker compose up
+```
+
+Backend: `http://localhost:8080`, Frontend: `http://localhost:3000`, Database: `localhost:5432`
+
+### Backend Only
+
+```bash
+cd backend
+./mvnw clean compile        # Compile
+./mvnw test                 # Run tests
+./mvnw clean package        # Full build (JAR + dependencies in target/libs/)
+java -jar target/octobird-0.1.0-SNAPSHOT.jar   # Run the bot
+```
+
+The backend uses the Maven Wrapper (`mvnw`), so no local Maven installation is required.
+
+### Frontend Only
+
+```bash
+cd frontend
+pnpm install                # Install dependencies
+pnpm dev                    # Development server (port 3000)
+pnpm build                  # Production build
+```
+
+## Backend Package Structure
+
+```
+backend/src/main/java/com/openelements/octobird/
 ├── Main.java                              # Entry point, server setup, handler registration
 ├── auth/
 │   ├── GitHubAppAuth.java                # GitHub App authentication + token caching
 │   └── JwtAuthProvider.java              # RS256 JWT generation
 ├── config/
-│   ├── BotConfig.java                    # Top-issueLevel bot configuration record
+│   ├── BotConfig.java                    # Top-level bot configuration record
 │   ├── RepoConfig.java                   # Per-repo configuration interface
 │   ├── DefaultRepoConfig.java            # Default values for RepoConfig
-│   ├── RepoConfigLoader.java             # Loads .github/hiero-bot.yml per repo
-│   ├── RepoConfigMapper.java             # Maps YAML structure to config records
 │   ├── AssignmentLimitsConfig.java       # Assignment limit settings record
 │   ├── CodeRabbitConfig.java             # CodeRabbit integration settings record
 │   ├── CommandsConfig.java               # Bot command patterns record
@@ -69,34 +117,24 @@ src/main/java/org/hiero/bot/
 │   ├── EventHandler.java                 # Handler interface (eventType, matches, isActive, handle)
 │   ├── AbstractEventHandler.java         # Base class with matcher + feature-check predicates
 │   ├── ServiceRegistry.java              # Service locator interface (getGitHub(), ...)
-│   └── impl/
-│       ├── AdvancedAssignmentGuardHandler.java    # Guards advanced issues
-│       ├── AssignmentLimitHandler.java            # Enforces open-assignment limits
-│       ├── BeginnerAssignCommandHandler.java      # /assign on beginner issues
-│       ├── CodeRabbitPlanTriggerHandler.java      # Triggers @coderabbitai plan
-│       ├── GfiAssignCommandHandler.java           # /assign on Good First Issues
-│       ├── IntermediateAssignmentGuardHandler.java# Guards intermediate issues
-│       ├── MentorAssignmentHandler.java           # Assigns mentor to newcomers
-│       ├── UnassignCommandHandler.java            # /unassign command
-│       └── WorkingCommandHandler.java             # /working command
+│   └── impl/                             # Concrete handler implementations
 ├── model/
 │   ├── GitHubAction.java                 # Enum for GitHub webhook action types
 │   ├── GitHubEventType.java              # Enum for GitHub webhook event types
 │   ├── Comment.java / Issue.java / ...   # Immutable records for GitHub domain objects
-│   ├── event/
-│   │   ├── WebhookEvent.java             # Marker interface for all webhook events
-│   │   ├── IssueCommentEvent.java        # issue_comment webhook payload
-│   │   ├── IssuesEvent.java              # issues webhook payload
-│   │   └── PullRequestEvent.java         # pull_request webhook payload
-│   └── parse/
-│       ├── WebhookParser.java            # Parser interface
-│       └── JacksonWebhookParser.java     # Jackson-based implementation
+│   ├── event/                            # Webhook event payloads
+│   └── parse/                            # JSON → event parsing
+├── persistence/                           # Database layer (JPA entities, repositories, mapper)
+│   ├── entity/                           # JPA entities (internal to persistence layer)
+│   ├── repository/                       # Data access (AbstractRepository<T> base class)
+│   └── mapper/                           # Entity ↔ Record mapping
+├── rest/                                  # REST API services (Helidon HttpService implementations)
 ├── scheduled/
 │   └── ScheduledTaskManager.java         # Virtual thread task scheduler
+├── service/                               # Business logic (Entity ↔ Record translation)
 ├── util/
 │   ├── CommentMarkerChecker.java         # Checks for HTML marker comments on issues
 │   ├── IssueSearchHelper.java            # GitHub search queries (assignments, PRs)
-│   ├── MentorRosterLoader.java           # Loads + caches mentor roster from repo file
 │   ├── MessageFormatter.java             # SLF4J-style {} placeholder formatting
 │   ├── PermissionChecker.java            # Collaborator / exempt-from-guard checks
 │   └── SpamListLoader.java               # Loads + caches spam user list from repo file
@@ -105,10 +143,12 @@ src/main/java/org/hiero/bot/
     ├── WebhookService.java               # HTTP endpoint for GitHub webhooks
     └── WebhookVerifier.java              # HMAC-SHA256 signature verification
 
-src/main/resources/
-└── application.yaml                      # Server port + bot config (app-id, keys)
+backend/src/main/resources/
+├── application.yaml                      # Server port + bot config (app-id, keys)
+├── META-INF/persistence.xml              # JPA configuration
+└── db/migration/                         # Flyway SQL migrations
 
-actions/                                  # Reference workflows from Hiero (to be migrated into handlers)
+actions/                                  # Reference workflows (read-only) (to be migrated into handlers)
 ```
 
 ## Architecture
@@ -120,29 +160,16 @@ actions/                                  # Reference workflows from Hiero (to b
   `isActive(repoConfig)` before `handle()`.
 - **ServiceRegistry:** `handle()` receives a `ServiceRegistry` (not `GitHub` directly) to allow future services (
   Discord, Slack, etc.). Use `registry.getGitHub()` inside handlers.
-- **Utility classes:** All static helper utilities live in `org.hiero.bot.util`. Use
+- **Utility classes:** All static helper utilities live in `com.openelements.octobird.util`. Use
   `MessageFormatter.format("Hi @{}, limit is {}", user, n)` for comment strings (SLF4J-style `{}` placeholders).
-- **Per-repo config:** Loaded from `.github/hiero-bot.yml` via `RepoConfigLoader`, mapped to typed records via
-  `RepoConfigMapper`.
-
-### Design for future persistence
-
-The app is designed to eventually support database-backed configuration (PostgreSQL in production,
-H2 for development/testing) with a web frontend using GitHub OAuth2 login. When building new
-features, keep the following in mind:
-
-- **Abstract configuration access:** Handlers should access repo configuration through interfaces,
-  not directly via file loaders or database queries. This allows swapping the implementation from
-  file-based to database-backed without changing handler code.
-- **Separate state from config:** Distinguish between user-managed settings (maintainer list,
-  assignment limits, enabled features) and app-managed state (last reminder timestamps, rotation
-  counters, audit logs).
-- **Multi-tenancy:** All data structures must be keyed per repository/installation. Never use
-  global singletons for repo-specific state.
+- **Per-repo config:** Loaded from database via `RepoConfigService`, mapped to typed records. Falls back to
+  `DefaultRepoConfig.allDefaults()` when no database entry exists.
+- **Persistence:** Layered architecture — handlers work with config records, service layer translates to/from
+  JPA entities, repository layer handles CRUD. See [ARCHITECTURE.md](ARCHITECTURE.md) for details.
 
 ## Adding a New Event Handler
 
-1. Create a class in `org.hiero.bot.handler.impl` extending `AbstractEventHandler<T extends WebhookEvent>`
+1. Create a class in `com.openelements.octobird.handler.impl` extending `AbstractEventHandler<T extends WebhookEvent>`
 2. Declare `private static final BiPredicate<GitHubEventType, GitHubAction> MATCHER` for event filtering
 3. Declare `private static final Predicate<RepoConfig> FEATURE_CHECK` for the feature flag (e.g.
    `repoConfig -> repoConfig.features().myFeature()`)
@@ -189,11 +216,11 @@ void removesUnqualifiedUser() throws IOException {
 - `// Then` — assertions and verifications
 
 This applies to all tests regardless of whether they use Mockito, plain JUnit assertions,
-or integration-issueLevel setup. Do not omit any of the three sections, even if one is trivial.
+or integration-level setup. Do not omit any of the three sections, even if one is trivial.
 
 ## Configuration
 
-Application config in `src/main/resources/application.yaml`:
+Application config in `backend/src/main/resources/application.yaml`:
 
 - `server.port` - HTTP port (default: 8080)
 - `bot.app-id` - GitHub App ID
@@ -206,6 +233,11 @@ Application config in `src/main/resources/application.yaml`:
 
 - `POST /webhook` - GitHub webhook receiver (signature-verified)
 - `GET /health` - Health check (returns "OK")
+- `GET /api/repos` - List installed repositories
+- `GET/PUT /api/repos/{owner}/{repo}/config` - Repository configuration
+- `GET/PUT /api/repos/{owner}/{repo}/spam-users` - Spam user list
+- `GET/PUT /api/repos/{owner}/{repo}/mentors` - Mentor roster
+- `GET /api/repos/{owner}/{repo}/audit-log` - Audit log
 
 ## Security
 

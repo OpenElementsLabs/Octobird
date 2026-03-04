@@ -15,7 +15,7 @@ Octobird/
 │   ├── Dockerfile
 │   └── src/
 │       ├── main/
-│       │   ├── java/org/hiero/bot/
+│       │   ├── java/com/openelements/octobird/
 │       │   │   ├── Main.java
 │       │   │   ├── auth/
 │       │   │   ├── config/
@@ -75,7 +75,7 @@ Octobird/
 ### Package Structure
 
 ```
-org.hiero.bot/
+com.openelements.octobird/
 ├── Main.java                    # Entry point, server setup, route registration
 ├── auth/                        # GitHub App JWT authentication, token caching
 ├── config/                      # Configuration records (RepoConfig, FeaturesConfig, ...)
@@ -144,8 +144,8 @@ All queries filter by repository — no global singletons for repo-specific stat
 
 ```bash
 cd backend
-../mvnw clean package          # Build JAR + dependencies in target/libs/
-java -jar target/github-app-0.1.0-SNAPSHOT.jar
+./mvnw clean package          # Build JAR + dependencies in target/libs/
+java -jar target/octobird-0.1.0-SNAPSHOT.jar
 ```
 
 Environment variables:
@@ -312,7 +312,7 @@ RUN ./mvnw clean package -DskipTests
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY --from=build /app/target/github-app-*.jar app.jar
+COPY --from=build /app/target/octobird-*.jar app.jar
 COPY --from=build /app/target/libs/ libs/
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
@@ -373,7 +373,7 @@ Run backend and frontend separately for faster iteration:
 ```bash
 # Terminal 1: Backend (uses H2 in-memory by default)
 cd backend
-../mvnw clean compile exec:java
+./mvnw clean compile exec:java
 
 # Terminal 2: Frontend
 cd frontend
@@ -392,7 +392,7 @@ cd backend
 DB_URL=jdbc:postgresql://localhost:5432/octobird \
 DB_USERNAME=octobird DB_PASSWORD=octobird \
 DB_DRIVER=org.postgresql.Driver \
-../mvnw clean compile exec:java
+./mvnw clean compile exec:java
 
 # Terminal 2: Frontend
 cd frontend
