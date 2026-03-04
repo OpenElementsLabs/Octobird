@@ -33,7 +33,7 @@ services:
       PORT: 8080
     labels:
       - traefik.enable=true
-      - traefik.http.routers.octobird-backend.rule=Host(`${BACKEND_DOMAIN}`)
+      - traefik.http.routers.octobird-backend.rule=Host(`${SERVICE_FQDN_BACKEND}`)
       - traefik.http.routers.octobird-backend.entrypoints=http,https
       - traefik.http.routers.octobird-backend.tls=true
       - traefik.http.services.octobird-backend.loadbalancer.server.port=8080
@@ -46,11 +46,11 @@ services:
     depends_on:
       - backend
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_API_URL: ${SERVICE_URL_BACKEND}
       NODE_ENV: production
     labels:
       - traefik.enable=true
-      - traefik.http.routers.octobird-frontend.rule=Host(`${FRONTEND_DOMAIN}`)
+      - traefik.http.routers.octobird-frontend.rule=Host(`${SERVICE_FQDN_FRONTEND}`)
       - traefik.http.routers.octobird-frontend.entrypoints=http,https
       - traefik.http.routers.octobird-frontend.tls=true
       - traefik.http.services.octobird-frontend.loadbalancer.server.port=3000

@@ -1,13 +1,13 @@
 server:
-  port: ${PORT:8080}
+  port: 8080
 
 bot:
-  app-id: ${BOT_APP_ID:0}
-  private-key: ${BOT_PRIVATE_KEY:}
-  webhook-secret: ${BOT_WEBHOOK_SECRET:}
+  app-id: 0
+  private-key: ""
+  webhook-secret: ""
 
 datasource:
-  url: ${DB_URL:jdbc:h2:mem:octobird;DB_CLOSE_DELAY=-1}
-  username: ${DB_USERNAME:sa}
-  password: ${DB_PASSWORD:}
-  driver: ${DB_DRIVER:org.h2.Driver}
+  url: jdbc:h2:mem:octobird;DB_CLOSE_DELAY=-1
+  username: sa
+  password: ""
+  driver: org.h2.Driver

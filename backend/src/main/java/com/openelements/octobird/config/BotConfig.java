@@ -26,9 +26,19 @@ public record BotConfig(long appId, String privateKey, String webhookSecret) {
      * @return the populated bot configuration
      */
     public static BotConfig fromConfig(final Config config) {
-        final long appId = config.get("app-id").asLong().orElse(0L);
-        final String privateKey = config.get("private-key").asString().orElse("");
-        final String webhookSecret = config.get("webhook-secret").asString().orElse("");
+        final String appIdEnv = System.getenv("BOT_APP_ID");
+        final String privateKeyEnv = System.getenv("BOT_PRIVATE_KEY");
+        final String webhookSecretEnv = System.getenv("BOT_WEBHOOK_SECRET");
+
+        final long appId = appIdEnv == null || appIdEnv.isBlank()
+            ? config.get("app-id").asLong().orElse(0L)
+            : Long.parseLong(appIdEnv);
+        final String privateKey = privateKeyEnv == null
+            ? config.get("private-key").asString().orElse("")
+            : privateKeyEnv;
+        final String webhookSecret = webhookSecretEnv == null
+            ? config.get("webhook-secret").asString().orElse("")
+            : webhookSecretEnv;
         return new BotConfig(appId, privateKey, webhookSecret);
     }
 }

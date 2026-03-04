@@ -29,11 +29,23 @@ public record DatabaseConfig(String url, String username, String password, Strin
      * @return the populated database configuration
      */
     public static DatabaseConfig fromConfig(final Config config) {
-        final String url = config.get("url").asString()
-                .orElse("jdbc:h2:mem:octobird;DB_CLOSE_DELAY=-1");
-        final String username = config.get("username").asString().orElse("sa");
-        final String password = config.get("password").asString().orElse("");
-        final String driver = config.get("driver").asString().orElse("org.h2.Driver");
+        final String urlEnv = System.getenv("DB_URL");
+        final String usernameEnv = System.getenv("DB_USERNAME");
+        final String passwordEnv = System.getenv("DB_PASSWORD");
+        final String driverEnv = System.getenv("DB_DRIVER");
+
+        final String url = urlEnv == null
+            ? config.get("url").asString().orElse("jdbc:h2:mem:octobird;DB_CLOSE_DELAY=-1")
+            : urlEnv;
+        final String username = usernameEnv == null
+            ? config.get("username").asString().orElse("sa")
+            : usernameEnv;
+        final String password = passwordEnv == null
+            ? config.get("password").asString().orElse("")
+            : passwordEnv;
+        final String driver = driverEnv == null
+            ? config.get("driver").asString().orElse("org.h2.Driver")
+            : driverEnv;
         return new DatabaseConfig(url, username, password, driver);
     }
 }
