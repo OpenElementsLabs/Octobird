@@ -8,6 +8,7 @@ import io.helidon.webserver.staticcontent.StaticContentService;
 import jakarta.persistence.EntityManagerFactory;
 import com.openelements.octobird.auth.GitHubAppAuth;
 import com.openelements.octobird.auth.OAuthStateStore;
+import com.openelements.octobird.auth.PermissionCache;
 import com.openelements.octobird.auth.SessionStore;
 import com.openelements.octobird.config.BotConfig;
 import com.openelements.octobird.config.DatabaseConfig;
@@ -112,16 +113,19 @@ public final class Main {
         scheduledTaskManager.scheduleAtFixedRate(taskRunner::runAll, 1,
                 24, java.util.concurrent.TimeUnit.HOURS);
 
-        // --- OAuth / Session ---
+        // --- OAuth / Session / Authorization ---
         final SessionStore sessionStore = new SessionStore();
         final OAuthStateStore stateStore = new OAuthStateStore();
+        final PermissionCache permissionCache = new PermissionCache();
         final OAuthService oauthService = new OAuthService(oauthConfig, sessionStore, stateStore);
+        final AuthorizationFilter authFilter = new AuthorizationFilter(sessionStore, permissionCache);
 
-        // Session cleanup every 30 minutes
+        // Session + permission cache cleanup every 30 minutes
         scheduledTaskManager.scheduleAtFixedRate(() -> {
-            LOG.debug("Running session cleanup");
+            LOG.debug("Running session and cache cleanup");
             sessionStore.cleanExpired();
             stateStore.cleanExpired();
+            permissionCache.cleanExpired();
         }, 30, 30, TimeUnit.MINUTES);
 
         // --- REST API services ---
@@ -133,7 +137,7 @@ public final class Main {
 
         final WebServer server = WebServer.builder()
                 .config(config.get("server"))
-                .routing(routing -> setupRouting(routing, webhookService, oauthService,
+                .routing(routing -> setupRouting(routing, webhookService, oauthService, authFilter,
                         reposApi, configApi, spamUsersApi, mentorsApi, auditLogApi))
                 .build()
                 .start();
@@ -160,11 +164,12 @@ public final class Main {
      * @param auditLogApi    the audit log REST API service
      */
     static void setupRouting(final HttpRouting.Builder routing, final WebhookService webhookService,
-                             final OAuthService oauthService,
+                             final OAuthService oauthService, final AuthorizationFilter authFilter,
                              final ReposApiService reposApi, final ConfigApiService configApi,
                              final SpamUsersApiService spamUsersApi, final MentorsApiService mentorsApi,
                              final AuditLogApiService auditLogApi) {
-        routing.register("/webhook", webhookService)
+        routing.addFilter(authFilter)
+                .register("/webhook", webhookService)
                 .get("/health", (req, res) -> res.send("OK"))
                 .register("/auth", oauthService)
                 .register("/api/repos", reposApi)
