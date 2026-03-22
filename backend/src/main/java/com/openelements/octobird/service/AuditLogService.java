@@ -4,6 +4,9 @@ import com.openelements.octobird.persistence.TransactionManager;
 import com.openelements.octobird.persistence.entity.AuditLogEntity;
 import com.openelements.octobird.persistence.repository.AuditLogRepository;
 
+import org.jspecify.annotations.Nullable;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 
@@ -47,6 +50,30 @@ public class AuditLogService {
         return txManager.executeReadOnly(em -> {
             final AuditLogRepository repo = new AuditLogRepository(em);
             return repo.findRecent(repoId, limit);
+        });
+    }
+
+    /**
+     * Retrieves audit log entries with optional filters and pagination.
+     *
+     * @param repoId   the GitHub numeric repository ID
+     * @param handler  optional handler name filter (case-insensitive substring)
+     * @param action   optional action filter (case-insensitive substring)
+     * @param dateFrom optional inclusive start date
+     * @param dateTo   optional inclusive end date
+     * @param offset   pagination offset
+     * @param limit    page size
+     * @return the filtered result with entries and total count
+     */
+    public AuditLogRepository.FilteredResult findFiltered(final long repoId,
+                                                           @Nullable final String handler,
+                                                           @Nullable final String action,
+                                                           @Nullable final LocalDate dateFrom,
+                                                           @Nullable final LocalDate dateTo,
+                                                           final int offset, final int limit) {
+        return txManager.executeReadOnly(em -> {
+            final AuditLogRepository repo = new AuditLogRepository(em);
+            return repo.findFiltered(repoId, handler, action, dateFrom, dateTo, offset, limit);
         });
     }
 }
