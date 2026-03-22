@@ -1,11 +1,15 @@
+import Header from "@/components/header";
+
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="text-4xl font-bold">Octobird</h1>
-      <p className="mt-4 text-lg text-gray-600">
-        GitHub Bot Configuration Dashboard
-      </p>
-      <p className="mt-2 text-sm text-gray-400">Coming soon</p>
-    </main>
+    <>
+      <Header />
+      <main className="mx-auto max-w-4xl p-8">
+        <h2 className="font-heading text-2xl font-bold text-oe-dark mb-4">
+          Repositories
+        </h2>
+        <p className="text-oe-mid-gray">Loading repositories...</p>
+      </main>
+    </>
   );
 }

@@ -7,8 +7,11 @@ import io.helidon.webserver.http.HttpRouting;
 import io.helidon.webserver.staticcontent.StaticContentService;
 import jakarta.persistence.EntityManagerFactory;
 import com.openelements.octobird.auth.GitHubAppAuth;
+import com.openelements.octobird.auth.OAuthStateStore;
+import com.openelements.octobird.auth.SessionStore;
 import com.openelements.octobird.config.BotConfig;
 import com.openelements.octobird.config.DatabaseConfig;
+import com.openelements.octobird.config.OAuthConfig;
 import com.openelements.octobird.handler.EventHandler;
 import com.openelements.octobird.handler.impl.*;
 import com.openelements.octobird.model.parse.JacksonWebhookParser;
@@ -32,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Entry point for the Octobird GitHub App bot. Bootstraps the Helidon web server, wires all
@@ -56,6 +60,7 @@ public final class Main {
         final Config config = Config.create();
         final BotConfig botConfig = BotConfig.fromConfig(config.get("bot"));
         final DatabaseConfig dbConfig = DatabaseConfig.fromConfig(config.get("datasource"));
+        final OAuthConfig oauthConfig = OAuthConfig.fromConfig(config.get("oauth"));
         final GitHubAppAuth auth = new GitHubAppAuth(botConfig);
         final WebhookVerifier verifier = new WebhookVerifier(botConfig.webhookSecret());
 
@@ -107,6 +112,18 @@ public final class Main {
         scheduledTaskManager.scheduleAtFixedRate(taskRunner::runAll, 1,
                 24, java.util.concurrent.TimeUnit.HOURS);
 
+        // --- OAuth / Session ---
+        final SessionStore sessionStore = new SessionStore();
+        final OAuthStateStore stateStore = new OAuthStateStore();
+        final OAuthService oauthService = new OAuthService(oauthConfig, sessionStore, stateStore);
+
+        // Session cleanup every 30 minutes
+        scheduledTaskManager.scheduleAtFixedRate(() -> {
+            LOG.debug("Running session cleanup");
+            sessionStore.cleanExpired();
+            stateStore.cleanExpired();
+        }, 30, 30, TimeUnit.MINUTES);
+
         // --- REST API services ---
         final ReposApiService reposApi = new ReposApiService(repoRegistry);
         final ConfigApiService configApi = new ConfigApiService(configService, repoRegistry);
@@ -116,7 +133,7 @@ public final class Main {
 
         final WebServer server = WebServer.builder()
                 .config(config.get("server"))
-                .routing(routing -> setupRouting(routing, webhookService,
+                .routing(routing -> setupRouting(routing, webhookService, oauthService,
                         reposApi, configApi, spamUsersApi, mentorsApi, auditLogApi))
                 .build()
                 .start();
@@ -143,11 +160,13 @@ public final class Main {
      * @param auditLogApi    the audit log REST API service
      */
     static void setupRouting(final HttpRouting.Builder routing, final WebhookService webhookService,
+                             final OAuthService oauthService,
                              final ReposApiService reposApi, final ConfigApiService configApi,
                              final SpamUsersApiService spamUsersApi, final MentorsApiService mentorsApi,
                              final AuditLogApiService auditLogApi) {
         routing.register("/webhook", webhookService)
                 .get("/health", (req, res) -> res.send("OK"))
+                .register("/auth", oauthService)
                 .register("/api/repos", reposApi)
                 .register("/api/repos", configApi)
                 .register("/api/repos", spamUsersApi)

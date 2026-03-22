@@ -1,1 +1,47 @@
 @import "tailwindcss";
+
+/* Open Elements Brand Colors */
+:root {
+  --oe-dark: #020144;
+  --oe-black: #000000;
+  --oe-white: #ffffff;
+  --oe-mid-gray: #b0aea5;
+  --oe-light-gray: #e8e6dc;
+  --oe-green: #5CBA9E;
+  --oe-green-light: #8fd4bf;
+  --oe-green-dark: #3d9a7e;
+  --oe-red: #E63277;
+  --oe-red-light: #f06da3;
+  --oe-blue: #5DB9F5;
+  --oe-yellow: #F1E34B;
+}
+
+/* Custom Tailwind theme extensions via CSS */
+@theme {
+  --color-oe-dark: #020144;
+  --color-oe-black: #000000;
+  --color-oe-white: #ffffff;
+  --color-oe-mid-gray: #b0aea5;
+  --color-oe-light-gray: #e8e6dc;
+  --color-oe-green: #5CBA9E;
+  --color-oe-green-light: #8fd4bf;
+  --color-oe-green-dark: #3d9a7e;
+  --color-oe-red: #E63277;
+  --color-oe-red-light: #f06da3;
+  --color-oe-blue: #5DB9F5;
+  --color-oe-yellow: #F1E34B;
+
+  --font-heading: "Montserrat", sans-serif;
+  --font-body: "Lato", sans-serif;
+  --font-mono: "Source Code Pro", monospace;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--oe-dark);
+  background-color: var(--oe-white);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
