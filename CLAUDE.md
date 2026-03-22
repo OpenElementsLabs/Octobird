@@ -1,3 +1,66 @@
+# Claude Code Base Configuration
+
+This file provides base rules and conventions for Claude Code in Open Elements projects.
+Projects that use this as a base can override or extend these rules in their own `CLAUDE.md`.
+
+## Core Philosophy
+
+- **Quality over speed.** Getting it right matters more than getting it done fast. Take the time needed for clean APIs, proper tests, correct architecture, and polished design.
+- **Iterative improvement is expected.** Code and design will evolve through iterations. It is normal and encouraged that things change and improve as new features are added or understanding deepens. Do not over-optimize for a "final" state on the first pass.
+
+## Code Quality
+
+- Follow the DRY principle — avoid duplicating logic. Extract shared code into reusable functions or modules.
+- Follow the KISS principle — prefer simple, readable solutions over clever or complex ones.
+- Remove dead code. Do not leave commented-out code, unused imports, or unreachable branches.
+- Keep functions and methods focused — each should do one thing well.
+- Prefer meaningful names for variables, functions, and classes. Avoid abbreviations unless they are widely understood (
+  e.g., `id`, `url`).
+- Do not add code "for future use." Only implement what is currently needed.
+
+## Security
+
+- **IMPORTANT**: Never read or write files outside the project directory unless the user explicitly asks for it.
+- **IMPORTANT**: Never modify system-level configuration files (shell profiles, system packages, etc.).
+- **IMPORTANT**: Never commit, log, or echo secrets, API keys, passwords, or tokens. Use environment variables or secret management tools.
+- **IMPORTANT**: Always include `.env` in `.gitignore` to prevent accidental commits of local configuration with secrets.
+- Validate and sanitize all external input (user input, API responses, file contents).
+- **IMPORTANT**: Use parameterized queries for database access — never build SQL from string concatenation.
+- Keep dependencies up to date to avoid known vulnerabilities.
+- See [Security Configuration](.claude/conventions/security.md) for concrete `.claude/settings.json` deny rules, sandbox setup, and hook examples.
+
+## Testing
+
+- Write tests for new features and bug fixes.
+- Tests should be deterministic — no flaky tests that depend on timing, network, or random state.
+- Each test should test one behavior and have a clear name that describes what it verifies.
+- Prefer assertion libraries that produce clear failure messages.
+
+## Documentation
+
+- Use GitHub Flavored Markdown (GFM) as the default syntax for all documentation (`README.md`, docs, ADRs, etc.).
+
+## Pull Requests and Reviews
+
+- Keep PRs focused on a single change. Avoid mixing unrelated changes in one PR.
+- Write a clear PR description that explains what changed and why.
+- Ensure all tests pass before requesting review.
+- Address review comments before merging.
+
+## Conventions
+
+This is a fullstack application (Java backend + TypeScript frontend). Only the relevant convention documents are included:
+
+- [Software Quality and Architecture](.claude/conventions/software-quality.md) — API design, technical integrity, namespace, SBOM, CI
+- [Java Conventions](.claude/conventions/java.md) — code style, build tools, testing, logging, null handling, collections
+- [TypeScript Conventions](.claude/conventions/typescript.md) — technology stack, code style, package manager, testing, linting
+- [Backend Conventions](.claude/conventions/backend.md) — REST APIs, OpenAPI, Swagger UI
+- [Fullstack Architecture](.claude/conventions/fullstack-architecture.md) — frontend/backend separation, Docker, configuration, pinned tool versions
+- [Repository Setup](.claude/conventions/repo-setup.md) — required root files (README, LICENSE, CoC, CONTRIBUTING, .editorconfig)
+- [Security Configuration](.claude/conventions/security.md) — permission deny rules, sandbox mode, hooks for safety, audit logging
+- [Spec-Driven Development](.claude/conventions/spec-driven-development.md) — specs folder structure, design docs, behavioral scenarios, implementation steps
+
+
 # Octobird - GitHub Bot for Open-Source Contributor Automation
 
 ## Project Overview
