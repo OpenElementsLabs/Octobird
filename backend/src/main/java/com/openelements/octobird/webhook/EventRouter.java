@@ -1,6 +1,7 @@
 package com.openelements.octobird.webhook;
 
 import com.openelements.octobird.auth.GitHubAppAuth;
+import com.openelements.octobird.auth.PermissionCache;
 import com.openelements.octobird.config.BotConfig;
 import com.openelements.octobird.config.DefaultRepoConfig;
 import com.openelements.octobird.config.RepoConfig;
@@ -20,6 +21,7 @@ import org.jspecify.annotations.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Routes incoming GitHub webhook events to the matching registered {@link EventHandler}s.
@@ -36,31 +38,39 @@ import java.util.Objects;
 public class EventRouter {
 
     private static final Logger LOG = LoggerFactory.getLogger(EventRouter.class);
+    private static final Set<String> CACHE_INVALIDATION_EVENTS = Set.of(
+            "installation", "member"
+    );
 
     private final List<EventHandler<?>> handlers;
     private final RepoConfigService configService;
     private final WebhookParser parser;
     private final RepoRegistry repoRegistry;
+    private final PermissionCache permissionCache;
 
     /**
      * Creates an {@code EventRouter} with the given handlers, parser, repo registry,
-     * and config service.
+     * config service, and permission cache.
      *
-     * @param handlers      the list of event handlers to dispatch to
-     * @param parser        the parser used to deserialise raw JSON webhook payloads
-     * @param repoRegistry  the registry updated with each successfully processed repo
-     * @param configService the service used to load per-repo configuration
+     * @param handlers        the list of event handlers to dispatch to
+     * @param parser          the parser used to deserialise raw JSON webhook payloads
+     * @param repoRegistry    the registry updated with each successfully processed repo
+     * @param configService   the service used to load per-repo configuration
+     * @param permissionCache the permission cache to invalidate on access-change events
      */
     public EventRouter(final List<EventHandler<?>> handlers, final WebhookParser parser,
-                       final RepoRegistry repoRegistry, final RepoConfigService configService) {
+                       final RepoRegistry repoRegistry, final RepoConfigService configService,
+                       final PermissionCache permissionCache) {
         Objects.requireNonNull(handlers, "handlers must not be null");
         Objects.requireNonNull(parser, "parser must not be null");
         Objects.requireNonNull(repoRegistry, "repoRegistry must not be null");
         Objects.requireNonNull(configService, "configService must not be null");
+        Objects.requireNonNull(permissionCache, "permissionCache must not be null");
         this.handlers = List.copyOf(handlers);
         this.configService = configService;
         this.parser = parser;
         this.repoRegistry = repoRegistry;
+        this.permissionCache = permissionCache;
     }
 
     /**
@@ -75,6 +85,12 @@ public class EventRouter {
      */
     public void route(final String event, final String payload, final GitHubAppAuth auth,
                       final BotConfig botConfig) throws IOException {
+        // Invalidate repo list caches when access-relevant events arrive
+        if (CACHE_INVALIDATION_EVENTS.contains(event)) {
+            LOG.debug("Invalidating repo list caches due to {} event", event);
+            permissionCache.removeAllRepoLists();
+        }
+
         final GitHubEventType eventType;
         try {
             eventType = GitHubEventType.fromWebhookName(event);

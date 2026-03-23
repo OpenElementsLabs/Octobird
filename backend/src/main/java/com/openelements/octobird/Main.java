@@ -22,6 +22,7 @@ import com.openelements.octobird.persistence.EntityManagerFactoryProvider;
 import com.openelements.octobird.persistence.FlywayMigrator;
 import com.openelements.octobird.persistence.TransactionManager;
 import com.openelements.octobird.rest.*;
+import com.openelements.octobird.scheduled.InstallationLoader;
 import com.openelements.octobird.scheduled.RepoRegistry;
 import com.openelements.octobird.scheduled.ScheduledTask;
 import com.openelements.octobird.scheduled.ScheduledTaskManager;
@@ -35,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -94,8 +96,19 @@ public final class Main {
         );
         final WebhookParser webhookParser = new JacksonWebhookParser();
         final RepoRegistry repoRegistry = new RepoRegistry();
-        final EventRouter router = new EventRouter(handlers, webhookParser, repoRegistry, configService);
+        final PermissionCache permissionCache = new PermissionCache();
+        final EventRouter router = new EventRouter(handlers, webhookParser, repoRegistry,
+                configService, permissionCache);
         final WebhookService webhookService = new WebhookService(verifier, router, auth, botConfig);
+
+        // --- Startup: load installed repos from GitHub ---
+        final InstallationLoader installationLoader = new InstallationLoader(auth, repoRegistry);
+        try {
+            installationLoader.loadAll();
+            LOG.info("Loaded {} repositories from GitHub on startup", repoRegistry.getAll().size());
+        } catch (final IOException e) {
+            LOG.warn("Failed to load installations on startup, registry will be populated by webhooks", e);
+        }
 
         final List<ScheduledTask> scheduledTasks = List.of(
                 new InactivityUnassignTask(),
@@ -116,7 +129,6 @@ public final class Main {
         // --- OAuth / Session / Authorization ---
         final SessionStore sessionStore = new SessionStore();
         final OAuthStateStore stateStore = new OAuthStateStore();
-        final PermissionCache permissionCache = new PermissionCache();
         final OAuthService oauthService = new OAuthService(oauthConfig, sessionStore, stateStore);
         final AuthorizationFilter authFilter = new AuthorizationFilter(sessionStore, permissionCache);
 
@@ -129,7 +141,8 @@ public final class Main {
         }, 30, 30, TimeUnit.MINUTES);
 
         // --- REST API services ---
-        final ReposApiService reposApi = new ReposApiService(repoRegistry);
+        final UserRepoService userRepoService = new UserRepoService(permissionCache, sessionStore);
+        final ReposApiService reposApi = new ReposApiService(userRepoService);
         final ConfigApiService configApi = new ConfigApiService(configService, repoRegistry);
         final SpamUsersApiService spamUsersApi = new SpamUsersApiService(spamUserService, repoRegistry);
         final MentorsApiService mentorsApi = new MentorsApiService(mentorService, repoRegistry);

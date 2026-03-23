@@ -1,11 +1,14 @@
 package com.openelements.octobird.auth;
 
 import com.openelements.octobird.config.BotConfig;
+import com.openelements.octobird.scheduled.InstallationLoader;
 import org.kohsuke.github.GHAppInstallationToken;
+import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
@@ -32,6 +35,47 @@ public class GitHubAppAuth {
      */
     public GitHubAppAuth(final BotConfig config) {
         this.config = Objects.requireNonNull(config, "config must not be null");
+    }
+
+    /**
+     * Returns an authenticated {@link GitHub} client for the app itself (not scoped to any
+     * installation). This client can be used to list installations via
+     * {@code getApp().listInstallations()}.
+     *
+     * @return an app-level authenticated client
+     * @throws IOException if the JWT-based client cannot be created
+     */
+    public GitHub getAppClient() throws IOException {
+        return createAppClient();
+    }
+
+    /**
+     * Lists the IDs of all installations of this GitHub App.
+     *
+     * @return list of installation IDs
+     * @throws IOException if the GitHub API call fails
+     */
+    public List<Long> listInstallationIds() throws IOException {
+        final GitHub appClient = createAppClient();
+        return appClient.getApp().listInstallations().toList().stream()
+                .map(i -> i.getId())
+                .toList();
+    }
+
+    /**
+     * Lists all repositories accessible to the given installation, returning simple records
+     * decoupled from kohsuke's {@link GHRepository}.
+     *
+     * @param installationId the installation ID
+     * @return list of repo info records
+     * @throws IOException if the GitHub API call fails
+     */
+    public List<InstallationLoader.RepoInfo> listInstallationRepos(final long installationId)
+            throws IOException {
+        final GitHub client = getInstallationClient(installationId);
+        return client.getInstallation().listRepositories().toList().stream()
+                .map(r -> new InstallationLoader.RepoInfo(r.getId(), r.getFullName()))
+                .toList();
     }
 
     /**

@@ -28,6 +28,10 @@ Accept one of the following as starting point:
 
 Summarize the requirement back to the user in 2–3 sentences to confirm understanding.
 
+Then ask the user: **"Do you want to get grilled on this before we continue? This will stress-test your understanding of the problem — surfacing hidden assumptions, missing requirements, and blind spots — before we commit to a design."**
+
+If the user says yes, invoke `/grill-me` with the gathered requirement as input. The grill session will systematically challenge the user's thinking. Once the grill session concludes, incorporate the resolved decisions and clarifications into the spec work and continue with step 2.
+
 ### 2. Evaluate scope
 
 Assess whether the task is realistically completable in a few hours of focused work. Consider:

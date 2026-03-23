@@ -193,8 +193,11 @@ backend/src/main/java/com/openelements/octobird/
 │   └── mapper/                           # Entity ↔ Record mapping
 ├── rest/                                  # REST API services (Helidon HttpService implementations)
 ├── scheduled/
+│   ├── InstallationLoader.java           # Loads all installed repos from GitHub on startup
+│   ├── RepoRegistry.java                 # In-memory registry of installed repositories
 │   └── ScheduledTaskManager.java         # Virtual thread task scheduler
 ├── service/                               # Business logic (Entity ↔ Record translation)
+│   └── UserRepoService.java              # Fetches user-accessible repos from GitHub API
 ├── util/
 │   ├── CommentMarkerChecker.java         # Checks for HTML marker comments on issues
 │   ├── IssueSearchHelper.java            # GitHub search queries (assignments, PRs)

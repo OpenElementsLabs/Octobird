@@ -77,7 +77,32 @@ Present a structured report:
 1. ...
 ```
 
-### 5. Discuss with the user
+### 5. Review documentation freshness
+
+Check that documentation artifacts are up to date with the implementation:
+
+- **Code comments and Javadoc/JSDoc** — Do they reflect the current behavior? Flag comments that describe old logic, removed parameters, or outdated examples.
+- **README and user-facing docs** — If the feature changes behavior visible to users or developers, are the relevant docs updated?
+- **API documentation** — If endpoints or interfaces changed, are OpenAPI specs, Swagger annotations, or similar kept in sync?
+- **Inline TODOs** — Flag any `TODO`, `FIXME`, or `HACK` comments left in the new code that should be resolved before merging.
+- **Changelog / release notes** — If the project maintains a changelog, is there an entry for this change?
+
+Add a section to the report:
+
+```markdown
+## Documentation
+
+| Item | Status | Notes |
+|------|--------|-------|
+| ...  | ...    | ...   |
+```
+
+Classify each as:
+- **Up to date** — Documentation matches the implementation
+- **Outdated** — Documentation describes old behavior or is missing updates
+- **Missing** — No documentation exists where it should
+
+### 6. Discuss with the user
 
 Walk through the findings. For missing or partially covered items, discuss whether they are:
 - Oversights that need to be fixed

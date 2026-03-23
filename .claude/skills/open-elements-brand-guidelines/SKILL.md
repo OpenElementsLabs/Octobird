@@ -72,6 +72,92 @@ When using the brand colors in web projects, define them as CSS custom propertie
 }
 ```
 
+### Illustration Colors
+
+The following colors are derived from analyzing the full Open Elements SVG illustration library (~210 illustrations).
+They represent the actual color palette used in the corporate illustrations and should be used when creating diagrams, charts, graphs, or any visual graphics to match the Open Elements illustration style.
+
+**Primary illustration fills (most frequently used across all illustrations):**
+
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Green (primary fill) | `#5CBA9E` | The dominant fill color, used in ~60% of all illustrations |
+| Light mint | `#BEE3D8` | Large area fills, backgrounds of highlighted sections |
+| Lighter mint | `#DEF1EC` | Subtle background fills, secondary areas |
+| Medium mint | `#9DD6C5` | Intermediate green tone, frequently used alongside primary green |
+| Sky blue | `#5DB9F5` | Secondary fill color for contrast elements |
+| Light blue | `#BEE3FB` | Large area fills in blue-themed sections |
+| Lighter blue | `#DFF1FD` | Subtle blue backgrounds |
+| Medium blue | `#9ED5F9` | Intermediate blue tone, used for highlights and accents |
+
+**Secondary illustration fills (used for emphasis or thematic elements):**
+
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Yellow | `#F1E34B` | Accent for stars, light bulbs, idea elements |
+| Pale yellow | `#F9F4B7` | Subtle yellow backgrounds |
+| Cream | `#FCF9DB` | Very subtle warm backgrounds |
+| Hot pink | `#E63277` | Alert or energy accents |
+| Dark pink | `#BB1756` | Danger, warning, or evil-themed elements |
+| Light pink | `#F084AD` | Softer pink accents |
+| Pale pink | `#FAD6E4` | Subtle pink backgrounds |
+| Bright cyan | `#0FBBFB` | Used in newer illustration series as sky blue accent |
+| Dark blue | `#15649F` | Technology, blockchain, and data-themed illustrations |
+| Bright blue | `#2496EF` | Active/highlighted blue elements |
+
+**Illustration outline and neutral colors:**
+
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Black | `#000000` | Primary outline/stroke color (~80% of illustrations) |
+| Dark navy | `#020144` | Alternative outline/stroke color (~30% of illustrations) |
+| Light gray | `#DADADA` | Neutral fills for inactive or background elements |
+| White | `#FFFFFF` | Interior fills for contrast, eyes, highlights |
+
+**Dark accent tones (used sparingly for depth):**
+
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Dark green | `#3E9279` | Shadows or dark-side fills on green elements |
+| Very dark green | `#296251` | Deep shadows, rare accent |
+| Dark olive | `#93870C` | Dark variant for yellow/gold elements |
+| Teal | `#27BD9D` | Alternative green, slightly brighter than primary |
+
+### Illustration Style Guide
+
+The following style parameters are derived from the Open Elements SVG illustration library and should be applied when creating diagrams, charts, graphs, or any visual graphics.
+
+**Stroke / Outlines:**
+
+- Stroke width: ~1% of the canvas width (e.g. `16.67px` on a `1668px` canvas, `25px` on a `2500px` canvas, `6px` on a `600px` canvas)
+- Stroke color: `#000000` (black) or `#020144` (dark navy) — use one consistently within a single graphic
+- Stroke line cap: `round`
+- Stroke line join: `round`
+- Stroke miter limit: `1.5`
+
+**Fill Style:**
+
+- Use flat fills only — no gradients, no textures, no patterns
+- No opacity/transparency effects (all fills are fully opaque)
+- Use `fill-rule: evenodd`
+
+**Color Usage Hierarchy:**
+
+1. Use `#5CBA9E` (green) as the dominant fill color
+2. Use lighter green tones (`#BEE3D8`, `#DEF1EC`, `#9DD6C5`) for secondary areas
+3. Use blue tones (`#5DB9F5`, `#BEE3FB`, `#DFF1FD`, `#9ED5F9`) for contrasting elements
+4. Use yellow (`#F1E34B`) and pink (`#E63277`, `#BB1756`) sparingly as accents
+5. Use `#DADADA` for neutral/inactive elements
+6. Keep outlines in `#000000` or `#020144`
+
+**General Principles:**
+
+- Illustrations are clean, flat-design vector graphics with bold rounded outlines
+- No drop shadows, no glow effects, no 3D effects
+- Rounded stroke caps and joins give a friendly, approachable look
+- White space is used generously inside illustrations
+- Color palette is intentionally limited per illustration (typically 3-5 colors plus black/white)
+
 ### Typography
 
 - **Headings**: Montserrat (or Lato)

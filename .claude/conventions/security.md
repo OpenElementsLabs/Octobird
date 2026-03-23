@@ -36,8 +36,8 @@ Block access to credentials and sensitive configuration. These rules apply to al
       "Read(~/.zshrc)",
       "Read(~/.bash_profile)",
       "Read(~/.zprofile)",
-      "Read(./.env.claude)",
-      "Read(./.env.claude.local)",
+      "Read(./.env)",
+      "Read(./.env.local)",
       "Edit(~/.ssh/**)",
       "Edit(~/.gnupg/**)",
       "Edit(~/.aws/**)",
@@ -49,8 +49,8 @@ Block access to credentials and sensitive configuration. These rules apply to al
       "Edit(~/.zshrc)",
       "Edit(~/.bash_profile)",
       "Edit(~/.zprofile)",
-      "Edit(./.env.claude)",
-      "Edit(./.env.claude.local)",
+      "Edit(./.env)",
+      "Edit(./.env.local)",
       "Bash(rm -rf *)"
     ]
   }

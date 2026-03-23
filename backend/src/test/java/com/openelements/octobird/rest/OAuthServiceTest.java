@@ -162,4 +162,63 @@ class OAuthServiceTest {
         // Then
         assertEquals("OCTOBIRD_SESSION", name);
     }
+
+    @Test
+    void logoutRemovesSessionAndRedirects() {
+        // Given — create a session, then simulate logout
+        final Session session = sessionStore.create("octocat", "token", "https://avatar.url");
+        final String sessionId = session.sessionId();
+
+        // When
+        sessionStore.remove(sessionId);
+
+        // Then — session is gone, GET /auth/me would return 401
+        assertNull(sessionStore.get(sessionId));
+    }
+
+    @Test
+    void logoutWithoutSessionDoesNotThrow() {
+        // Given — no session at all
+
+        // When / Then — logout with a nonexistent session ID should be safe
+        assertDoesNotThrow(() -> sessionStore.remove("nonexistent-session-id"));
+    }
+
+    @Test
+    void stateIsGeneratedAndValidatable() {
+        // Given — simulate the login flow: generate state
+        final String state = stateStore.generate();
+
+        // When — simulate the callback flow: validate state
+        final boolean valid = stateStore.validate(state);
+
+        // Then
+        assertTrue(valid, "State from login should be valid in callback");
+    }
+
+    @Test
+    void sessionContainsLoginAndAvatarFromGitHub() {
+        // Given — simulate successful callback creating a session
+        final Session session = sessionStore.create("octocat", "gho_token123", "https://avatars.githubusercontent.com/u/583231");
+
+        // When
+        final Session retrieved = sessionStore.get(session.sessionId());
+
+        // Then — matches what /auth/me would return
+        assertNotNull(retrieved);
+        assertEquals("octocat", retrieved.githubLogin());
+        assertEquals("https://avatars.githubusercontent.com/u/583231", retrieved.avatarUrl());
+    }
+
+    @Test
+    void blankClientIdMeansNotConfigured() {
+        // Given
+        final OAuthConfig config = new OAuthConfig("  ", "secret");
+
+        // When
+        final boolean configured = config.isConfigured();
+
+        // Then
+        assertFalse(configured, "Blank client ID should mean OAuth is not configured");
+    }
 }

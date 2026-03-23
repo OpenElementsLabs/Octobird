@@ -113,4 +113,91 @@ class SessionStoreTest {
         // When / Then
         assertNotEquals(session1.sessionId(), session2.sessionId());
     }
+
+    @Test
+    void getReturnsNullForExpiredSession() {
+        // Given — manually insert an already-expired session via reflection
+        final Session expired = new Session("expired-id", "alice", "token", "avatar",
+                java.time.Instant.now().minusSeconds(7200),
+                java.time.Instant.now().minusSeconds(1));
+        // Access the internal map to plant the expired session
+        try {
+            final java.lang.reflect.Field field = SessionStore.class.getDeclaredField("sessions");
+            field.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            final java.util.concurrent.ConcurrentHashMap<String, Session> sessions =
+                    (java.util.concurrent.ConcurrentHashMap<String, Session>) field.get(store);
+            sessions.put("expired-id", expired);
+        } catch (final Exception e) {
+            fail("Failed to set up expired session: " + e.getMessage());
+        }
+
+        // When
+        final Session result = store.get("expired-id");
+
+        // Then
+        assertNull(result, "Expired session should not be returned");
+    }
+
+    @Test
+    void getRemovesExpiredSessionFromStore() {
+        // Given — plant an expired session
+        final Session expired = new Session("expired-id", "alice", "token", "avatar",
+                java.time.Instant.now().minusSeconds(7200),
+                java.time.Instant.now().minusSeconds(1));
+        try {
+            final java.lang.reflect.Field field = SessionStore.class.getDeclaredField("sessions");
+            field.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            final java.util.concurrent.ConcurrentHashMap<String, Session> sessions =
+                    (java.util.concurrent.ConcurrentHashMap<String, Session>) field.get(store);
+            sessions.put("expired-id", expired);
+        } catch (final Exception e) {
+            fail("Failed to set up expired session: " + e.getMessage());
+        }
+
+        // When
+        store.get("expired-id");
+
+        // Then — the expired session should have been removed on access
+        assertNull(store.get("expired-id"));
+    }
+
+    @Test
+    void cleanExpiredRemovesOnlyExpiredSessions() {
+        // Given — one valid session and one expired
+        final Session valid = store.create("alice", "token1", "https://avatar.url");
+        final Session expired = new Session("expired-id", "bob", "token2", "avatar",
+                java.time.Instant.now().minusSeconds(7200),
+                java.time.Instant.now().minusSeconds(1));
+        try {
+            final java.lang.reflect.Field field = SessionStore.class.getDeclaredField("sessions");
+            field.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            final java.util.concurrent.ConcurrentHashMap<String, Session> sessions =
+                    (java.util.concurrent.ConcurrentHashMap<String, Session>) field.get(store);
+            sessions.put("expired-id", expired);
+        } catch (final Exception e) {
+            fail("Failed to set up expired session: " + e.getMessage());
+        }
+
+        // When
+        store.cleanExpired();
+
+        // Then
+        assertNotNull(store.get(valid.sessionId()), "Valid session should survive cleanup");
+        assertNull(store.get("expired-id"), "Expired session should be removed by cleanup");
+    }
+
+    @Test
+    void sessionHasEightHourDuration() {
+        // Given / When
+        final Session session = store.create("alice", "token", "avatar");
+
+        // Then — session should expire approximately 8 hours from now
+        final long secondsUntilExpiry = java.time.Duration.between(
+                java.time.Instant.now(), session.expiresAt()).getSeconds();
+        assertTrue(secondsUntilExpiry > 28700 && secondsUntilExpiry <= 28800,
+                "Session should expire in ~8 hours, but expires in " + secondsUntilExpiry + "s");
+    }
 }

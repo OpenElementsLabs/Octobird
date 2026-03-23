@@ -99,4 +99,95 @@ class OAuthStateStoreTest {
         // Then — state was just created, should still be valid
         assertTrue(store.validate(state));
     }
+
+    @Test
+    void expiredStateIsRejected() {
+        // Given — inject an already-expired state via reflection
+        final String expiredState = "expired-state-value";
+        try {
+            final java.lang.reflect.Field field = OAuthStateStore.class.getDeclaredField("states");
+            field.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            final java.util.concurrent.ConcurrentHashMap<String, java.time.Instant> states =
+                    (java.util.concurrent.ConcurrentHashMap<String, java.time.Instant>) field.get(store);
+            states.put(expiredState, java.time.Instant.now().minusSeconds(1));
+        } catch (final Exception e) {
+            fail("Failed to set up expired state: " + e.getMessage());
+        }
+
+        // When
+        final boolean valid = store.validate(expiredState);
+
+        // Then
+        assertFalse(valid, "Expired state should be rejected");
+    }
+
+    @Test
+    void expiredStateIsConsumedOnValidation() {
+        // Given — inject an expired state
+        final String expiredState = "expired-state-consumed";
+        try {
+            final java.lang.reflect.Field field = OAuthStateStore.class.getDeclaredField("states");
+            field.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            final java.util.concurrent.ConcurrentHashMap<String, java.time.Instant> states =
+                    (java.util.concurrent.ConcurrentHashMap<String, java.time.Instant>) field.get(store);
+            states.put(expiredState, java.time.Instant.now().minusSeconds(1));
+        } catch (final Exception e) {
+            fail("Failed to set up expired state: " + e.getMessage());
+        }
+
+        // When — first validation rejects (expired) and removes state
+        store.validate(expiredState);
+        final boolean secondAttempt = store.validate(expiredState);
+
+        // Then — should also be false (state was removed)
+        assertFalse(secondAttempt, "Expired state should be consumed after validation attempt");
+    }
+
+    @Test
+    void cleanExpiredRemovesOnlyExpiredStates() {
+        // Given — one valid state and one expired
+        final String valid = store.generate();
+        try {
+            final java.lang.reflect.Field field = OAuthStateStore.class.getDeclaredField("states");
+            field.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            final java.util.concurrent.ConcurrentHashMap<String, java.time.Instant> states =
+                    (java.util.concurrent.ConcurrentHashMap<String, java.time.Instant>) field.get(store);
+            states.put("old-state", java.time.Instant.now().minusSeconds(601));
+        } catch (final Exception e) {
+            fail("Failed to set up expired state: " + e.getMessage());
+        }
+
+        // When
+        store.cleanExpired();
+
+        // Then
+        assertTrue(store.validate(valid), "Valid state should survive cleanup");
+        assertFalse(store.validate("old-state"), "Expired state should have been removed by cleanup");
+    }
+
+    @Test
+    void stateHasTenMinuteTtl() {
+        // Given — inject a state that expires in exactly 10 minutes
+        try {
+            final java.lang.reflect.Field field = OAuthStateStore.class.getDeclaredField("states");
+            field.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            final java.util.concurrent.ConcurrentHashMap<String, java.time.Instant> states =
+                    (java.util.concurrent.ConcurrentHashMap<String, java.time.Instant>) field.get(store);
+
+            // Verify the generated state has ~10 minute TTL
+            final String state = store.generate();
+            final java.time.Instant expiresAt = states.get(state);
+            assertNotNull(expiresAt);
+            final long secondsUntilExpiry = java.time.Duration.between(
+                    java.time.Instant.now(), expiresAt).getSeconds();
+            assertTrue(secondsUntilExpiry > 595 && secondsUntilExpiry <= 600,
+                    "State TTL should be ~600 seconds (10 min), but was " + secondsUntilExpiry + "s");
+        } catch (final Exception e) {
+            fail("Failed to verify state TTL: " + e.getMessage());
+        }
+    }
 }

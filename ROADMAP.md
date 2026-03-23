@@ -629,7 +629,27 @@ Octobird/
 - Übersicht der letzten Bot-Aktionen pro Repo
 - Filtert nach Event-Typ, Handler, Zeitraum
 
-### 7.4 Deployment auf Coolify
+### 7.5 Integration Tests für Auth & Authorization
+
+Die bestehenden Unit-Tests decken die Komponenten-Logik (SessionStore, PermissionCache,
+OAuthStateStore, path matching) ab. Folgende Szenarien erfordern HTTP-Level-Integrationstests
+mit Helidon Webclient oder einem eingebetteten Testserver:
+
+- **OAuth-Callback-Vollintegration:** Token-Exchange mit GitHub und User-Profile-Fetch
+  (z.B. mit WireMock für die GitHub-API)
+- **Cookie-Attribute in Produktion vs. Entwicklung:** Verifizieren, dass `Secure=true` nur
+  im Produktionsmodus gesetzt wird
+- **`GET /api/repos` Berechtigungsfilterung:** Endpoint gibt nur Repos zurück, für die der
+  User admin/maintain-Berechtigung hat — erfordert gemockten GitHub-Permission-Check
+- **Non-Collaborator → 403:** AuthorizationFilter ruft GitHub-API für unbekannte User auf
+  und liefert 403 — erfordert gemockte GitHub-API-Antwort
+
+**Voraussetzungen:**
+- Helidon Webclient als Test-Dependency (`helidon-webclient`, test scope)
+- WireMock oder ähnliches Framework zum Mocken der GitHub-API-Endpunkte
+- Test-Konfiguration, die GitHub-API-URLs auf den lokalen Mock-Server umleitet
+
+### 7.6 Deployment auf Coolify
 
 Nach Abschluss der Umstrukturierung und Frontend-Entwicklung wird die gesamte Anwendung
 (Backend + Frontend + PostgreSQL) als **Docker Compose Stack** auf Coolify deployed:

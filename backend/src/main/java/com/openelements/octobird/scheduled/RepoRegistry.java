@@ -5,11 +5,18 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * In-memory registry of repositories that have sent at least one webhook event to this bot.
+ * In-memory registry of repositories where the Octobird GitHub App is installed.
  *
- * <p>The registry is populated by the {@link com.openelements.octobird.webhook.EventRouter} whenever it
- * successfully processes a webhook delivery. The {@link ScheduledTaskRunner} reads the registry
- * to determine which repositories the scheduled tasks should run against.
+ * <p>The registry is populated from two sources:
+ * <ul>
+ *   <li>{@link InstallationLoader} — loads all installed repos from the GitHub API on application
+ *       startup, so the registry is immediately available for scheduled tasks.</li>
+ *   <li>{@link com.openelements.octobird.webhook.EventRouter} — registers repos whenever a webhook
+ *       delivery is processed, keeping the registry up to date with newly installed repos.</li>
+ * </ul>
+ *
+ * <p>The {@link ScheduledTaskRunner} reads the registry to determine which repositories the
+ * scheduled tasks should run against.
  */
 public class RepoRegistry {
 

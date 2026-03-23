@@ -4,12 +4,13 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Per-session cache for GitHub repository permission check results.
- * Caches permission levels with a 5-minute TTL to reduce GitHub API calls.
+ * Per-session cache for GitHub repository permission check results and repo lists.
+ * Caches permission levels and repo lists with a 5-minute TTL to reduce GitHub API calls.
  */
 public class PermissionCache {
 
@@ -33,7 +34,19 @@ public class PermissionCache {
         }
     }
 
+    private record CachedRepoList(List<String> repos, Instant expiresAt) {
+        CachedRepoList {
+            Objects.requireNonNull(repos, "repos must not be null");
+            Objects.requireNonNull(expiresAt, "expiresAt must not be null");
+        }
+
+        boolean isValid() {
+            return Instant.now().isBefore(expiresAt);
+        }
+    }
+
     private final ConcurrentHashMap<CacheKey, CachedPermission> cache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, CachedRepoList> repoListCache = new ConcurrentHashMap<>();
 
     /**
      * Returns the cached permission for the given session and repository, or {@code null}
@@ -69,18 +82,57 @@ public class PermissionCache {
     }
 
     /**
-     * Removes all cached permissions for the given session.
+     * Returns the cached repo list for the given session, or {@code null} if not cached or expired.
+     *
+     * @param sessionId the session ID
+     * @return the cached repo list, or {@code null}
+     */
+    @Nullable
+    public List<String> getRepoList(final String sessionId) {
+        final CachedRepoList cached = repoListCache.get(sessionId);
+        if (cached == null || !cached.isValid()) {
+            if (cached != null) {
+                repoListCache.remove(sessionId);
+            }
+            return null;
+        }
+        return cached.repos();
+    }
+
+    /**
+     * Stores a repo list for the given session with a 5-minute TTL.
+     *
+     * @param sessionId the session ID
+     * @param repos     the list of repository full names
+     */
+    public void putRepoList(final String sessionId, final List<String> repos) {
+        repoListCache.put(sessionId, new CachedRepoList(List.copyOf(repos),
+                Instant.now().plus(CACHE_TTL)));
+    }
+
+    /**
+     * Removes all cached repo lists for all sessions. Used when webhook events
+     * indicate that repository access has changed.
+     */
+    public void removeAllRepoLists() {
+        repoListCache.clear();
+    }
+
+    /**
+     * Removes all cached permissions and repo list for the given session.
      *
      * @param sessionId the session ID
      */
     public void removeAllForSession(final String sessionId) {
         cache.entrySet().removeIf(entry -> entry.getKey().sessionId().equals(sessionId));
+        repoListCache.remove(sessionId);
     }
 
     /**
-     * Removes all expired entries from the cache.
+     * Removes all expired entries from both caches.
      */
     public void cleanExpired() {
         cache.entrySet().removeIf(entry -> !entry.getValue().isValid());
+        repoListCache.entrySet().removeIf(entry -> !entry.getValue().isValid());
     }
 }
