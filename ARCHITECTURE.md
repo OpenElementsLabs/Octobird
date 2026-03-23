@@ -77,7 +77,7 @@ Octobird/
 ```
 com.openelements.octobird/
 ├── Main.java                    # Entry point, server setup, route registration
-├── auth/                        # GitHub App JWT authentication, token caching
+├── auth/                        # GitHub App JWT auth, OAuth2 sessions, permission cache
 ├── config/                      # Configuration records (RepoConfig, FeaturesConfig, ...)
 ├── handler/                     # Webhook event handlers
 │   ├── EventHandler.java        # Handler interface

@@ -100,9 +100,12 @@ Octobird/
 │   └── src/
 ├── docker-compose.yml                     # Full-stack local development
 ├── actions/                               # Reference workflows (read-only)
+├── specs/                                 # Feature specifications
 ├── ARCHITECTURE.md
 ├── CLAUDE.md
+├── DEPLOYMENT.md
 ├── ROADMAP.md
+├── WORKFLOWS.md
 └── README.md
 ```
 
@@ -113,17 +116,19 @@ Octobird/
 - **Framework:** Helidon 4.2.3 (lightweight web server)
 - **Build:** Apache Maven (with Maven Wrapper)
 - **GitHub API:** Kohsuke github-api 1.330
-- **Persistence:** JPA (Hibernate) + Flyway migrations
-- **Database:** PostgreSQL (production), H2 in-memory (development/test)
+- **Persistence:** JPA (Hibernate 6.6.4) + Flyway 11.1.1 migrations
+- **Connection Pool:** HikariCP 6.2.1
+- **Database:** PostgreSQL 17 (production), H2 in-memory (development/test)
 - **Serialization:** Jackson 2.18.3 (JSON)
-- **Testing:** JUnit 5 (Jupiter) + Mockito
+- **Testing:** JUnit 5.11.4 + Mockito 5.14.2
 - **License:** Apache 2.0
 
 ### Frontend
 - **Framework:** Next.js 15 (App Router)
-- **Language:** TypeScript
+- **Language:** TypeScript 5.x
 - **UI:** React 19 + Tailwind CSS v4
 - **Package Manager:** pnpm
+- **Testing:** Vitest + Testing Library
 
 ## Build & Run Commands
 
@@ -154,6 +159,7 @@ cd frontend
 pnpm install                # Install dependencies
 pnpm dev                    # Development server (port 3000)
 pnpm build                  # Production build
+pnpm test                   # Run tests
 ```
 
 ## Backend Package Structure
@@ -162,48 +168,88 @@ pnpm build                  # Production build
 backend/src/main/java/com/openelements/octobird/
 ├── Main.java                              # Entry point, server setup, handler registration
 ├── auth/
-│   ├── GitHubAppAuth.java                # GitHub App authentication + token caching
-│   └── JwtAuthProvider.java              # RS256 JWT generation
+│   ├── GitHubAppAuth.java                # GitHub App authentication + installation token caching
+│   ├── JwtAuthProvider.java              # RS256 JWT generation for app authentication
+│   ├── Session.java                      # User session record (login, expiresAt)
+│   ├── SessionStore.java                # In-memory session storage with expiry cleanup
+│   ├── OAuthStateStore.java             # CSRF state token generation & validation
+│   └── PermissionCache.java             # Caches repo permission lookups per user
 ├── config/
 │   ├── BotConfig.java                    # Top-level bot configuration record
 │   ├── RepoConfig.java                   # Per-repo configuration interface
 │   ├── DefaultRepoConfig.java            # Default values for RepoConfig
 │   ├── AssignmentLimitsConfig.java       # Assignment limit settings record
-│   ├── CodeRabbitConfig.java             # CodeRabbit integration settings record
 │   ├── CommandsConfig.java               # Bot command patterns record
-│   ├── FeaturesConfig.java               # Feature flags record
+│   ├── FeaturesConfig.java               # Feature flags record (13 flags)
 │   ├── GuardsConfig.java                 # Guard thresholds record
 │   ├── LabelsConfig.java                 # Label name settings record
 │   ├── MarkersConfig.java                # Comment marker strings record
-│   └── PathsConfig.java                  # File path settings record
+│   ├── ScheduledConfig.java              # Scheduled task thresholds + community call/office hours config
+│   └── TeamsConfig.java                  # Team mention settings record
 ├── handler/
 │   ├── EventHandler.java                 # Handler interface (eventType, matches, isActive, handle)
 │   ├── AbstractEventHandler.java         # Base class with matcher + feature-check predicates
+│   ├── IssueCommandTriggerHandler.java   # Base for comment-triggered commands with regex matching
 │   ├── ServiceRegistry.java              # Service locator interface (getGitHub(), ...)
-│   └── impl/                             # Concrete handler implementations
+│   └── impl/                             # 8 concrete handler implementations
+│       ├── AssignCommandHandler.java     # /assign with level checks, limits, spam, mentors
+│       ├── UnassignCommandHandler.java   # /unassign self-removal
+│       ├── MissingLinkedIssueHandler.java
+│       ├── VerifiedCommitsHandler.java
+│       ├── MergeConflictHandler.java
+│       ├── NextIssueRecommendationHandler.java
+│       ├── WorkflowFailureNotificationHandler.java
+│       └── GfiCandidateNotificationHandler.java
 ├── model/
-│   ├── GitHubAction.java                 # Enum for GitHub webhook action types
-│   ├── GitHubEventType.java              # Enum for GitHub webhook event types
-│   ├── Comment.java / Issue.java / ...   # Immutable records for GitHub domain objects
+│   ├── GitHubAction.java                 # Enum for webhook action types
+│   ├── GitHubEventType.java              # Enum for webhook event types
+│   ├── Comment.java / Issue.java / ...   # Immutable domain records
 │   ├── event/                            # Webhook event payloads
 │   └── parse/                            # JSON → event parsing
-├── persistence/                           # Database layer (JPA entities, repositories, mapper)
+├── persistence/
 │   ├── entity/                           # JPA entities (internal to persistence layer)
+│   │   ├── RepoConfigEntity.java        # Per-repo config (all settings in one entity)
+│   │   ├── GitHubAccountEntity.java     # Base for spam/mentor (SINGLE_TABLE inheritance)
+│   │   ├── MentorAccountEntity.java     # Mentor with round-robin counter
+│   │   ├── AuditLogEntity.java          # Handler action audit trail
+│   │   └── ReminderStateEntity.java     # Reminder posting timestamps
 │   ├── repository/                       # Data access (AbstractRepository<T> base class)
 │   └── mapper/                           # Entity ↔ Record mapping
-├── rest/                                  # REST API services (Helidon HttpService implementations)
+├── rest/
+│   ├── ConfigApiService.java            # GET/PUT /api/repos/{owner}/{repo}/config
+│   ├── SpamUsersApiService.java         # GET/PUT /api/repos/{owner}/{repo}/spam-users
+│   ├── MentorsApiService.java           # GET/PUT /api/repos/{owner}/{repo}/mentors
+│   ├── AuditLogApiService.java          # GET /api/repos/{owner}/{repo}/audit-log
+│   ├── ReposApiService.java             # GET /api/repos (filtered by user permissions)
+│   ├── OAuthService.java                # /auth/login, /auth/callback, /auth/logout, /auth/me
+│   ├── AuthorizationFilter.java         # Session extraction, authentication enforcement
+│   ├── RepoRegistryLookup.java          # Resolves repo IDs from owner/repo path params
+│   └── JsonHelper.java                  # Jackson serialization/deserialization utility
 ├── scheduled/
-│   ├── InstallationLoader.java           # Loads all installed repos from GitHub on startup
-│   ├── RepoRegistry.java                 # In-memory registry of installed repositories
-│   └── ScheduledTaskManager.java         # Virtual thread task scheduler
-├── service/                               # Business logic (Entity ↔ Record translation)
-│   └── UserRepoService.java              # Fetches user-accessible repos from GitHub API
+│   ├── ScheduledTask.java               # Task interface (run, isActive)
+│   ├── AbstractScheduledTask.java       # Base with feature-flag checking
+│   ├── ScheduledTaskRunner.java         # Executes all tasks against all installed repos
+│   ├── ScheduledTaskManager.java        # scheduleAtFixedRate (24h interval, 1h initial delay)
+│   ├── InstallationLoader.java          # Loads installed repos from GitHub on startup
+│   └── impl/                            # 6 concrete scheduled task implementations
+│       ├── InactivityUnassignTask.java
+│       ├── IssueReminderNoPrTask.java
+│       ├── PrInactivityReminderTask.java
+│       ├── LinkedIssueEnforcerTask.java
+│       ├── CommunityCallReminderTask.java
+│       └── OfficeHoursReminderTask.java
+├── service/
+│   ├── RepoConfigService.java           # Config CRUD with fallback to defaults
+│   ├── SpamUserService.java             # Spam user management (DB-backed)
+│   ├── MentorService.java               # Mentor roster & round-robin selection
+│   ├── AuditLogService.java             # Audit log CRUD with filtering
+│   ├── ReminderStateService.java        # Tracks reminder posting timestamps
+│   └── UserRepoService.java             # Lists repos accessible to OAuth user
 ├── util/
 │   ├── CommentMarkerChecker.java         # Checks for HTML marker comments on issues
 │   ├── IssueSearchHelper.java            # GitHub search queries (assignments, PRs)
 │   ├── MessageFormatter.java             # SLF4J-style {} placeholder formatting
-│   ├── PermissionChecker.java            # Collaborator / exempt-from-guard checks
-│   └── SpamListLoader.java               # Loads + caches spam user list from repo file
+│   └── PermissionChecker.java            # Collaborator / exempt-from-guard checks
 └── webhook/
     ├── EventRouter.java                  # Routes events to matching handlers
     ├── WebhookService.java               # HTTP endpoint for GitHub webhooks
@@ -212,9 +258,9 @@ backend/src/main/java/com/openelements/octobird/
 backend/src/main/resources/
 ├── application.yaml                      # Server port + bot config (app-id, keys)
 ├── META-INF/persistence.xml              # JPA configuration
-└── db/migration/                         # Flyway SQL migrations
-
-actions/                                  # Reference workflows (read-only) (to be migrated into handlers)
+├── openapi.yaml                          # OpenAPI specification
+├── logback.xml                           # Logging configuration
+└── db/migration/                         # Flyway SQL migrations (V001–V010)
 ```
 
 ## Architecture
@@ -232,6 +278,8 @@ actions/                                  # Reference workflows (read-only) (to 
   `DefaultRepoConfig.allDefaults()` when no database entry exists.
 - **Persistence:** Layered architecture — handlers work with config records, service layer translates to/from
   JPA entities, repository layer handles CRUD. See [ARCHITECTURE.md](ARCHITECTURE.md) for details.
+- **Authentication:** GitHub App (RS256 JWT + installation tokens) for bot operations, GitHub OAuth2 for user login.
+  Sessions stored in-memory with periodic cleanup.
 
 ## Adding a New Event Handler
 
@@ -299,15 +347,22 @@ Application config in `backend/src/main/resources/application.yaml`:
 
 - `POST /webhook` - GitHub webhook receiver (signature-verified)
 - `GET /health` - Health check (returns "OK")
-- `GET /api/repos` - List installed repositories
+- `GET /api/repos` - List installed repositories (filtered by user permissions)
 - `GET/PUT /api/repos/{owner}/{repo}/config` - Repository configuration
 - `GET/PUT /api/repos/{owner}/{repo}/spam-users` - Spam user list
 - `GET/PUT /api/repos/{owner}/{repo}/mentors` - Mentor roster
-- `GET /api/repos/{owner}/{repo}/audit-log` - Audit log
+- `GET /api/repos/{owner}/{repo}/audit-log` - Audit log (paginated, filterable)
+- `GET /auth/login` - Initiate GitHub OAuth2 flow
+- `GET /auth/callback` - OAuth2 callback handler
+- `GET /auth/logout` - Destroy session
+- `GET /auth/me` - Current user info
 
 ## Security
 
 - All webhooks verified via HMAC-SHA256 with timing-safe comparison
 - GitHub App authentication via RS256 JWT tokens
 - Installation tokens cached with 60-second expiry buffer
-- GitHub Actions workflows use step-security/harden-runner
+- GitHub OAuth2 Authorization Code flow for user authentication
+- Session cookies (`OCTOBIRD_SESSION`) with in-memory session store
+- Authorization filter enforces authentication on `/api/*` routes
+- Repo-level permission checks via GitHub API (admin/maintain required)

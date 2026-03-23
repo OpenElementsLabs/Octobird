@@ -542,7 +542,7 @@ möglich. Stattdessen wird die OpenAPI-Spec manuell als YAML-Datei gepflegt:
 
 ---
 
-## Phase 7: Web-Frontend & Deployment
+## Phase 7: Web-Frontend & Deployment (in Arbeit)
 
 > Konfigurationsoberfläche für Repo-Admins, Repository-Umstrukturierung und
 > Deployment auf Coolify via Docker Compose. Baut auf Phase 6 (API) auf.
@@ -615,19 +615,23 @@ Octobird/
 - **Maven Wrapper bleibt im Backend:** `mvnw`/`.mvn/` werden nach `backend/` verschoben.
   Der Root-Level enthält keinen Build-Prozess.
 
-### 7.1 GitHub OAuth2 Login
+### ✅ 7.1 GitHub OAuth2 Login
 - "Login with GitHub"-Flow (OAuth2 Authorization Code)
-- Session-Management
+- Session-Management (In-Memory SessionStore mit Expiry-Cleanup)
 - Berechtigungsprüfung: User muss Admin/Maintainer des Repos sein
+- CSRF-Schutz via OAuthStateStore
 
-### 7.2 Konfigurations-Dashboard
-- Übersicht aller Repos, auf denen die App installiert ist
-- Pro Repo: Einstellungen bearbeiten (Maintainer, Limits, Features, Spam-Liste, etc.)
-- Aktivierung/Deaktivierung einzelner Features
+### ✅ 7.2 Konfigurations-Dashboard
+- Übersicht aller Repos, auf denen die App installiert ist (gefiltert nach User-Berechtigungen)
+- Pro Repo: Einstellungen bearbeiten (Features, Labels, Limits, Guards, Commands, Teams, Scheduled Tasks)
+- Spam-User-Verwaltung (eigene Seite pro Repo)
+- Mentor-Verwaltung (eigene Seite pro Repo)
 
-### 7.3 Activity-Log
+### ✅ 7.3 Activity-Log
 - Übersicht der letzten Bot-Aktionen pro Repo
-- Filtert nach Event-Typ, Handler, Zeitraum
+- Filtert nach Handler, Action, Zeitraum
+- Paginiert (25 Einträge pro Seite)
+- Expandierbare Zeilen mit Target & Details
 
 ### 7.5 Integration Tests für Auth & Authorization
 
@@ -669,7 +673,13 @@ Nach Abschluss der Umstrukturierung und Frontend-Entwicklung wird die gesamte An
 
 ```
 Phase 1+2+3+4+5+6 (✅ Abgeschlossen)
-  └──▶ Phase 7 (Frontend & Deployment)
+  └──▶ Phase 7 (Frontend & Deployment — in Arbeit)
+       ├── ✅ 7.0 Repository-Umstrukturierung
+       ├── ✅ 7.1 GitHub OAuth2 Login
+       ├── ✅ 7.2 Konfigurations-Dashboard
+       ├── ✅ 7.3 Activity-Log
+       ├── 7.5 Integration Tests für Auth & Authorization
+       └── 7.6 Deployment auf Coolify
 ```
 
 - Phase 7 baut auf Phase 6 auf (API muss stehen, bevor das Frontend darauf zugreift)

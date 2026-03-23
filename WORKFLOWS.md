@@ -64,7 +64,7 @@ All handlers use HTML comment markers to prevent duplicate bot messages.
 ## 1. User Commands
 
 All commands are triggered by posting a comment on an issue or pull request. The patterns are configurable in
-`.github/hiero-bot.yml` under `commands`.
+the per-repository configuration under `commands`.
 
 ### 1.1 `/assign` (all difficulty levels)
 
@@ -465,8 +465,8 @@ flowchart TD
 
 ## 5. Configuration Reference
 
-All settings are read from `.github/hiero-bot.yml` in each repository. Missing keys fall back to the documented
-defaults.
+All settings are stored in the database per repository and managed via the REST API or web dashboard.
+Missing keys fall back to the documented defaults.
 
 ### Feature Flags (`features`)
 

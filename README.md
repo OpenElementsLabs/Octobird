@@ -8,16 +8,36 @@ by GitHub webhook events and per-repository configuration.
 
 ## Features
 
-- **/assign** — Contributors self-assign to issues via comment command
+### User Commands
+- **/assign** — Contributors self-assign to issues via comment command (with difficulty-level prerequisites, assignment limits, spam filtering, and mentor assignment for newcomers)
 - **/unassign** — Contributors remove themselves from issues
 - **/working** — Signal active progress (resets inactivity timers)
-- **Assignment limits** — Enforce per-user assignment caps (configurable for spam users vs. regular contributors)
-- **Spam user restrictions** — Limit spam-listed users to "Good First Issue" only
-- **Maintainer bypass** — Collaborators with write/admin access are exempt from limits
-- **Per-repo configuration** — Database-backed settings with REST API
 
-See [ROADMAP.md](ROADMAP.md) for planned features including PR quality checks, mentor assignment, inactivity reminders,
-and more.
+### PR Quality Checks
+- **Missing Linked Issue** — Reminds PR authors to link an issue
+- **Merge Conflict Detection** — Detects conflicts and posts resolution guidance
+- **Verified Commits Check** — Ensures all commits are GPG-signed
+- **Next Issue Recommendation** — Suggests similar open issues after a contributor's first merged PR
+
+### Notifications
+- **GFI Candidate Notification** — Notifies a configured team when an issue is labeled as GFI candidate
+- **Workflow Failure Notification** — Posts CI failure alerts on affected PRs
+
+### Scheduled Tasks
+- **Inactivity Unassign** — Removes inactive assignees after configurable days
+- **Issue Reminder** — Reminds assignees who haven't created a PR
+- **PR Inactivity Reminder** — Reminds PR authors of stale PRs
+- **Linked Issue Enforcer** — Closes PRs without linked issues after grace period
+- **Community Call / Office Hours Reminders** — Bi-weekly reminders on contributor issues/PRs
+
+### Configuration & Management
+- **Per-repo configuration** — Database-backed settings with REST API and web dashboard
+- **GitHub OAuth2 Login** — Secure access for repo admins/maintainers
+- **Activity Log** — Filterable, paginated audit trail of all bot actions
+- **Spam user & mentor management** — Web UI for managing user lists
+
+See [ROADMAP.md](ROADMAP.md) for the migration roadmap and [WORKFLOWS.md](WORKFLOWS.md) for detailed workflow
+documentation with decision diagrams.
 
 ## Project Structure
 
@@ -90,23 +110,24 @@ references these variables using the `${ENV_VAR:default}` syntax.
 
 ## Endpoints
 
-| Endpoint        | Description                                  |
-|-----------------|----------------------------------------------|
-| `POST /webhook` | GitHub webhook receiver (signature-verified) |
-| `GET /health`   | Health check (returns `OK`)                  |
+| Endpoint                                       | Description                                  |
+|------------------------------------------------|----------------------------------------------|
+| `POST /webhook`                                | GitHub webhook receiver (signature-verified) |
+| `GET /health`                                  | Health check (returns `OK`)                  |
+| `GET /api/repos`                               | List installed repos (filtered by user)      |
+| `GET/PUT /api/repos/{owner}/{repo}/config`     | Get or update settings                       |
+| `GET/PUT /api/repos/{owner}/{repo}/spam-users` | Manage spam user list                        |
+| `GET/PUT /api/repos/{owner}/{repo}/mentors`    | Manage mentor roster                         |
+| `GET /api/repos/{owner}/{repo}/audit-log`      | View bot action history (paginated)          |
+| `GET /auth/login`                              | Initiate GitHub OAuth2 flow                  |
+| `GET /auth/callback`                           | OAuth2 callback handler                      |
+| `GET /auth/logout`                             | Destroy session                              |
+| `GET /auth/me`                                 | Current user info                            |
 
 ## Configuration
 
-Repository settings are stored in a database (PostgreSQL in production, H2 in-memory for development). A REST API
-allows managing configuration per repository:
-
-| Endpoint                                       | Description             |
-|------------------------------------------------|-------------------------|
-| `GET/PUT /api/repos/{owner}/{repo}/config`     | Get or update settings  |
-| `GET /api/repos`                               | List installed repos    |
-| `GET/PUT /api/repos/{owner}/{repo}/spam-users` | Manage spam user list   |
-| `GET/PUT /api/repos/{owner}/{repo}/mentors`    | Manage mentor roster    |
-| `GET /api/repos/{owner}/{repo}/audit-log`      | View bot action history |
+Repository settings are stored in a database (PostgreSQL in production, H2 in-memory for development) and can be
+managed via the REST API or the web dashboard at `http://localhost:3000`.
 
 If no database entry exists for a repository, built-in defaults are used. Database schema migrations are managed
 automatically via Flyway.
