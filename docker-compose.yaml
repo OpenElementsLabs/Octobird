@@ -30,6 +30,8 @@ services:
       BOT_APP_ID: ${BOT_APP_ID}
       BOT_PRIVATE_KEY: ${BOT_PRIVATE_KEY}
       BOT_WEBHOOK_SECRET: ${BOT_WEBHOOK_SECRET}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
       PORT: 8080
     labels:
       - traefik.enable=true

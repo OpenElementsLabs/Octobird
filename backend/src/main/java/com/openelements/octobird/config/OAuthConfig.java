@@ -2,6 +2,7 @@ package com.openelements.octobird.config;
 
 import io.helidon.config.Config;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -10,12 +11,14 @@ import java.util.Objects;
  *
  * @param clientId     the GitHub OAuth App client ID
  * @param clientSecret the GitHub OAuth App client secret
+ * @param callbackUrl  the public callback URL registered with GitHub
  */
-public record OAuthConfig(String clientId, String clientSecret) {
+public record OAuthConfig(String clientId, String clientSecret, String callbackUrl) {
 
     public OAuthConfig {
         Objects.requireNonNull(clientId, "clientId must not be null");
         Objects.requireNonNull(clientSecret, "clientSecret must not be null");
+        Objects.requireNonNull(callbackUrl, "callbackUrl must not be null");
     }
 
     /**
@@ -27,16 +30,19 @@ public record OAuthConfig(String clientId, String clientSecret) {
      * @return the populated OAuth configuration
      */
     public static OAuthConfig fromConfig(final Config config) {
-        final String clientIdEnv = System.getenv("GITHUB_CLIENT_ID");
-        final String clientSecretEnv = System.getenv("GITHUB_CLIENT_SECRET");
+        return fromConfig(config, System.getenv(), LocalEnvFile.load());
+    }
 
-        final String clientId = clientIdEnv == null
-                ? config.get("client-id").asString().orElse("")
-                : clientIdEnv;
-        final String clientSecret = clientSecretEnv == null
-                ? config.get("client-secret").asString().orElse("")
-                : clientSecretEnv;
-        return new OAuthConfig(clientId, clientSecret);
+    static OAuthConfig fromConfig(final Config config, final Map<String, String> environment,
+                                  final Map<String, String> localEnv) {
+        final String clientId = ConfigValueResolver.resolveString(
+                config, "client-id", "GITHUB_CLIENT_ID", "", environment, localEnv);
+        final String clientSecret = ConfigValueResolver.resolveString(
+                config, "client-secret", "GITHUB_CLIENT_SECRET", "", environment, localEnv);
+        final String callbackUrl = ConfigValueResolver.resolveString(
+                config, "callback-url", "OAUTH_CALLBACK_URL",
+                "http://localhost:3000/auth/callback", environment, localEnv);
+        return new OAuthConfig(clientId, clientSecret, callbackUrl);
     }
 
     /**

@@ -141,7 +141,8 @@ public final class Main {
         }, 30, 30, TimeUnit.MINUTES);
 
         // --- REST API services ---
-        final UserRepoService userRepoService = new UserRepoService(permissionCache, sessionStore);
+        final UserRepoService userRepoService = new UserRepoService(permissionCache, sessionStore,
+                repoRegistry);
         final ReposApiService reposApi = new ReposApiService(userRepoService);
         final ConfigApiService configApi = new ConfigApiService(configService, repoRegistry);
         final SpamUsersApiService spamUsersApi = new SpamUsersApiService(spamUserService, repoRegistry);

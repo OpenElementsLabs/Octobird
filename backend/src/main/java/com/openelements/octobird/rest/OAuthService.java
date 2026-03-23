@@ -82,7 +82,7 @@ public class OAuthService implements HttpService {
         }
 
         final String state = stateStore.generate();
-        final String callbackUrl = buildCallbackUrl(req);
+        final String callbackUrl = resolveCallbackUrl(req);
         final String redirectUrl = GITHUB_AUTHORIZE_URL
                 + "?client_id=" + encode(oauthConfig.clientId())
                 + "&redirect_uri=" + encode(callbackUrl)
@@ -109,7 +109,7 @@ public class OAuthService implements HttpService {
         }
 
         try {
-            final String accessToken = exchangeCodeForToken(code, buildCallbackUrl(req));
+            final String accessToken = exchangeCodeForToken(code, resolveCallbackUrl(req));
             if (accessToken == null) {
                 res.status(Status.BAD_REQUEST_400).send("Failed to exchange authorization code");
                 return;
@@ -204,6 +204,13 @@ public class OAuthService implements HttpService {
 
     private static String extractSessionId(final ServerRequest req) {
         return req.headers().cookies().first(COOKIE_NAME).orElse(null);
+    }
+
+    private String resolveCallbackUrl(final ServerRequest req) {
+        if (!oauthConfig.callbackUrl().isBlank()) {
+            return oauthConfig.callbackUrl();
+        }
+        return buildCallbackUrl(req);
     }
 
     private static String buildCallbackUrl(final ServerRequest req) {

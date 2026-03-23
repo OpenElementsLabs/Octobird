@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openelements.octobird.auth.PermissionCache;
 import com.openelements.octobird.auth.Session;
 import com.openelements.octobird.auth.SessionStore;
+import com.openelements.octobird.scheduled.RepoRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,11 +17,14 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
- * Fetches the list of repositories accessible to an authenticated user via the GitHub API,
- * filtered to only repos where the user has admin or maintain permission.
+ * Fetches the list of repositories where the GitHub App is installed and the authenticated user
+ * has admin or maintain permission.
  *
  * <p>Results are cached per session with a 5-minute TTL. The cache can be invalidated
  * via webhook events when repository access changes.
@@ -29,9 +33,11 @@ public class UserRepoService {
 
     private static final Logger LOG = LoggerFactory.getLogger(UserRepoService.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final Set<String> ALLOWED_PERMISSIONS = Set.of("admin", "maintain");
 
     private final PermissionCache permissionCache;
     private final SessionStore sessionStore;
+    private final RepoRegistry repoRegistry;
     private final HttpClient httpClient;
 
     /**
@@ -39,18 +45,21 @@ public class UserRepoService {
      *
      * @param permissionCache the cache for storing repo lists
      * @param sessionStore    the session store for invalidating sessions on token revocation
+     * @param repoRegistry    the registry of repositories where the GitHub App is installed
      */
-    public UserRepoService(final PermissionCache permissionCache, final SessionStore sessionStore) {
+    public UserRepoService(final PermissionCache permissionCache, final SessionStore sessionStore,
+                           final RepoRegistry repoRegistry) {
         this.permissionCache = Objects.requireNonNull(permissionCache, "permissionCache must not be null");
         this.sessionStore = Objects.requireNonNull(sessionStore, "sessionStore must not be null");
+        this.repoRegistry = Objects.requireNonNull(repoRegistry, "repoRegistry must not be null");
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
     }
 
     /**
-     * Returns the list of repository full names where the user has admin or maintain permission.
-     * Uses a cached result if available and not expired.
+     * Returns the list of installed repository full names where the user has admin or maintain
+     * permission. Uses a cached result if available and not expired.
      *
      * @param session the authenticated user session
      * @return list of repository full names (e.g. "owner/repo")
@@ -64,7 +73,7 @@ public class UserRepoService {
         }
 
         try {
-            final List<String> repos = fetchFilteredRepos(session.githubToken());
+            final List<String> repos = fetchInstalledReposUserCanManage(session);
             permissionCache.putRepoList(session.sessionId(), repos);
             return repos;
         } catch (final TokenRevokedException e) {
@@ -91,35 +100,48 @@ public class UserRepoService {
         permissionCache.removeAllRepoLists();
     }
 
-    private List<String> fetchFilteredRepos(final String token) throws TokenRevokedException, GitHubApiException {
-        final JsonNode installations = callGitHub(token, "https://api.github.com/user/installations");
-        final List<String> result = new ArrayList<>();
+    private List<String> fetchInstalledReposUserCanManage(final Session session)
+            throws TokenRevokedException, GitHubApiException {
+        final Map<Long, RepoRegistry.RegistrationEntry> installedRepos = repoRegistry.getAll();
+        if (installedRepos.isEmpty()) {
+            return List.of();
+        }
 
-        for (final JsonNode installation : installations.path("installations")) {
-            final long installationId = installation.get("id").asLong();
-            final JsonNode reposNode = callGitHub(token,
-                    "https://api.github.com/user/installations/" + installationId + "/repositories");
-
-            for (final JsonNode repo : reposNode.path("repositories")) {
-                final JsonNode permissions = repo.get("permissions");
-                if (permissions != null) {
-                    final boolean isAdmin = permissions.path("admin").asBoolean(false);
-                    final boolean isMaintain = permissions.path("maintain").asBoolean(false);
-                    if (isAdmin || isMaintain) {
-                        result.add(repo.get("full_name").asText());
-                    }
-                }
+        // Use a sorted set so the API response stays stable across runs.
+        final Set<String> manageableRepos = new TreeSet<>();
+        for (final RepoRegistry.RegistrationEntry entry : installedRepos.values()) {
+            final String repoFullName = entry.repoFullName();
+            final String permission = resolvePermission(session, repoFullName);
+            if (ALLOWED_PERMISSIONS.contains(permission)) {
+                manageableRepos.add(repoFullName);
             }
         }
 
-        return result;
+        return new ArrayList<>(manageableRepos);
     }
 
-    private JsonNode callGitHub(final String token, final String url)
+    private String resolvePermission(final Session session, final String repoFullName)
+            throws TokenRevokedException, GitHubApiException {
+        final String cached = permissionCache.get(session.sessionId(), repoFullName);
+        if (cached != null) {
+            return cached;
+        }
+
+        final String permission = fetchPermissionFromGitHub(
+                session.githubToken(), repoFullName, session.githubLogin());
+        if (permission != null) {
+            permissionCache.put(session.sessionId(), repoFullName, permission);
+        }
+        return permission;
+    }
+
+    private String fetchPermissionFromGitHub(final String token, final String repoFullName,
+                                             final String login)
             throws TokenRevokedException, GitHubApiException {
         try {
             final HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
+                    .uri(URI.create("https://api.github.com/repos/" + repoFullName
+                            + "/collaborators/" + login + "/permission"))
                     .header("Authorization", "Bearer " + token)
                     .header("Accept", "application/json")
                     .GET()
@@ -131,14 +153,26 @@ public class UserRepoService {
                 throw new TokenRevokedException("GitHub token has been revoked");
             }
             if (response.statusCode() == 403) {
-                LOG.warn("GitHub API rate limit or forbidden: {}", response.body());
-                throw new GitHubApiException("GitHub API rate limit exceeded", response.statusCode());
+                LOG.warn("GitHub permission check forbidden for {} on {}: {}",
+                        login, repoFullName, response.body());
+                return null;
+            }
+            if (response.statusCode() == 404) {
+                LOG.debug("GitHub permission check returned 404 for {} on {}", login, repoFullName);
+                return null;
+            }
+            if (response.statusCode() >= 500) {
+                throw new GitHubApiException("GitHub API error: " + response.statusCode(),
+                        response.statusCode());
             }
             if (response.statusCode() != 200) {
-                throw new GitHubApiException("GitHub API error: " + response.statusCode(), response.statusCode());
+                LOG.warn("GitHub permission check returned {} for {} on {}: {}",
+                        response.statusCode(), login, repoFullName, response.body());
+                return null;
             }
 
-            return MAPPER.readTree(response.body());
+            final JsonNode json = MAPPER.readTree(response.body());
+            return json.has("permission") ? json.get("permission").asText() : null;
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new GitHubApiException("GitHub API call interrupted", 0);
