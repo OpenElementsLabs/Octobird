@@ -42,6 +42,7 @@ public class OAuthService implements HttpService {
     private static final Logger LOG = LoggerFactory.getLogger(OAuthService.class);
     private static final String COOKIE_NAME = "OCTOBIRD_SESSION";
     private static final String GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize";
+    private static final String OAUTH_SCOPE = "read:org,repo";
     private static final String GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token";
     private static final String GITHUB_USER_URL = "https://api.github.com/user";
 
@@ -86,7 +87,7 @@ public class OAuthService implements HttpService {
         final String redirectUrl = GITHUB_AUTHORIZE_URL
                 + "?client_id=" + encode(oauthConfig.clientId())
                 + "&redirect_uri=" + encode(callbackUrl)
-                + "&scope=" + encode("read:org")
+            + "&scope=" + encode(OAUTH_SCOPE)
                 + "&state=" + encode(state);
 
         res.status(Status.FOUND_302)
