@@ -1,6 +1,8 @@
 FROM node:22-alpine AS build
 RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
+ARG BACKEND_URL
+ENV BACKEND_URL=$BACKEND_URL
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .

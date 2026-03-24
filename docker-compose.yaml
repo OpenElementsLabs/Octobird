@@ -45,6 +45,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        BACKEND_URL: https://${SERVICE_FQDN_BACKEND}
     restart: always
     depends_on:
       - backend
