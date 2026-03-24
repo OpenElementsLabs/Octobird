@@ -64,15 +64,15 @@ Octobird/
 
 ## Quick Start
 
-### Option 1: Docker Compose (Recommended)
+### Option 1: Docker Compose Database Only
 
 ```bash
-docker compose up
+docker compose up -d db
 ```
 
-Backend: `http://localhost:8080`, Frontend: `http://localhost:3000`, Database: `localhost:5432`
+Database: `localhost:5432`
 
-### Option 2: Individual Services
+### Option 2: Backend and Frontend Separately
 
 #### Backend
 
@@ -82,6 +82,8 @@ cd backend
 java -jar target/octobird-0.1.0-SNAPSHOT.jar
 ```
 
+The backend reads local defaults from [backend/src/main/resources/application.yaml](backend/src/main/resources/application.yaml), including PostgreSQL on `localhost:5432` and the OAuth callback URL `http://localhost:3000/auth/callback`.
+
 #### Frontend
 
 ```bash
@@ -90,10 +92,11 @@ pnpm install
 pnpm dev
 ```
 
+The frontend proxies `/api/*` and `/auth/*` to `http://localhost:8080` by default. You can override this with `BACKEND_URL` if needed.
+
 ### Configure
 
-The application is configured via environment variables. The `backend/src/main/resources/application.yaml` file
-references these variables using the `${ENV_VAR:default}` syntax.
+The backend loads defaults from [backend/src/main/resources/application.yaml](backend/src/main/resources/application.yaml). Environment variables can still override those values when needed.
 
 | Environment Variable | Description                                         | Default                                  |
 |----------------------|-----------------------------------------------------|------------------------------------------|
@@ -101,10 +104,11 @@ references these variables using the `${ENV_VAR:default}` syntax.
 | `BOT_PRIVATE_KEY`    | RSA private key (PEM format) for JWT authentication |                                          |
 | `BOT_WEBHOOK_SECRET` | HMAC secret for webhook signature verification      |                                          |
 | `PORT`               | HTTP port                                           | `8080`                                   |
-| `DB_URL`             | JDBC database URL                                   | `jdbc:h2:mem:octobird;DB_CLOSE_DELAY=-1` |
-| `DB_USERNAME`        | Database username                                   | `sa`                                     |
-| `DB_PASSWORD`        | Database password                                   |                                          |
-| `DB_DRIVER`          | JDBC driver class                                   | `org.h2.Driver`                          |
+| `DB_URL`             | JDBC database URL                                   | `jdbc:postgresql://localhost:5432/octobird` |
+| `DB_USERNAME`        | Database username                                   | `octobird`                              |
+| `DB_PASSWORD`        | Database password                                   | `octobird`                              |
+| `DB_DRIVER`          | JDBC driver class                                   | `org.postgresql.Driver`                 |
+| `OAUTH_CALLBACK_URL` | Public OAuth callback URL                           | `http://localhost:3000/auth/callback`   |
 
 **Do not commit real credentials.**
 

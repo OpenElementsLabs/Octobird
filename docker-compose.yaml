@@ -30,6 +30,9 @@ services:
       BOT_APP_ID: ${BOT_APP_ID}
       BOT_PRIVATE_KEY: ${BOT_PRIVATE_KEY}
       BOT_WEBHOOK_SECRET: ${BOT_WEBHOOK_SECRET}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      OAUTH_CALLBACK_URL: https://${SERVICE_FQDN_FRONTEND}/auth/callback
       PORT: 8080
     labels:
       - traefik.enable=true
@@ -42,10 +45,13 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        BACKEND_URL: https://${SERVICE_FQDN_BACKEND}
     restart: always
     depends_on:
       - backend
     environment:
+      BACKEND_URL: https://${SERVICE_FQDN_BACKEND}
       NEXT_PUBLIC_API_URL: ${SERVICE_URL_BACKEND}
       NODE_ENV: production
     labels:

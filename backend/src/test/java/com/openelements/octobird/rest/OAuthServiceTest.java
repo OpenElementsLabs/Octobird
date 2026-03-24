@@ -36,7 +36,7 @@ class OAuthServiceTest {
     @Test
     void unconfiguredOAuthIsDetected() {
         // Given
-        final OAuthConfig config = new OAuthConfig("", "");
+        final OAuthConfig config = new OAuthConfig("", "", "http://localhost:3000/auth/callback");
 
         // When
         final boolean configured = config.isConfigured();
@@ -48,7 +48,8 @@ class OAuthServiceTest {
     @Test
     void configuredOAuthIsDetected() {
         // Given
-        final OAuthConfig config = new OAuthConfig("client-id", "client-secret");
+        final OAuthConfig config = new OAuthConfig(
+                "client-id", "client-secret", "http://localhost:3000/auth/callback");
 
         // When
         final boolean configured = config.isConfigured();
@@ -145,7 +146,7 @@ class OAuthServiceTest {
     @Test
     void oauthServiceInstantiatesWithConfig() {
         // Given
-        final OAuthConfig config = new OAuthConfig("id", "secret");
+        final OAuthConfig config = new OAuthConfig("id", "secret", "http://localhost:3000/auth/callback");
 
         // When
         final OAuthService service = new OAuthService(config, sessionStore, stateStore);
@@ -213,7 +214,7 @@ class OAuthServiceTest {
     @Test
     void blankClientIdMeansNotConfigured() {
         // Given
-        final OAuthConfig config = new OAuthConfig("  ", "secret");
+        final OAuthConfig config = new OAuthConfig("  ", "secret", "http://localhost:3000/auth/callback");
 
         // When
         final boolean configured = config.isConfigured();

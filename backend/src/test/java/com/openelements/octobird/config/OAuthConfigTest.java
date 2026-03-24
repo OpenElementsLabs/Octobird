@@ -20,11 +20,12 @@ class OAuthConfigTest {
                 .build();
 
         // When
-        final OAuthConfig oauthConfig = OAuthConfig.fromConfig(config);
+        final OAuthConfig oauthConfig = OAuthConfig.fromConfig(config, Map.of(), Map.of());
 
         // Then
         assertEquals("", oauthConfig.clientId());
         assertEquals("", oauthConfig.clientSecret());
+        assertEquals("http://localhost:3000/auth/callback", oauthConfig.callbackUrl());
         assertFalse(oauthConfig.isConfigured());
     }
 
@@ -34,25 +35,27 @@ class OAuthConfigTest {
         final Config config = Config.builder()
                 .sources(ConfigSources.create(Map.of(
                         "client-id", "test-client-id",
-                        "client-secret", "test-client-secret"
+                        "client-secret", "test-client-secret",
+                        "callback-url", "http://localhost:3000/auth/callback"
                 )))
                 .disableEnvironmentVariablesSource()
                 .disableSystemPropertiesSource()
                 .build();
 
         // When
-        final OAuthConfig oauthConfig = OAuthConfig.fromConfig(config);
+        final OAuthConfig oauthConfig = OAuthConfig.fromConfig(config, Map.of(), Map.of());
 
         // Then
         assertEquals("test-client-id", oauthConfig.clientId());
         assertEquals("test-client-secret", oauthConfig.clientSecret());
+        assertEquals("http://localhost:3000/auth/callback", oauthConfig.callbackUrl());
         assertTrue(oauthConfig.isConfigured());
     }
 
     @Test
     void isConfiguredReturnsFalseForBlankClientId() {
         // Given
-        final OAuthConfig config = new OAuthConfig("  ", "some-secret");
+        final OAuthConfig config = new OAuthConfig("  ", "some-secret", "http://localhost:3000/auth/callback");
 
         // When
         final boolean configured = config.isConfigured();
@@ -64,12 +67,20 @@ class OAuthConfigTest {
     @Test
     void rejectsNullClientId() {
         // Given / When / Then
-        assertThrows(NullPointerException.class, () -> new OAuthConfig(null, "secret"));
+        assertThrows(NullPointerException.class,
+                () -> new OAuthConfig(null, "secret", "http://localhost:3000/auth/callback"));
     }
 
     @Test
     void rejectsNullClientSecret() {
         // Given / When / Then
-        assertThrows(NullPointerException.class, () -> new OAuthConfig("id", null));
+        assertThrows(NullPointerException.class,
+                () -> new OAuthConfig("id", null, "http://localhost:3000/auth/callback"));
+    }
+
+    @Test
+    void rejectsNullCallbackUrl() {
+        // Given / When / Then
+        assertThrows(NullPointerException.class, () -> new OAuthConfig("id", "secret", null));
     }
 }

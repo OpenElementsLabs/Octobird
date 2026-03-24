@@ -9,9 +9,10 @@ bot:
 oauth:
   client-id: ""
   client-secret: ""
+  callback-url: http://localhost:3000/auth/callback
 
 datasource:
-  url: jdbc:h2:mem:octobird;DB_CLOSE_DELAY=-1
-  username: sa
-  password: ""
-  driver: org.h2.Driver
+  url: jdbc:postgresql://localhost:5432/octobird
+  username: octobird
+  password: octobird
+  driver: org.postgresql.Driver

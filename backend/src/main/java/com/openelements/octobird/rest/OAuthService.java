@@ -42,6 +42,7 @@ public class OAuthService implements HttpService {
     private static final Logger LOG = LoggerFactory.getLogger(OAuthService.class);
     private static final String COOKIE_NAME = "OCTOBIRD_SESSION";
     private static final String GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize";
+    private static final String OAUTH_SCOPE = "read:org,repo";
     private static final String GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token";
     private static final String GITHUB_USER_URL = "https://api.github.com/user";
 
@@ -82,11 +83,11 @@ public class OAuthService implements HttpService {
         }
 
         final String state = stateStore.generate();
-        final String callbackUrl = buildCallbackUrl(req);
+        final String callbackUrl = resolveCallbackUrl(req);
         final String redirectUrl = GITHUB_AUTHORIZE_URL
                 + "?client_id=" + encode(oauthConfig.clientId())
                 + "&redirect_uri=" + encode(callbackUrl)
-                + "&scope=" + encode("read:org")
+            + "&scope=" + encode(OAUTH_SCOPE)
                 + "&state=" + encode(state);
 
         res.status(Status.FOUND_302)
@@ -109,7 +110,7 @@ public class OAuthService implements HttpService {
         }
 
         try {
-            final String accessToken = exchangeCodeForToken(code, buildCallbackUrl(req));
+            final String accessToken = exchangeCodeForToken(code, resolveCallbackUrl(req));
             if (accessToken == null) {
                 res.status(Status.BAD_REQUEST_400).send("Failed to exchange authorization code");
                 return;
@@ -204,6 +205,13 @@ public class OAuthService implements HttpService {
 
     private static String extractSessionId(final ServerRequest req) {
         return req.headers().cookies().first(COOKIE_NAME).orElse(null);
+    }
+
+    private String resolveCallbackUrl(final ServerRequest req) {
+        if (!oauthConfig.callbackUrl().isBlank()) {
+            return oauthConfig.callbackUrl();
+        }
+        return buildCallbackUrl(req);
     }
 
     private static String buildCallbackUrl(final ServerRequest req) {
