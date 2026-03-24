@@ -32,6 +32,7 @@ services:
       BOT_WEBHOOK_SECRET: ${BOT_WEBHOOK_SECRET}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      OAUTH_CALLBACK_URL: https://${SERVICE_FQDN_FRONTEND}/auth/callback
       PORT: 8080
     labels:
       - traefik.enable=true
@@ -48,6 +49,7 @@ services:
     depends_on:
       - backend
     environment:
+      BACKEND_URL: https://${SERVICE_FQDN_BACKEND}
       NEXT_PUBLIC_API_URL: ${SERVICE_URL_BACKEND}
       NODE_ENV: production
     labels:
