@@ -93,25 +93,41 @@ public class UserRepoService {
 
     private List<String> fetchFilteredRepos(final String token) throws TokenRevokedException, GitHubApiException {
         final JsonNode installations = callGitHub(token, "https://api.github.com/user/installations");
+        final int totalInstallations = installations.path("total_count").asInt(0);
         final List<String> result = new ArrayList<>();
+
+        LOG.info("Found {} installations for authenticated user", totalInstallations);
 
         for (final JsonNode installation : installations.path("installations")) {
             final long installationId = installation.get("id").asLong();
+            final String appSlug = installation.path("app_slug").asText("unknown");
+            LOG.info("Checking installation {} (app: {})", installationId, appSlug);
+
             final JsonNode reposNode = callGitHub(token,
                     "https://api.github.com/user/installations/" + installationId + "/repositories");
+            final int totalRepos = reposNode.path("total_count").asInt(0);
+            LOG.info("Installation {} has {} repositories", installationId, totalRepos);
 
             for (final JsonNode repo : reposNode.path("repositories")) {
+                final String fullName = repo.get("full_name").asText();
                 final JsonNode permissions = repo.get("permissions");
                 if (permissions != null) {
                     final boolean isAdmin = permissions.path("admin").asBoolean(false);
                     final boolean isMaintain = permissions.path("maintain").asBoolean(false);
+                    LOG.debug("Repo {} — admin={}, maintain={}", fullName, isAdmin, isMaintain);
                     if (isAdmin || isMaintain) {
-                        result.add(repo.get("full_name").asText());
+                        result.add(fullName);
+                    } else {
+                        LOG.info("Repo {} skipped — user lacks admin/maintain permission (permissions: {})",
+                                fullName, permissions);
                     }
+                } else {
+                    LOG.warn("Repo {} has no permissions field in API response", fullName);
                 }
             }
         }
 
+        LOG.info("User has access to {} repos after permission filtering", result.size());
         return result;
     }
 
