@@ -19,6 +19,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  
   // Check for session cookie
   const sessionCookie = request.cookies.get("OCTOBIRD_SESSION");
   if (!sessionCookie?.value) {
