@@ -27,6 +27,7 @@
         <h2.version>2.3.232</h2.version>
         <postgresql.version>42.7.4</postgresql.version>
         <swagger-ui.version>5.18.2</swagger-ui.version>
+        <dotenv.version>3.2.0</dotenv.version>
         <mainClass>com.openelements.octobird.Main</mainClass>
     </properties>
 
@@ -60,6 +61,11 @@
             <groupId>org.jspecify</groupId>
             <artifactId>jspecify</artifactId>
             <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>dotenv-java</artifactId>
+            <version>${dotenv.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

@@ -26,11 +26,10 @@ public record BotConfig(long appId, String privateKey, String webhookSecret) {
      * @return the populated bot configuration
      */
     public static BotConfig fromConfig(final Config config) {
-        final long appId = ConfigValueResolver.resolveLong(config, "app-id", "BOT_APP_ID", 0L);
-        final String privateKey = ConfigValueResolver.resolveString(
-                config, "private-key", "BOT_PRIVATE_KEY", "");
-        final String webhookSecret = ConfigValueResolver.resolveString(
-                config, "webhook-secret", "BOT_WEBHOOK_SECRET", "");
+        final long appId = config.get("app-id").asLong().orElse(0L);
+        final String rawKey = config.get("private-key").asString().orElse("");
+        final String privateKey = rawKey.replace("\\n", "\n");
+        final String webhookSecret = config.get("webhook-secret").asString().orElse("");
         return new BotConfig(appId, privateKey, webhookSecret);
     }
 }

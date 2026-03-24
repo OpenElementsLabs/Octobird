@@ -20,7 +20,7 @@ class OAuthConfigTest {
                 .build();
 
         // When
-        final OAuthConfig oauthConfig = OAuthConfig.fromConfig(config, Map.of(), Map.of());
+        final OAuthConfig oauthConfig = OAuthConfig.fromConfig(config);
 
         // Then
         assertEquals("", oauthConfig.clientId());
@@ -36,26 +36,27 @@ class OAuthConfigTest {
                 .sources(ConfigSources.create(Map.of(
                         "client-id", "test-client-id",
                         "client-secret", "test-client-secret",
-                        "callback-url", "http://localhost:3000/auth/callback"
+                        "callback-url", "https://example.com/auth/callback"
                 )))
                 .disableEnvironmentVariablesSource()
                 .disableSystemPropertiesSource()
                 .build();
 
         // When
-        final OAuthConfig oauthConfig = OAuthConfig.fromConfig(config, Map.of(), Map.of());
+        final OAuthConfig oauthConfig = OAuthConfig.fromConfig(config);
 
         // Then
         assertEquals("test-client-id", oauthConfig.clientId());
         assertEquals("test-client-secret", oauthConfig.clientSecret());
-        assertEquals("http://localhost:3000/auth/callback", oauthConfig.callbackUrl());
+        assertEquals("https://example.com/auth/callback", oauthConfig.callbackUrl());
         assertTrue(oauthConfig.isConfigured());
     }
 
     @Test
     void isConfiguredReturnsFalseForBlankClientId() {
         // Given
-        final OAuthConfig config = new OAuthConfig("  ", "some-secret", "http://localhost:3000/auth/callback");
+        final OAuthConfig config = new OAuthConfig("  ", "some-secret",
+                "http://localhost:3000/auth/callback");
 
         // When
         final boolean configured = config.isConfigured();
@@ -81,6 +82,7 @@ class OAuthConfigTest {
     @Test
     void rejectsNullCallbackUrl() {
         // Given / When / Then
-        assertThrows(NullPointerException.class, () -> new OAuthConfig("id", "secret", null));
+        assertThrows(NullPointerException.class,
+                () -> new OAuthConfig("id", "secret", null));
     }
 }

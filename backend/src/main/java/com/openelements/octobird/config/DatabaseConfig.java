@@ -29,14 +29,11 @@ public record DatabaseConfig(String url, String username, String password, Strin
      * @return the populated database configuration
      */
     public static DatabaseConfig fromConfig(final Config config) {
-        final String url = ConfigValueResolver.resolveString(
-                config, "url", "DB_URL", "jdbc:h2:mem:octobird;DB_CLOSE_DELAY=-1");
-        final String username = ConfigValueResolver.resolveString(
-                config, "username", "DB_USERNAME", "sa");
-        final String password = ConfigValueResolver.resolveString(
-                config, "password", "DB_PASSWORD", "");
-        final String driver = ConfigValueResolver.resolveString(
-                config, "driver", "DB_DRIVER", "org.h2.Driver");
+        final String url = config.get("url").asString()
+                .orElse("jdbc:postgresql://localhost:5432/octobird");
+        final String username = config.get("username").asString().orElse("octobird");
+        final String password = config.get("password").asString().orElse("");
+        final String driver = config.get("driver").asString().orElse("org.postgresql.Driver");
         return new DatabaseConfig(url, username, password, driver);
     }
 }

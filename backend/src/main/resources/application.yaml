@@ -1,18 +1,18 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 bot:
-  app-id: 0
-  private-key: ""
-  webhook-secret: ""
+  app-id: ${BOT_APP_ID:0}
+  private-key: ${BOT_PRIVATE_KEY:}
+  webhook-secret: ${BOT_WEBHOOK_SECRET:}
 
 oauth:
-  client-id: ""
-  client-secret: ""
-  callback-url: http://localhost:3000/auth/callback
+  client-id: ${GITHUB_CLIENT_ID:}
+  client-secret: ${GITHUB_CLIENT_SECRET:}
+  callback-url: ${OAUTH_CALLBACK_URL:http://localhost:3000/auth/callback}
 
 datasource:
-  url: jdbc:postgresql://localhost:5432/octobird
-  username: octobird
-  password: octobird
-  driver: org.postgresql.Driver
+  url: ${DB_URL:jdbc:postgresql://localhost:5432/octobird}
+  username: ${DB_USERNAME:octobird}
+  password: ${DB_PASSWORD:octobird}
+  driver: ${DB_DRIVER:org.postgresql.Driver}

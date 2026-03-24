@@ -1,7 +1,9 @@
 package com.openelements.octobird;
 
 import com.zaxxer.hikari.HikariDataSource;
+import io.github.cdimascio.dotenv.Dotenv;
 import io.helidon.config.Config;
+import io.helidon.config.ConfigSources;
 import io.helidon.webserver.WebServer;
 import io.helidon.webserver.http.HttpRouting;
 import io.helidon.webserver.staticcontent.StaticContentService;
@@ -37,7 +39,9 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -60,7 +64,20 @@ public final class Main {
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
 
-        final Config config = Config.create();
+        // Load .env file (if present) via dotenv-java and inject into Helidon Config.
+        // Priority: System env vars > .env file > application.yaml defaults
+        final Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+        final Map<String, String> dotenvMap = new HashMap<>();
+        dotenv.entries(Dotenv.Filter.DECLARED_IN_ENV_FILE)
+                .forEach(e -> dotenvMap.put(e.getKey(), e.getValue()));
+
+        final Config config = Config.builder()
+                .addSource(ConfigSources.environmentVariables())
+                .addSource(ConfigSources.create(dotenvMap))
+                .addSource(ConfigSources.classpath("application.yaml"))
+                .disableEnvironmentVariablesSource()
+                .disableSystemPropertiesSource()
+                .build();
         final BotConfig botConfig = BotConfig.fromConfig(config.get("bot"));
         final DatabaseConfig dbConfig = DatabaseConfig.fromConfig(config.get("datasource"));
         final OAuthConfig oauthConfig = OAuthConfig.fromConfig(config.get("oauth"));
