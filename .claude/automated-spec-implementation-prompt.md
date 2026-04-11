@@ -25,7 +25,8 @@ git commit -m "feat: implement <spec-name>"
 git push
 ```
 
-Then continue with the next spec from Step 2.
+Then continue with the next spec from Step 2. The process should be fully automated and sequential, without any pauses or requests for input.
+The process should not stop after a successful review – it should immediately proceed to the next spec until all specs are completed.
 
 ---
 
