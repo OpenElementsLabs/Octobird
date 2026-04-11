@@ -33,6 +33,13 @@ JPA / Hibernate (Entities, persistence.xml)
 Database (PostgreSQL / H2)
 ```
 
+## Container Security
+
+- **Non-root execution** — Backend container runs as `appuser` (not root) to limit blast radius of potential compromises
+- **Minimal runtime image** — Alpine-based JRE image (`eclipse-temurin:21-jre-alpine`) for smallest possible attack surface
+- **Immutable binaries** — Application files owned by root, readable by `appuser` — the app cannot modify its own JAR
+- **Clean runtime** — No source code, build tools, or Maven cache in the runtime image
+
 ## Key Design Principles
 
 - **Independent Deployability** — Backend and frontend are separate applications with independent builds
