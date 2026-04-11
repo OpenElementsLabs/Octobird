@@ -1,6 +1,7 @@
-The merged content is ready. Please approve the write to `CLAUDE.md` to apply it. The merged document:
+Waiting for your approval to write the merged content to `CLAUDE.md`. The merged document:
 
-- Starts with base content: Core Philosophy, Code Quality, Security (base rules + project-specific details merged), Testing (base rules + Given-When-Then structure merged), Documentation, Pull Requests, Additional Conventions
-- Follows with all project-specific content: Project Overview, Goal, Structure, Tech Stack, Build Commands, Package Structure, Architecture, Adding a Handler, Code Conventions, Configuration, Endpoints
-- Removed the duplicate standalone Security section from the end (merged into the top-level Security section)
-- No rules are duplicated; project-specific versions win where there were conflicts (e.g., credentials rule)
+- **Base sections first:** Core Philosophy, Code Quality, Security, Testing, Documentation, Pull Requests, Conventions
+- **Security:** base rules + project-specific webhook/auth details merged (no duplicates)
+- **Testing:** base rules + Given-When-Then structure merged into one section
+- **Conventions:** project-specific focused list (replaces the full generic list from base), plus added `reproducible-builds.md` and `specs/INDEX.md` which were in the base but missing from the old project CLAUDE.md
+- **Project-specific sections follow:** all content from the previous CLAUDE.md (Project Overview through Endpoints)
