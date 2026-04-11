@@ -1,7 +1,7 @@
 ## 1. TypeScript Types and API Client
 
-- [ ] 1.1 Create `frontend/src/types/config.ts` with TypeScript interfaces mirroring all backend config records (`RepoConfig`, `FeaturesConfig`, `LabelsConfig`, `AssignmentLimitsConfig`, `GuardsConfig`, `CommandsConfig`, `MarkersConfig`, `TeamsConfig`, `ScheduledConfig`, `CommunityCallConfig`, `OfficeHoursConfig`, `IssueLevel` enum, `GitHubAccountDto`)
-- [ ] 1.2 Create `frontend/src/lib/api.ts` with typed API client functions: `fetchRepos()`, `fetchConfig(owner, repo)`, `saveConfig(owner, repo, config)`, `fetchSpamUsers(owner, repo)`, `saveSpamUsers(owner, repo, users)`, `fetchMentors(owner, repo)`, `saveMentors(owner, repo, mentors)` -- each wrapping `fetch()` with proper error handling and typed return values
+- [x] 1.1 Create `frontend/src/types/config.ts` with TypeScript interfaces mirroring all backend config records (`RepoConfig`, `FeaturesConfig`, `LabelsConfig`, `AssignmentLimitsConfig`, `GuardsConfig`, `CommandsConfig`, `MarkersConfig`, `TeamsConfig`, `ScheduledConfig`, `CommunityCallConfig`, `OfficeHoursConfig`, `IssueLevel` enum, `GitHubAccountDto`)
+- [x] 1.2 Create `frontend/src/lib/api.ts` with typed API client functions: `fetchRepos()`, `fetchConfig(owner, repo)`, `saveConfig(owner, repo, config)`, `fetchSpamUsers(owner, repo)`, `saveSpamUsers(owner, repo, users)`, `fetchMentors(owner, repo)`, `saveMentors(owner, repo, mentors)` -- each wrapping `fetch()` with proper error handling and typed return values
 
 ## 2. Reusable UI Components
 
