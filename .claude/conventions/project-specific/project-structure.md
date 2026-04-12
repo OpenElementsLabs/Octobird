@@ -41,10 +41,15 @@ Octobird/
 │       ├── test/                   # Test setup (Vitest + RTL)
 │       └── types/                  # TypeScript interfaces
 │
+├── .github/
+│   └── workflows/
+│       └── build.yml               # CI pipeline (backend, frontend, docker)
+│
 ├── specs/                          # Spec-driven development specs
 │   └── INDEX.md                    # Spec index with status tracking
 │
-├── docker-compose.yml              # Full-stack local development
+├── docker-compose.yml              # Production base (Traefik labels, no port mappings)
+├── docker-compose.override.yml     # Local development overrides (port mappings)
 ├── .editorconfig                   # Editor formatting rules
 ├── .gitignore                      # Git ignore patterns
 ├── .env.example                    # Environment variable template

@@ -44,6 +44,11 @@
 - Prettier 3.8 + prettier-plugin-tailwindcss (code formatting)
 - Vitest 4.1 + React Testing Library 16 + jsdom (frontend testing)
 
+## CI/CD
+
+- GitHub Actions (`build.yml` — backend verify, frontend test+build, Docker compose build)
+- Actions: checkout@v4, setup-java@v4, setup-node@v4, pnpm/action-setup@v4
+
 ## Infrastructure
 
 - Docker + Docker Compose (local development and deployment)
