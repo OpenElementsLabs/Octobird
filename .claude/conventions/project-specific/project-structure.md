@@ -23,12 +23,22 @@ Octobird/
 │   ├── package.json
 │   ├── pnpm-lock.yaml
 │   ├── Dockerfile
+│   ├── .nvmrc                      # Node.js version pinning (v22.19.0)
+│   ├── .dockerignore               # Docker build context exclusions
+│   ├── components.json             # shadcn/ui configuration (new-york style)
 │   ├── next.config.ts
-│   ├── tailwind.config.ts
+│   ├── postcss.config.mjs
+│   ├── prettier.config.js          # Prettier + Tailwind plugin config
+│   ├── vitest.config.ts            # Vitest test runner config
+│   ├── public/
+│   │   └── favicon.ico             # Open Elements favicon
 │   └── src/
 │       ├── app/                    # Next.js App Router pages
-│       ├── components/             # Reusable UI components
-│       ├── lib/                    # API client, auth helpers
+│       │   └── globals.css         # Open Elements brand theme (shadcn/ui CSS vars)
+│       ├── components/
+│       │   └── ui/                 # shadcn/ui components
+│       ├── lib/                    # API client, utils (cn())
+│       ├── test/                   # Test setup (Vitest + RTL)
 │       └── types/                  # TypeScript interfaces
 │
 ├── specs/                          # Spec-driven development specs

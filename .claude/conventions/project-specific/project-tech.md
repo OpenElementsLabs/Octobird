@@ -39,6 +39,10 @@
 ### Frontend
 
 - Tailwind CSS 4.1 (utility-first styling)
+- shadcn/ui (new-york style, Radix UI primitives, class-variance-authority)
+- Lucide React (icon library)
+- Prettier 3.8 + prettier-plugin-tailwindcss (code formatting)
+- Vitest 4.1 + React Testing Library 16 + jsdom (frontend testing)
 
 ## Infrastructure
 
