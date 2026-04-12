@@ -38,8 +38,8 @@ Octobird/
 
 ## Requirements
 
-- Java 21+
-- Node.js 20+ and pnpm (for frontend)
+- Java 21+ (use `sdk env` with SDKMAN! in `backend/`)
+- Node.js 22+ and pnpm (use `nvm use` in `frontend/`)
 - A [GitHub App](https://docs.github.com/en/apps/creating-github-apps) with webhook permissions
 
 ## Quick Start
@@ -47,10 +47,14 @@ Octobird/
 ### Option 1: Docker Compose (Recommended)
 
 ```bash
-docker compose up
+cp .env.example .env   # Fill in real values (GitHub App credentials, DB password)
+docker compose up --build
 ```
 
 Backend: `http://localhost:8080`, Frontend: `http://localhost:3000`, Database: `localhost:5432`
+
+Port mappings are provided by `docker-compose.override.yml` (committed, automatically merged).
+In production (Coolify), Traefik handles routing and the override is not used.
 
 ### Option 2: Individual Services
 
