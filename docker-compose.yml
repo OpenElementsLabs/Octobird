@@ -1,36 +1,57 @@
 services:
-  backend:
-    build: ./backend
-    ports:
-      - "8080:8080"
+  db:
+    image: postgres:17-alpine
+    restart: always
     environment:
-      DB_URL: jdbc:postgresql://db:5432/octobird
-      DB_USERNAME: octobird
-      DB_PASSWORD: octobird
+      POSTGRES_DB: ${POSTGRES_DB:-octobird}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB:-octobird}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-octobird}
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_DRIVER: org.postgresql.Driver
       BOT_APP_ID: ${BOT_APP_ID}
       BOT_PRIVATE_KEY: ${BOT_PRIVATE_KEY}
       BOT_WEBHOOK_SECRET: ${BOT_WEBHOOK_SECRET}
-    depends_on:
-      - db
+      PORT: 8080
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.octobird-backend.rule=Host(`${SERVICE_FQDN_BACKEND}`)
+      - traefik.http.routers.octobird-backend.entrypoints=http,https
+      - traefik.http.routers.octobird-backend.tls=true
+      - traefik.http.services.octobird-backend.loadbalancer.server.port=8080
 
   frontend:
     build: ./frontend
-    ports:
-      - "3000:3000"
+    restart: always
+    depends_on:
+      - backend
     environment:
-      NEXT_PUBLIC_API_URL: http://backend:8080
-
-  db:
-    image: postgres:17
-    environment:
-      POSTGRES_DB: octobird
-      POSTGRES_USER: octobird
-      POSTGRES_PASSWORD: octobird
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+      - BACKEND_URL=http://backend:8080
+      - NODE_ENV=production
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.octobird-frontend.rule=Host(`${SERVICE_FQDN_FRONTEND}`)
+      - traefik.http.routers.octobird-frontend.entrypoints=http,https
+      - traefik.http.routers.octobird-frontend.tls=true
+      - traefik.http.services.octobird-frontend.loadbalancer.server.port=3000
 
 volumes:
   pgdata:
