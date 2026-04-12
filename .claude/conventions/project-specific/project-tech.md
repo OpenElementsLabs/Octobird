@@ -49,3 +49,4 @@
 - Docker + Docker Compose (local development and deployment)
 - Coolify (deployment platform)
 - Backend container: `eclipse-temurin:21` (build stage), `eclipse-temurin:21-jre-alpine` (runtime stage), non-root `appuser`
+- Frontend container: `node:22-alpine`, 4-stage build, non-root `appuser`, `BACKEND_URL` build arg
