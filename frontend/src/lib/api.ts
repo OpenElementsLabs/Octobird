@@ -35,28 +35,16 @@ export async function fetchRepos(): Promise<string[]> {
   return fetchJson<string[]>("/api/repos");
 }
 
-export async function fetchConfig(
-  owner: string,
-  repo: string,
-): Promise<RepoConfig> {
+export async function fetchConfig(owner: string, repo: string): Promise<RepoConfig> {
   return fetchJson<RepoConfig>(`/api/repos/${owner}/${repo}/config`);
 }
 
-export async function saveConfig(
-  owner: string,
-  repo: string,
-  config: RepoConfig,
-): Promise<void> {
+export async function saveConfig(owner: string, repo: string, config: RepoConfig): Promise<void> {
   return putJson(`/api/repos/${owner}/${repo}/config`, config);
 }
 
-export async function fetchSpamUsers(
-  owner: string,
-  repo: string,
-): Promise<GitHubAccountDto[]> {
-  return fetchJson<GitHubAccountDto[]>(
-    `/api/repos/${owner}/${repo}/spam-users`,
-  );
+export async function fetchSpamUsers(owner: string, repo: string): Promise<GitHubAccountDto[]> {
+  return fetchJson<GitHubAccountDto[]>(`/api/repos/${owner}/${repo}/spam-users`);
 }
 
 export async function saveSpamUsers(
@@ -67,13 +55,8 @@ export async function saveSpamUsers(
   return putJson(`/api/repos/${owner}/${repo}/spam-users`, users);
 }
 
-export async function fetchMentors(
-  owner: string,
-  repo: string,
-): Promise<GitHubAccountDto[]> {
-  return fetchJson<GitHubAccountDto[]>(
-    `/api/repos/${owner}/${repo}/mentors`,
-  );
+export async function fetchMentors(owner: string, repo: string): Promise<GitHubAccountDto[]> {
+  return fetchJson<GitHubAccountDto[]>(`/api/repos/${owner}/${repo}/mentors`);
 }
 
 export async function saveMentors(
